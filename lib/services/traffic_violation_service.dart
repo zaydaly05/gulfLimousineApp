@@ -25,11 +25,15 @@ class TrafficViolationService {
     return collection.where('rentalId', isEqualTo: rentalId).snapshots();
   }
 
-  static Stream<QuerySnapshot<Map<String, dynamic>>> watchForUserId(String userId) {
+  static Stream<QuerySnapshot<Map<String, dynamic>>> watchForUserId(
+    String userId,
+  ) {
     return collection.where('userId', isEqualTo: userId).snapshots();
   }
 
-  static Stream<QuerySnapshot<Map<String, dynamic>>> watchForEmail(String email) {
+  static Stream<QuerySnapshot<Map<String, dynamic>>> watchForEmail(
+    String email,
+  ) {
     return collection.where('user_email', isEqualTo: email).snapshots();
   }
 

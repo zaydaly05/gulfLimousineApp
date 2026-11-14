@@ -1,7 +1,9 @@
-import 'package:http/http.dart' as http;
-import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 import 'dart:io';
+
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 
 class CloudinaryService {
   final String cloudName = 'delnnzcph';
@@ -38,17 +40,15 @@ class CloudinaryService {
   }) async {
     var request = http.MultipartRequest(
       'POST',
-      Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/${filename.endsWith(".mp4") ? "video" : "image"}/upload'),
+      Uri.parse(
+        'https://api.cloudinary.com/v1_1/$cloudName/${_isVideo(filename) ? "video" : "image"}/upload',
+      ),
     );
 
     request.fields['upload_preset'] = uploadPreset;
 
     request.files.add(
-      http.MultipartFile.fromBytes(
-        'file',
-        bytes,
-        filename: filename,
-      ),
+      http.MultipartFile.fromBytes('file', bytes, filename: filename),
     );
 
     var response = await request.send();
@@ -62,32 +62,41 @@ class CloudinaryService {
         "public_id": jsonResp['public_id'],
       };
     } else {
-      print('Upload failed: ${response.statusCode}');
+      debugPrint('Upload failed: ${response.statusCode}');
       return null;
     }
+  }
+
+  static bool _isVideo(String filename) {
+    final name = filename.toLowerCase();
+    return name.endsWith('.mp4') || name.endsWith('.mov');
   }
 
   /// Upload video and return secure_url and public_id
   Future<Map<String, dynamic>?> uploadVideo(File videoFile) async {
     final bytes = await videoFile.readAsBytes();
-    return uploadBytes(bytes, filename: 'video_${DateTime.now().millisecondsSinceEpoch}.mp4');
+    return uploadBytes(
+      bytes,
+      filename: 'video_${DateTime.now().millisecondsSinceEpoch}.mp4',
+    );
   }
 
   /// Delete asset from Cloudinary using public_id and resource_type
-  Future<void> deleteAsset(String publicId, {String resourceType = 'image'}) async {
+  Future<void> deleteAsset(
+    String publicId, {
+    String resourceType = 'image',
+  }) async {
     var url = Uri.parse(
       'https://api.cloudinary.com/v1_1/$cloudName/$resourceType/destroy',
     );
 
     await http.post(
       url,
-      body: {
-        "public_id": publicId,
-        "upload_preset": uploadPreset,
-      },
+      body: {"public_id": publicId, "upload_preset": uploadPreset},
     );
   }
 
   /// Alias for deleteAsset for backward compatibility
-  Future<void> deleteImage(String publicId) => deleteAsset(publicId, resourceType: 'image');
+  Future<void> deleteImage(String publicId) =>
+      deleteAsset(publicId, resourceType: 'image');
 }

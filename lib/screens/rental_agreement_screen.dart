@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../services/booking_service.dart';
 
 class RentalAgreementScreen extends StatefulWidget {
@@ -52,7 +53,10 @@ class _RentalAgreementScreenState extends State<RentalAgreementScreen> {
   Widget build(BuildContext context) {
     String carName = 'Car';
     if (widget.bookingData != null) {
-      carName = widget.bookingData!['carName'] ?? widget.bookingData!['car_name'] ?? 'Car';
+      carName =
+          widget.bookingData!['carName'] ??
+          widget.bookingData!['car_name'] ??
+          'Car';
     } else if (widget.rentalDetails != null) {
       carName = widget.rentalDetails!.carName;
     }
@@ -107,7 +111,9 @@ class _RentalAgreementScreenState extends State<RentalAgreementScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               child: _submitting
                   ? const CircularProgressIndicator(color: Colors.white)

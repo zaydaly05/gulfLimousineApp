@@ -1,8 +1,10 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../services/cloudinary_service.dart';
 import '../services/auth_navigation.dart';
 
@@ -52,7 +54,9 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_nationalIdImage == null || _licenseIdImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please upload both ID and License images')),
+        const SnackBar(
+          content: Text('Please upload both ID and License images'),
+        ),
       );
       return;
     }
@@ -77,7 +81,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       }
 
       // Update Firestore
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+      // merge: also works if the profile document was never created.
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
         'national_id': _nationalIdController.text.trim(),
         'phone': _phoneController.text.trim(),
         'phone_number': _phoneController.text.trim(),
@@ -86,7 +91,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
         'license_id_url': licenseIdUpload['secure_url'],
         'license_id_public_id': licenseIdUpload['public_id'],
         'profile_completed': true,
-      });
+      }, SetOptions(merge: true));
 
       if (!mounted) return;
       await AuthNavigation.goToRoleHome(context);
@@ -127,13 +132,18 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
                   decoration: _inputDecoration('Phone Number', Icons.phone),
-                  validator: (v) => v!.isEmpty ? 'Required' : null,
+                  validator: (v) =>
+                      (v ?? '').trim().isEmpty ? 'Required' : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _nationalIdController,
-                  decoration: _inputDecoration('National ID Number', Icons.badge),
-                  validator: (v) => v!.isEmpty ? 'Required' : null,
+                  decoration: _inputDecoration(
+                    'National ID Number',
+                    Icons.badge,
+                  ),
+                  validator: (v) =>
+                      (v ?? '').trim().isEmpty ? 'Required' : null,
                 ),
                 const SizedBox(height: 16),
                 _imagePickerTile(
@@ -153,19 +163,30 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.orange,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
                       : const Text(
                           'Complete Registration',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
                 ),
                 const SizedBox(height: 16),
                 TextButton(
-                  onPressed: () => FirebaseAuth.instance.signOut(),
-                  child: const Text('Cancel & Logout', style: TextStyle(color: Colors.red)),
+                  onPressed: _isLoading
+                      ? null
+                      : () => AuthNavigation.signOut(context),
+                  child: const Text(
+                    'Cancel & Logout',
+                    style: TextStyle(color: Colors.red),
+                  ),
                 ),
               ],
             ),
@@ -201,14 +222,21 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
             child: image != null
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.file(image, fit: BoxFit.cover, width: double.infinity),
+                    child: Image.file(
+                      image,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                    ),
                   )
                 : const Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.add_a_photo, size: 40, color: Colors.grey),
-                        Text('Tap to upload image', style: TextStyle(color: Colors.grey)),
+                        Text(
+                          'Tap to upload image',
+                          style: TextStyle(color: Colors.grey),
+                        ),
                       ],
                     ),
                   ),

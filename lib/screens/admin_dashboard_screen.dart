@@ -1,10 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-
-import 'add_car_screen.dart';
-import 'new_booking_screen.dart';
-import 'add_user_screen.dart';
 
 // ADMIN PAGES
 import 'manage_cars_screen.dart';
@@ -15,11 +10,11 @@ import 'manage_chauffeurs_screen.dart';
 import 'manage_reviews_screen.dart';
 import 'complimentary_rentals_screen.dart';
 import 'view_payments.dart';
-import 'login_screen.dart';
 import 'chatbot_screen.dart';
 import 'traffic_violations_screen.dart';
 import 'admin_security_hub.dart';
 import '../widgets/admin_charts.dart';
+import '../services/auth_navigation.dart';
 import '../services/notification_service.dart';
 import '../widgets/biometric_settings_tile.dart';
 import '../services/traffic_violation_service.dart';
@@ -36,10 +31,32 @@ class AdminDashboard extends StatefulWidget {
 class _AdminDashboardState extends State<AdminDashboard> {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
+  // Streams are created once (not in build) so a rebuild never tears down
+  // and re-opens the Firestore listeners behind every card.
+  late final _carsStream = firestore.collection('cars').snapshots();
+  late final _usersStream = firestore.collection('users').snapshots();
+  late final _paymentsStream = firestore.collection('payments').snapshots();
+  late final _giftsStream = firestore
+      .collection('complimentary_rentals')
+      .snapshots();
+  late final _violationsStream = TrafficViolationService.watchAll();
+  late final _recentBookingsStream = firestore
+      .collection('bookings')
+      .orderBy('createdAt', descending: true)
+      .limit(5)
+      .snapshots();
+  // One stream per consumer: Firestore streams don't replay the last value.
+  late final _bookingsCountStream = _bookingsQuery();
+  late final _extraKmPendingStream = _bookingsQuery();
+  late final _extraKmCollectedStream = _bookingsQuery();
+  late final _extraKmSectionStream = _bookingsQuery();
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> _bookingsQuery() =>
+      firestore.collection('bookings').snapshots();
+
   @override
   void initState() {
     super.initState();
-    // ignore: unawaited_futures
     NotificationService.instance.initialize();
   }
 
@@ -53,12 +70,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
         elevation: 0,
         title: Text(
           context.t('adminTitle'),
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        actions: const [
-          LanguageToggleButton(dark: true),
-          SizedBox(width: 8),
-        ],
+        actions: const [LanguageToggleButton(dark: true), SizedBox(width: 8)],
         iconTheme: const IconThemeData(color: Colors.orange),
       ),
 
@@ -69,10 +86,17 @@ class _AdminDashboardState extends State<AdminDashboard> {
           padding: EdgeInsets.zero,
           children: [
             Container(
-              padding: EdgeInsets.fromLTRB(16, MediaQuery.paddingOf(context).top + 16, 16, 16),
+              padding: EdgeInsets.fromLTRB(
+                16,
+                MediaQuery.paddingOf(context).top + 16,
+                16,
+                16,
+              ),
               decoration: const BoxDecoration(
                 color: Color(0xFF1A1A1A),
-                border: Border(bottom: BorderSide(color: Colors.orange, width: 2)),
+                border: Border(
+                  bottom: BorderSide(color: Colors.orange, width: 2),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -80,7 +104,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   const CircleAvatar(
                     backgroundColor: Colors.orange,
                     radius: 30,
-                    child: Icon(Icons.admin_panel_settings, color: Colors.white, size: 36),
+                    child: Icon(
+                      Icons.admin_panel_settings,
+                      color: Colors.white,
+                      size: 36,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -102,94 +130,93 @@ class _AdminDashboardState extends State<AdminDashboard> {
               ),
             ),
 
-              const LanguagePicker(dark: true),
-              const Divider(color: Colors.white24),
-              const BiometricSettingsTile(dark: true),
+            const LanguagePicker(dark: true),
+            const Divider(color: Colors.white24),
+            const BiometricSettingsTile(dark: true),
 
-              _drawerItem(
-                context,
-                Icons.directions_car,
-                context.t('manageCars'),
-                const ManageCarsScreen(),
-              ),
-              _drawerItem(
-                context,
-                Icons.people,
-                context.t('users'),
-                const ManageUsersScreen(),
-              ),
-              _drawerItem(
-                context,
-                Icons.calendar_today,
-                context.t('bookings'),
-                const ManageBookingsScreen(),
-              ),
-              _drawerItem(
-                context,
-                Icons.card_giftcard,
-                context.t('complimentary'),
-                const ComplimentaryRentalsScreen(),
-              ),
-              _drawerItem(
-                context,
-                Icons.badge,
-                context.t('chauffeurs'),
-                const ManageChauffeursScreen(),
-              ),
-              _drawerItem(
-                context,
-                Icons.star,
-                context.t('reviews'),
-                const ManageReviewsScreen(),
-              ),
-              _drawerItem(
-                context,
-                Icons.gavel,
-                context.t('trafficViolations'),
-                const TrafficViolationsScreen(),
-              ),
-              _drawerItem(
-                context,
-                Icons.security,
-                'Security & GPS',
-                const AdminSecurityHub(),
-              ),
-              _drawerItem(
-                context,
-                Icons.attach_money,
-                context.t('payments'),
-                const ViewPaymentsScreen(),
-              ),
-              _drawerItem(
-                context,
-                Icons.smart_toy,
-                context.t('askAi'),
-                const ChatbotScreen(userName: 'Admin', adminMode: true),
-              ),
+            _drawerItem(
+              context,
+              Icons.directions_car,
+              context.t('manageCars'),
+              const ManageCarsScreen(),
+            ),
+            _drawerItem(
+              context,
+              Icons.people,
+              context.t('users'),
+              const ManageUsersScreen(),
+            ),
+            _drawerItem(
+              context,
+              Icons.calendar_today,
+              context.t('bookings'),
+              const ManageBookingsScreen(),
+            ),
+            _drawerItem(
+              context,
+              Icons.card_giftcard,
+              context.t('complimentary'),
+              const ComplimentaryRentalsScreen(),
+            ),
+            _drawerItem(
+              context,
+              Icons.badge,
+              context.t('chauffeurs'),
+              const ManageChauffeursScreen(),
+            ),
+            _drawerItem(
+              context,
+              Icons.star,
+              context.t('reviews'),
+              const ManageReviewsScreen(),
+            ),
+            _drawerItem(
+              context,
+              Icons.gavel,
+              context.t('trafficViolations'),
+              const TrafficViolationsScreen(),
+            ),
+            _drawerItem(
+              context,
+              Icons.security,
+              'Security & GPS',
+              const AdminSecurityHub(),
+            ),
+            _drawerItem(
+              context,
+              Icons.attach_money,
+              context.t('payments'),
+              const ViewPaymentsScreen(),
+            ),
+            _drawerItem(
+              context,
+              Icons.smart_toy,
+              context.t('askAi'),
+              const ChatbotScreen(userName: 'Admin', adminMode: true),
+            ),
 
-              const Divider(color: Colors.white54),
+            const Divider(color: Colors.white54),
 
-              /// 🔴 LOGOUT BUTTON
-              ListTile(
-                leading: const Icon(Icons.logout, color: Colors.red),
-                title: Text(
-                  context.t('logout'),
-                  style: const TextStyle(color: Colors.white),
-                ),
-                onTap: () {
-                  _confirmLogout(context);
-                },
+            /// 🔴 LOGOUT BUTTON
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: Text(
+                context.t('logout'),
+                style: const TextStyle(color: Colors.white),
               ),
-            ],
-          ),
+              onTap: () {
+                _confirmLogout(context);
+              },
+            ),
+          ],
         ),
+      ),
 
       /// 🧠 BODY
       body: RefreshIndicator(
-        onRefresh: () async {
-          setState(() {});
-          await Future<void>.delayed(const Duration(milliseconds: 600));
-        },
+        // Data is live; the gesture only gives visual feedback.
+        onRefresh: () =>
+            Future<void>.delayed(const Duration(milliseconds: 600)),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: EdgeInsets.fromLTRB(
@@ -201,144 +228,128 @@ class _AdminDashboardState extends State<AdminDashboard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-            Text(
-              context.t('dashboardOverview'),
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-
-            /// 📊 LIVE STATS
-            GridView(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate:
-              const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 1.3,
+              Text(
+                context.t('dashboardOverview'),
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              children: [
-                _statCard(
-                  context.t('totalCars'),
-                  firestore.collection('cars'),
-                  Icons.directions_car,
+              const SizedBox(height: 20),
+
+              /// 📊 LIVE STATS
+              GridView(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 1.3,
                 ),
-                _statCard(
-                  context.t('bookings'),
-                  firestore.collection('bookings'),
-                  Icons.calendar_today,
+                children: [
+                  _statCard(
+                    context.t('totalCars'),
+                    _carsStream,
+                    Icons.directions_car,
+                  ),
+                  _statCard(
+                    context.t('bookings'),
+                    _bookingsCountStream,
+                    Icons.calendar_today,
+                  ),
+                  _statCard(context.t('users'), _usersStream, Icons.people),
+                  _revenueCard(),
+                  _extraKmPendingCard(),
+                  _extraKmCollectedCard(),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+              _pendingExtraKmSection(),
+
+              const SizedBox(height: 16),
+              _complimentarySection(),
+
+              const SizedBox(height: 16),
+              _trafficViolationsSection(),
+
+              const SizedBox(height: 25),
+
+              AdminAnalyticsSection(firestore: firestore),
+
+              const SizedBox(height: 25),
+
+              /// 🕒 RECENT BOOKINGS
+              Text(
+                context.t('recentBookings'),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
                 ),
-                _statCard(
-                  context.t('users'),
-                  firestore.collection('users'),
-                  Icons.people,
-                ),
-                _revenueCard(),
-                _extraKmPendingCard(),
-                _extraKmCollectedCard(),
-              ],
-            ),
+              ),
+              const SizedBox(height: 10),
 
-            const SizedBox(height: 16),
-            _pendingExtraKmSection(),
+              StreamBuilder<QuerySnapshot>(
+                stream: _recentBookingsStream,
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
 
-            const SizedBox(height: 16),
-            _complimentarySection(),
-
-            const SizedBox(height: 16),
-            _trafficViolationsSection(),
-
-            const SizedBox(height: 25),
-
-            AdminAnalyticsSection(firestore: firestore),
-
-            const SizedBox(height: 25),
-
-            /// 🕒 RECENT BOOKINGS
-            Text(
-              context.t('recentBookings'),
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-
-            StreamBuilder<QuerySnapshot>(
-              stream: firestore
-                  .collection('bookings')
-                  .orderBy('createdAt', descending: true)
-                  .limit(5)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                return Column(
-                  children: snapshot.data!.docs.map((doc) {
-                    final data = doc.data() as Map<String, dynamic>;
-                    final extraLabel = bookingHasExtraKmCharge(data)
-                        ? ' · ${extraKmPaymentStatusLabel(data)}'
-                        : '';
-                    return _bookingTile(
-                      resolveBookingName(data),
-                      resolveBookingCar(data),
-                      resolveBookingDateLabel(data),
-                      '${(data['status'] ?? 'pending').toString()}$extraLabel',
-                    );
-                  }).toList(),
-                );
-              },
-            ),
-          ],
+                  return Column(
+                    children: snapshot.data!.docs.map((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      final extraLabel = bookingHasExtraKmCharge(data)
+                          ? ' · ${extraKmPaymentStatusLabel(data)}'
+                          : '';
+                      return _bookingTile(
+                        resolveBookingName(data),
+                        resolveBookingCar(data),
+                        resolveBookingDateLabel(data),
+                        '${(data['status'] ?? 'pending').toString()}$extraLabel',
+                      );
+                    }).toList(),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   /// 🔐 LOGOUT CONFIRMATION
-  void _confirmLogout(BuildContext context) {
-    showDialog(
+  Future<void> _confirmLogout(BuildContext context) async {
+    final confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text(context.t('confirmLogout')),
         content: Text(context.t('logoutConfirm')),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext, false),
             child: Text(context.t('cancel')),
           ),
           TextButton(
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-
-              if (!mounted) return;
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const LoginScreen(),
-                ),
-                    (route) => false,
-              );
-            },
+            onPressed: () => Navigator.pop(dialogContext, true),
             child: Text(context.t('logout')),
           ),
         ],
       ),
     );
+    if (confirm != true || !context.mounted) return;
+    await AuthNavigation.signOut(context);
   }
 
   /// 🔢 STAT CARD
-  Widget _statCard(String title, Query query, IconData icon) {
+  Widget _statCard(String title, Stream<QuerySnapshot> stream, IconData icon) {
     return StreamBuilder<QuerySnapshot>(
-      stream: query.snapshots(),
+      stream: stream,
       builder: (context, snapshot) {
         final count = snapshot.data?.docs.length ?? 0;
-        return DashboardCard(
-          title: title,
-          value: count.toString(),
-          icon: icon,
-        );
+        return DashboardCard(title: title, value: count.toString(), icon: icon);
       },
     );
   }
@@ -346,14 +357,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
   /// 💰 REVENUE
   Widget _revenueCard() {
     return StreamBuilder<QuerySnapshot>(
-      stream: firestore.collection('payments').snapshots(),
+      stream: _paymentsStream,
       builder: (context, snapshot) {
         double total = 0;
         if (snapshot.hasData) {
           for (var doc in snapshot.data!.docs) {
             final data = doc.data() as Map<String, dynamic>;
-            if ((data['status'] ?? '').toString() == 'paid') {
-              total += (data['amount'] ?? 0).toDouble();
+            final amount = data['amount'];
+            if ((data['status'] ?? '').toString() == 'paid' && amount is num) {
+              total += amount.toDouble();
             }
           }
         }
@@ -368,7 +380,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   Widget _extraKmPendingCard() {
     return StreamBuilder<QuerySnapshot>(
-      stream: firestore.collection('bookings').snapshots(),
+      stream: _extraKmPendingStream,
       builder: (context, snapshot) {
         final stats = computeExtraKmStats(snapshot.data?.docs ?? []);
         return DashboardCard(
@@ -382,7 +394,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   Widget _extraKmCollectedCard() {
     return StreamBuilder<QuerySnapshot>(
-      stream: firestore.collection('bookings').snapshots(),
+      stream: _extraKmCollectedStream,
       builder: (context, snapshot) {
         final stats = computeExtraKmStats(snapshot.data?.docs ?? []);
         return DashboardCard(
@@ -396,7 +408,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   Widget _pendingExtraKmSection() {
     return StreamBuilder<QuerySnapshot>(
-      stream: firestore.collection('bookings').snapshots(),
+      stream: _extraKmSectionStream,
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const SizedBox.shrink();
@@ -422,7 +434,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
               children: [
                 Text(
                   context.t('pendingExtraKmPayments'),
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 TextButton(
                   onPressed: () {
@@ -438,18 +453,20 @@ class _AdminDashboardState extends State<AdminDashboard> {
               ],
             ),
             Text(
-              context.t('pendingBookingsCount', args: {
-                'count': '${stats.pendingCount}',
-                'amount': stats.pendingAmount.toStringAsFixed(0),
-              }),
+              context.t(
+                'pendingBookingsCount',
+                args: {
+                  'count': '${stats.pendingCount}',
+                  'amount': stats.pendingAmount.toStringAsFixed(0),
+                },
+              ),
               style: TextStyle(color: Colors.grey.shade700),
             ),
             const SizedBox(height: 8),
             ...pending.take(3).map((doc) {
               final data = doc.data() as Map<String, dynamic>;
               final km = parseKmAllowance(data);
-              final charge =
-                  (km?['extraKmChargeEgp'] as num?)?.toDouble() ?? 0;
+              final charge = (km?['extraKmChargeEgp'] as num?)?.toDouble() ?? 0;
               return Card(
                 margin: const EdgeInsets.only(bottom: 8),
                 child: ListTile(
@@ -505,7 +522,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   Widget _complimentarySection() {
     return StreamBuilder<QuerySnapshot>(
-      stream: firestore.collection('complimentary_rentals').snapshots(),
+      stream: _giftsStream,
       builder: (context, snapshot) {
         final docs = snapshot.data?.docs ?? [];
         final now = DateTime.now();
@@ -554,8 +571,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) =>
-                              const ComplimentaryRentalsScreen(),
+                          builder: (_) => const ComplimentaryRentalsScreen(),
                         ),
                       );
                     },
@@ -584,8 +600,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) =>
-                              const AddComplimentaryRentalScreen(),
+                          builder: (_) => const AddComplimentaryRentalScreen(),
                         ),
                       );
                     },
@@ -596,10 +611,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   final data = doc.data() as Map<String, dynamic>;
                   final car = resolveBookingCar(data);
                   final brand = (data['brand'] ?? '').toString();
-                  final label = [
-                    if (brand.isNotEmpty) brand,
-                    car,
-                  ].join(' ');
+                  final label = [if (brand.isNotEmpty) brand, car].join(' ');
                   return Card(
                     margin: const EdgeInsets.only(bottom: 8),
                     child: ListTile(
@@ -628,8 +640,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                                const ComplimentaryRentalsScreen(),
+                            builder: (_) => const ComplimentaryRentalsScreen(),
                           ),
                         );
                       },
@@ -645,7 +656,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   Widget _trafficViolationsSection() {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: TrafficViolationService.watchAll(),
+      stream: _violationsStream,
       builder: (context, snapshot) {
         final docs = snapshot.data?.docs ?? [];
         final pending = docs.where((doc) {
@@ -693,10 +704,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
               Text(
                 pending.isEmpty
                     ? context.t('noPendingTickets')
-                    : context.t('unpaidTickets', args: {
-                        'count': '${pending.length}',
-                        'amount': pendingAmount.toStringAsFixed(0),
-                      }),
+                    : context.t(
+                        'unpaidTickets',
+                        args: {
+                          'count': '${pending.length}',
+                          'amount': pendingAmount.toStringAsFixed(0),
+                        },
+                      ),
                 style: TextStyle(color: Colors.grey.shade700),
               ),
               const SizedBox(height: 8),
@@ -723,7 +737,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
               else
                 ...pending.take(3).map((doc) {
                   final data = doc.data();
-                  final isGift = (data['sourceType'] ?? '') ==
+                  final isGift =
+                      (data['sourceType'] ?? '') ==
                       TrafficViolationService.sourceGift;
                   return Card(
                     margin: const EdgeInsets.only(bottom: 8),
@@ -736,7 +751,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
                           size: 20,
                         ),
                       ),
-                      title: Text(data['customerName']?.toString() ?? context.t('customer')),
+                      title: Text(
+                        data['customerName']?.toString() ??
+                            context.t('customer'),
+                      ),
                       subtitle: Text(
                         '${isGift ? context.t('gift') : context.t('rental')} · ${data['car_name'] ?? context.t('cars')}',
                       ),
@@ -766,20 +784,17 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   static Widget _drawerItem(
-      BuildContext context,
-      IconData icon,
-      String title,
-      Widget page,
-      ) {
+    BuildContext context,
+    IconData icon,
+    String title,
+    Widget page,
+  ) {
     return ListTile(
       leading: Icon(icon, color: Colors.orange),
       title: Text(title, style: const TextStyle(color: Colors.white)),
       onTap: () {
         Navigator.pop(context);
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => page),
-        );
+        Navigator.push(context, MaterialPageRoute(builder: (_) => page));
       },
     );
   }
@@ -791,7 +806,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
     String status,
   ) {
     Color statusColor = Colors.orange;
-    if (status.toLowerCase().contains('paid') || status.toLowerCase().contains('confirmed')) {
+    if (status.toLowerCase().contains('paid') ||
+        status.toLowerCase().contains('confirmed')) {
       statusColor = Colors.green;
     } else if (status.toLowerCase().contains('cancelled') ||
         status.toLowerCase().contains('failed')) {
@@ -809,7 +825,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
         title: Text(name),
         subtitle: Text('$car · $status'),
         trailing: date.isNotEmpty
-            ? Text(date, style: const TextStyle(color: Colors.orange, fontSize: 12))
+            ? Text(
+                date,
+                style: const TextStyle(color: Colors.orange, fontSize: 12),
+              )
             : Chip(
                 label: Text(
                   status,
@@ -866,10 +885,7 @@ class DashboardCard extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              Text(
-                title,
-                style: const TextStyle(color: Colors.grey),
-              ),
+              Text(title, style: const TextStyle(color: Colors.grey)),
             ],
           ),
         ],

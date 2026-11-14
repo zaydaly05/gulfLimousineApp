@@ -20,8 +20,8 @@ class TrackTripScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final pickup = GeoLocation.tryParse(bookingData['pickupLocation']);
     final dropoff = GeoLocation.tryParse(bookingData['dropoffLocation']);
-    final chauffeurName =
-        (bookingData['chauffeurName'] ?? 'Chauffeur').toString();
+    final chauffeurName = (bookingData['chauffeurName'] ?? 'Chauffeur')
+        .toString();
     final chauffeurPhone = (bookingData['chauffeurPhone'] ?? '').toString();
 
     return Scaffold(
@@ -60,7 +60,10 @@ class TrackTripScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: const Color(0xFFFF8C00).withValues(alpha: 0.2),
                     shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFFFF8C00), width: 2),
+                    border: Border.all(
+                      color: const Color(0xFFFF8C00),
+                      width: 2,
+                    ),
                   ),
                   child: const Icon(
                     Icons.place,
@@ -80,11 +83,7 @@ class TrackTripScreen extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.blue, width: 2),
                   ),
-                  child: const Icon(
-                    Icons.flag,
-                    color: Colors.blue,
-                    size: 24,
-                  ),
+                  child: const Icon(Icons.flag, color: Colors.blue, size: 24),
                 ),
               ),
             if (live.isValid)
@@ -95,14 +94,21 @@ class TrackTripScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.black,
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: const Text(
                         'YOUR RIDE',
-                        style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                     const Icon(
@@ -119,21 +125,35 @@ class TrackTripScreen extends StatelessWidget {
             children: [
               Expanded(
                 child: FlutterMap(
-                  options: MapOptions(
-                    initialCenter: center,
-                    initialZoom: 13,
-                  ),
+                  options: MapOptions(initialCenter: center, initialZoom: 13),
                   children: [
                     TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.example.gulflimousine_travel',
                       tileBuilder: (context, tileWidget, tile) {
                         return ColorFiltered(
                           colorFilter: const ColorFilter.matrix([
-                            0.6, 0, 0, 0, -60,
-                            0, 0.6, 0, 0, -60,
-                            0, 0, 0.6, 0, -60,
-                            0, 0, 0, 1, 0,
+                            0.6,
+                            0,
+                            0,
+                            0,
+                            -60,
+                            0,
+                            0.6,
+                            0,
+                            0,
+                            -60,
+                            0,
+                            0,
+                            0.6,
+                            0,
+                            -60,
+                            0,
+                            0,
+                            0,
+                            1,
+                            0,
                           ]),
                           child: tileWidget,
                         );

@@ -5,11 +5,12 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 import 'cars_screen.dart';
 import 'contact_screen.dart';
-import 'login_screen.dart';
 import 'my_bookings_screen.dart';
 import 'profile_screen.dart';
 import 'chatbot_screen.dart';
 import 'favorites_screen.dart';
+import '../services/auth_navigation.dart';
+import '../services/favorites_service.dart';
 import 'notifications_inbox_screen.dart';
 import 'my_traffic_violations_screen.dart';
 import 'complete_profile_screen.dart';
@@ -44,7 +45,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _loadUserData() async {
     final user = _auth.currentUser;
     if (user == null) return;
-    final doc = await _firestore.collection('users').doc(user.uid).get();
+    final DocumentSnapshot<Map<String, dynamic>> doc;
+    try {
+      doc = await _firestore.collection('users').doc(user.uid).get();
+    } catch (e) {
+      debugPrint('Could not load profile: $e');
+      return;
+    }
     if (!mounted) return;
 
     final data = doc.data();
@@ -79,42 +86,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _openChatbot() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => ChatbotScreen(userName: _userName),
-      ),
+      MaterialPageRoute(builder: (_) => ChatbotScreen(userName: _userName)),
     );
   }
 
   Future<void> _logout() async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text(context.t('logout')),
         content: Text(context.t('logoutConfirm')),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(dialogContext, false),
             child: Text(context.t('cancel')),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(dialogContext, true),
             child: Text(context.t('logout')),
           ),
         ],
       ),
     );
-    if (confirm != true) return;
-
-    // Optional: Clear biometric credentials on explicit logout for maximum security
-    // await BiometricService.clearAllStoredCredentials();
-
-    await _auth.signOut();
-    if (!mounted) return;
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (route) => false,
-    );
+    if (confirm != true || !mounted) return;
+    await AuthNavigation.signOut(context);
   }
 
   @override
@@ -126,7 +121,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: Text(context.t('appName')),
         actions: [
-          const LanguageToggleButton(dark: false),
+          // AppBar is black, so use the light-on-dark variant.
+          const LanguageToggleButton(dark: true),
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
             onPressed: () {
@@ -168,7 +164,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 24),
               Text(
                 context.t('overview'),
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 12),
               _UserStatsSection(
@@ -189,14 +188,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 24),
               Text(
                 context.t('bookings'),
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 12),
               if (user != null) UserAnalyticsSection(userId: user.uid),
               const SizedBox(height: 24),
               Text(
                 context.t('recentActivity'),
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 12),
               _RecentBookings(userId: user?.uid, email: email),
@@ -246,8 +251,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 child: CircleAvatar(
                   backgroundColor: const Color(0xFF333333),
-                  backgroundImage: _profileImageUrl != null &&
-                          _profileImageUrl!.isNotEmpty
+                  backgroundImage:
+                      _profileImageUrl != null && _profileImageUrl!.isNotEmpty
                       ? CachedNetworkImageProvider(_profileImageUrl!)
                       : null,
                   child: _profileImageUrl == null || _profileImageUrl!.isEmpty
@@ -261,16 +266,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 8),
           const LanguagePicker(dark: false),
           const Divider(),
-          _drawerTile(Icons.home, context.t('home'), () => Navigator.pop(context)),
+          _drawerTile(
+            Icons.home,
+            context.t('home'),
+            () => Navigator.pop(context),
+          ),
           _drawerTile(Icons.directions_car, context.t('browseCars'), () {
             Navigator.pop(context);
-            Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const CarsScreen()));
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CarsScreen()),
+            );
           }),
           _drawerTile(Icons.calendar_today, context.t('myBookings'), () {
             Navigator.pop(context);
-            Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const MyBookingsScreen()));
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const MyBookingsScreen()),
+            );
           }),
           _drawerTile(Icons.gavel, context.t('trafficTickets'), () {
             Navigator.pop(context);
@@ -283,26 +296,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
           }),
           _drawerTile(Icons.favorite, context.t('favorites'), () {
             Navigator.pop(context);
-            Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const FavoritesScreen()));
-          }),
-          _drawerTile(Icons.notifications_outlined, context.t('notifications'), () {
-            Navigator.pop(context);
             Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (_) => const NotificationsInboxScreen(),
-              ),
+              MaterialPageRoute(builder: (_) => const FavoritesScreen()),
             );
           }),
+          _drawerTile(
+            Icons.notifications_outlined,
+            context.t('notifications'),
+            () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const NotificationsInboxScreen(),
+                ),
+              );
+            },
+          ),
           _drawerTile(Icons.person, context.t('profile'), () {
             Navigator.pop(context);
             _openProfile();
           }),
           _drawerTile(Icons.phone, context.t('contact'), () {
             Navigator.pop(context);
-            Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const ContactScreen()));
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ContactScreen()),
+            );
           }),
           _drawerTile(Icons.smart_toy_outlined, context.t('aiAssistant'), () {
             Navigator.pop(context);
@@ -355,7 +376,10 @@ class _WelcomeBanner extends StatelessWidget {
         children: [
           Text(
             context.t('welcomeBack'),
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 14),
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.8),
+              fontSize: 14,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -370,7 +394,10 @@ class _WelcomeBanner extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               email,
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13),
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.7),
+                fontSize: 13,
+              ),
             ),
           ],
           const SizedBox(height: 12),
@@ -384,7 +411,23 @@ class _WelcomeBanner extends StatelessWidget {
   }
 }
 
-class _UserStatsSection extends StatelessWidget {
+/// Bookings of the signed-in user, by uid when known, otherwise by email.
+Stream<QuerySnapshot<Map<String, dynamic>>>? _userBookingsQuery(
+  FirebaseFirestore firestore,
+  String? userId,
+  String email,
+) {
+  final bookings = firestore.collection('bookings');
+  if (userId != null) {
+    return bookings.where('userId', isEqualTo: userId).snapshots();
+  }
+  if (email.isNotEmpty) {
+    return bookings.where('user_email', isEqualTo: email).snapshots();
+  }
+  return null;
+}
+
+class _UserStatsSection extends StatefulWidget {
   final FirebaseFirestore firestore;
   final String? userId;
   final String email;
@@ -400,24 +443,37 @@ class _UserStatsSection extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final bookingsStream = _bookingsStream();
+  State<_UserStatsSection> createState() => _UserStatsSectionState();
+}
 
+class _UserStatsSectionState extends State<_UserStatsSection> {
+  // Created once so parent rebuilds (refresh, locale change) don't
+  // re-subscribe and flash empty values.
+  late final _bookingsStream = _userBookingsQuery(
+    widget.firestore,
+    widget.userId,
+    widget.email,
+  );
+  late final _favoritesStream = FavoritesService.watchFavoriteIds();
+  late final _availableCarsStream = widget.firestore
+      .collection('cars')
+      .where('available', isEqualTo: true)
+      .snapshots();
+
+  @override
+  Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
-      stream: bookingsStream,
+      stream: _bookingsStream,
       builder: (context, bookingsSnapshot) {
         final bookingsCount = bookingsSnapshot.data?.docs.length ?? 0;
 
         return StreamBuilder<Set<String>>(
-          stream: FavoritesService.watchFavoriteIds(),
+          stream: _favoritesStream,
           builder: (context, favsSnapshot) {
             final favoritesCount = favsSnapshot.data?.length ?? 0;
 
             return StreamBuilder<QuerySnapshot>(
-              stream: firestore
-                  .collection('cars')
-                  .where('available', isEqualTo: true)
-                  .snapshots(),
+              stream: _availableCarsStream,
               builder: (context, carsSnapshot) {
                 final availableCarsCount = carsSnapshot.data?.docs.length ?? 0;
 
@@ -429,7 +485,7 @@ class _UserStatsSection extends StatelessWidget {
                         icon: Icons.calendar_today_outlined,
                         accent: const Color(0xFFFF8C00),
                         value: '$bookingsCount',
-                        onTap: onBookingsTap,
+                        onTap: widget.onBookingsTap,
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -454,7 +510,7 @@ class _UserStatsSection extends StatelessWidget {
                         icon: Icons.directions_car_outlined,
                         accent: const Color(0xFFFF8C00),
                         value: '$availableCarsCount',
-                        onTap: onCarsTap,
+                        onTap: widget.onCarsTap,
                       ),
                     ),
                   ],
@@ -465,22 +521,6 @@ class _UserStatsSection extends StatelessWidget {
         );
       },
     );
-  }
-
-  Stream<QuerySnapshot>? _bookingsStream() {
-    if (userId != null) {
-      return firestore
-          .collection('bookings')
-          .where('userId', isEqualTo: userId)
-          .snapshots();
-    }
-    if (email.isNotEmpty) {
-      return firestore
-          .collection('bookings')
-          .where('user_email', isEqualTo: email)
-          .snapshots();
-    }
-    return null;
   }
 }
 
@@ -518,8 +558,8 @@ class _UserStatCard extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: onTap != null 
-                    ? accent.withValues(alpha: 0.4) 
+                color: onTap != null
+                    ? accent.withValues(alpha: 0.4)
                     : Colors.grey.shade200,
                 width: onTap != null ? 1.5 : 1,
               ),
@@ -580,40 +620,54 @@ class _UserStatCard extends StatelessWidget {
   }
 }
 
-class _RecentBookings extends StatelessWidget {
+class _RecentBookings extends StatefulWidget {
   final String? userId;
   final String email;
 
   const _RecentBookings({required this.userId, required this.email});
 
   @override
-  Widget build(BuildContext context) {
-    Stream<QuerySnapshot>? stream;
-    if (userId != null) {
-      stream = FirebaseFirestore.instance
-          .collection('bookings')
-          .where('userId', isEqualTo: userId)
-          .limit(5)
-          .snapshots();
-    } else if (email.isNotEmpty) {
-      stream = FirebaseFirestore.instance
-          .collection('bookings')
-          .where('user_email', isEqualTo: email)
-          .limit(5)
-          .snapshots();
-    }
+  State<_RecentBookings> createState() => _RecentBookingsState();
+}
 
+class _RecentBookingsState extends State<_RecentBookings> {
+  late final _stream = _userBookingsQuery(
+    FirebaseFirestore.instance,
+    widget.userId,
+    widget.email,
+  );
+
+  /// Newest first. Sorted on the client because a server-side orderBy on
+  /// another field would need a composite index.
+  static List<QueryDocumentSnapshot<Map<String, dynamic>>> _latest(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) {
+    final sorted = [...docs]
+      ..sort((a, b) {
+        final aDate = a.data()['createdAt'];
+        final bDate = b.data()['createdAt'];
+        if (aDate is! Timestamp && bDate is! Timestamp) return 0;
+        if (aDate is! Timestamp) return 1;
+        if (bDate is! Timestamp) return -1;
+        return bDate.compareTo(aDate);
+      });
+    return sorted.take(5).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final stream = _stream;
     if (stream == null) {
       return Text(context.t('signInBookings'));
     }
 
-    return StreamBuilder<QuerySnapshot>(
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: stream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
-        final docs = snapshot.data?.docs ?? [];
+        final docs = _latest(snapshot.data?.docs ?? []);
         if (docs.isEmpty) {
           return Container(
             width: double.infinity,
@@ -631,15 +685,19 @@ class _RecentBookings extends StatelessWidget {
 
         return Column(
           children: docs.map((doc) {
-            final data = doc.data() as Map<String, dynamic>;
+            final data = doc.data();
             final rawStatus = (data['status'] ?? 'pending').toString();
             final statusLabel = context.t(rawStatus.toLowerCase());
             return Card(
               margin: const EdgeInsets.only(bottom: 8),
               child: ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: const Color(0xFFFF8C00).withValues(alpha: 0.2),
-                  child: const Icon(Icons.directions_car, color: Color(0xFFFF8C00)),
+                  backgroundColor: const Color(0xFFFF8C00)
+                      .withValues(alpha: 0.2),
+                  child: const Icon(
+                    Icons.directions_car,
+                    color: Color(0xFFFF8C00),
+                  ),
                 ),
                 title: Text(resolveBookingCar(data)),
                 subtitle: Text(
@@ -720,13 +778,18 @@ class _UserTrafficTicketsBanner extends StatelessWidget {
                           children: [
                             Text(
                               context.t('trafficDue'),
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             Text(
-                              context.t('unpaidTickets', args: {
-                                'count': '${pending.length}',
-                                'amount': total.toStringAsFixed(0),
-                              }),
+                              context.t(
+                                'unpaidTickets',
+                                args: {
+                                  'count': '${pending.length}',
+                                  'amount': total.toStringAsFixed(0),
+                                },
+                              ),
                               style: TextStyle(color: Colors.grey.shade700),
                             ),
                           ],

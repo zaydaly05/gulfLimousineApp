@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'dashboard_screen.dart';
 import 'login_screen.dart';
 
@@ -47,10 +48,7 @@ class CashPaymentScreen extends StatelessWidget {
                 const Text(
                   "Thank you for choosing Gulf Limousine Travel.\nYour car has been successfully booked.",
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: Colors.white70,
-                  ),
+                  style: TextStyle(fontSize: 15, color: Colors.white70),
                 ),
 
                 const SizedBox(height: 40),
@@ -73,13 +71,15 @@ class CashPaymentScreen extends StatelessWidget {
                         MaterialPageRoute(
                           builder: (_) => const DashboardScreen(),
                         ),
-                            (route) => false,
+                        (route) => false,
                       );
                     },
                     child: const Text(
                       "Continue",
-                      style:
-                      TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -101,10 +101,8 @@ class CashPaymentScreen extends StatelessWidget {
                     onPressed: () {
                       Navigator.pushAndRemoveUntil(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const LoginScreen(),
-                        ),
-                            (route) => false,
+                        MaterialPageRoute(builder: (_) => const LoginScreen()),
+                        (route) => false,
                       );
                     },
                     child: const Text("Exit"),

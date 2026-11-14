@@ -27,11 +27,15 @@ class AdminAnalyticsSection extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: RepaintBoundary(child: BookingStatusChart(firestore: firestore)),
+              child: RepaintBoundary(
+                child: BookingStatusChart(firestore: firestore),
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: RepaintBoundary(child: FleetAvailabilityChart(firestore: firestore)),
+              child: RepaintBoundary(
+                child: FleetAvailabilityChart(firestore: firestore),
+              ),
             ),
           ],
         ),
@@ -114,7 +118,8 @@ class RevenueTrendChart extends StatelessWidget {
 
         return _ChartCard(
           title: 'Revenue (Last 6 Months)',
-          subtitle: 'Total: EGP ${monthly.values.fold<double>(0, (a, b) => a + b).toStringAsFixed(0)}',
+          subtitle:
+              'Total: EGP ${monthly.values.fold<double>(0, (a, b) => a + b).toStringAsFixed(0)}',
           height: 240,
           child: monthly.values.every((v) => v == 0)
               ? const _EmptyChart(message: 'No payment data yet')
@@ -123,21 +128,28 @@ class RevenueTrendChart extends StatelessWidget {
                     gridData: FlGridData(
                       show: true,
                       drawVerticalLine: false,
-                      getDrawingHorizontalLine: (_) => FlLine(
-                        color: Colors.grey.shade200,
-                        strokeWidth: 1,
-                      ),
+                      getDrawingHorizontalLine: (_) =>
+                          FlLine(color: Colors.grey.shade200, strokeWidth: 1),
                     ),
                     titlesData: FlTitlesData(
-                      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      topTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                      rightTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
                       leftTitles: AxisTitles(
                         sideTitles: SideTitles(
                           showTitles: true,
                           reservedSize: 40,
                           getTitlesWidget: (value, _) => Text(
-                            value >= 1000 ? '${(value / 1000).toStringAsFixed(0)}k' : value.toInt().toString(),
-                            style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                            value >= 1000
+                                ? '${(value / 1000).toStringAsFixed(0)}k'
+                                : value.toInt().toString(),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey.shade600,
+                            ),
                           ),
                         ),
                       ),
@@ -154,7 +166,10 @@ class RevenueTrendChart extends StatelessWidget {
                               padding: const EdgeInsets.only(top: 8),
                               child: Text(
                                 monthly.keys.elementAt(i),
-                                style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.grey.shade600,
+                                ),
                               ),
                             );
                           },
@@ -268,7 +283,9 @@ class BookingStatusChart extends StatelessWidget {
                     centerSpaceRadius: 32,
                     sections: entries.asMap().entries.map((e) {
                       final total = counts.values.fold<int>(0, (a, b) => a + b);
-                      final pct = total > 0 ? (e.value.value / total * 100) : 0.0;
+                      final pct = total > 0
+                          ? (e.value.value / total * 100)
+                          : 0.0;
                       return PieChartSectionData(
                         color: _colors[e.key % _colors.length],
                         value: e.value.value.toDouble(),
@@ -288,11 +305,13 @@ class BookingStatusChart extends StatelessWidget {
                 items: entries
                     .asMap()
                     .entries
-                    .map((e) => (
-                          e.value.key,
-                          e.value.value,
-                          _colors[e.key % _colors.length],
-                        ))
+                    .map(
+                      (e) => (
+                        e.value.key,
+                        e.value.value,
+                        _colors[e.key % _colors.length],
+                      ),
+                    )
                     .toList(),
               ),
             ],
@@ -414,22 +433,27 @@ class MonthlyBookingsChart extends StatelessWidget {
                     gridData: FlGridData(
                       show: true,
                       drawVerticalLine: false,
-                      getDrawingHorizontalLine: (_) => FlLine(
-                        color: Colors.grey.shade200,
-                        strokeWidth: 1,
-                      ),
+                      getDrawingHorizontalLine: (_) =>
+                          FlLine(color: Colors.grey.shade200, strokeWidth: 1),
                     ),
                     borderData: FlBorderData(show: false),
                     titlesData: FlTitlesData(
-                      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      topTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                      rightTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
                       leftTitles: AxisTitles(
                         sideTitles: SideTitles(
                           showTitles: true,
                           reservedSize: 28,
                           getTitlesWidget: (value, _) => Text(
                             value.toInt().toString(),
-                            style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey.shade600,
+                            ),
                           ),
                         ),
                       ),
@@ -444,7 +468,10 @@ class MonthlyBookingsChart extends StatelessWidget {
                             }
                             return Text(
                               monthly.keys.elementAt(i),
-                              style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey.shade600,
+                              ),
                             );
                           },
                         ),
@@ -458,7 +485,9 @@ class MonthlyBookingsChart extends StatelessWidget {
                             toY: e.value.toDouble(),
                             color: e.key.isEven ? _accent : _primary,
                             width: 18,
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(6),
+                            ),
                           ),
                         ],
                       );
@@ -480,7 +509,8 @@ class MonthlyBookingsChart extends StatelessWidget {
 
     for (final doc in docs) {
       final data = doc.data() as Map<String, dynamic>;
-      final date = _parseDate(data['createdAt']) ??
+      final date =
+          _parseDate(data['createdAt']) ??
           _parseDate(data['pickupDate']) ??
           _parseDate(data['startDate']);
       if (date == null) continue;

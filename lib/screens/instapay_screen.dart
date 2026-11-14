@@ -35,7 +35,7 @@ class _InstaPayScreenState extends State<InstaPayScreen> {
 
   Future<void> _copyUsername() async {
     await Clipboard.setData(const ClipboardData(text: instapayUsername));
-    setState(() => _copied = true);
+    if (mounted) setState(() => _copied = true);
   }
 
   Future<void> _openInstaPay() async {
@@ -44,8 +44,10 @@ class _InstaPayScreenState extends State<InstaPayScreen> {
       if (await canLaunchUrl(instapayUri)) {
         await launchUrl(instapayUri, mode: LaunchMode.externalApplication);
       } else {
-        await launchUrl(Uri.parse(playStoreUrl),
-            mode: LaunchMode.externalApplication);
+        await launchUrl(
+          Uri.parse(playStoreUrl),
+          mode: LaunchMode.externalApplication,
+        );
       }
     } catch (e) {
       debugPrint('Error launching InstaPay: $e');
@@ -62,10 +64,10 @@ class _InstaPayScreenState extends State<InstaPayScreen> {
     }
 
     setState(() => _isVerifying = true);
-    
+
     // Simulating "API" verification
     await Future.delayed(const Duration(seconds: 2));
-    
+
     if (mounted) {
       setState(() => _isVerifying = false);
       Navigator.pop(context, ref); // Return the reference ID
@@ -95,16 +97,23 @@ class _InstaPayScreenState extends State<InstaPayScreen> {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 10,
-                    )
+                    ),
                   ],
                 ),
                 child: QrImageView(
                   data: instapayUsername,
                   version: QrVersions.auto,
                   size: 160.0,
-                  foregroundColor: Colors.black,
+                  eyeStyle: const QrEyeStyle(
+                    eyeShape: QrEyeShape.square,
+                    color: Colors.black,
+                  ),
+                  dataModuleStyle: const QrDataModuleStyle(
+                    dataModuleShape: QrDataModuleShape.square,
+                    color: Colors.black,
+                  ),
                 ),
               ),
             ),
@@ -136,8 +145,10 @@ class _InstaPayScreenState extends State<InstaPayScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Receiver Username',
-                              style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          const Text(
+                            'Receiver Username',
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
                           Text(
                             instapayUsername,
                             style: const TextStyle(
@@ -149,8 +160,10 @@ class _InstaPayScreenState extends State<InstaPayScreen> {
                       ),
                     ),
                     if (_copied)
-                      const Text('Copied!',
-                          style: TextStyle(color: Colors.green, fontSize: 12)),
+                      const Text(
+                        'Copied!',
+                        style: TextStyle(color: Colors.green, fontSize: 12),
+                      ),
                   ],
                 ),
               ),
@@ -170,8 +183,12 @@ class _InstaPayScreenState extends State<InstaPayScreen> {
             ),
             const SizedBox(height: 16),
             const Text(
-              'How to pay:\n1. Open InstaPay app\n2. Transfer to IPA: zaydaly@instapay\n3. Enter the exact amount\n4. Copy the Transaction ID and paste it above',
-              style: TextStyle(color: Colors.black54, fontSize: 13, height: 1.5),
+              'How to pay:\n1. Open InstaPay app\n2. Transfer to IPA: $instapayUsername\n3. Enter the exact amount\n4. Copy the Transaction ID and paste it above',
+              style: TextStyle(
+                color: Colors.black54,
+                fontSize: 13,
+                height: 1.5,
+              ),
             ),
             const SizedBox(height: 32),
             if (_isVerifying)

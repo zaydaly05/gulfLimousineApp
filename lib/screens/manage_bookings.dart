@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../widgets/admin_charts.dart';
 import '../widgets/extra_km_admin_panel.dart';
 import '../widgets/traffic_violations_admin_panel.dart';
@@ -13,8 +14,39 @@ import 'new_booking_screen.dart';
 import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
 
-class ManageBookingsScreen extends StatelessWidget {
+class ManageBookingsScreen extends StatefulWidget {
   const ManageBookingsScreen({super.key});
+
+  @override
+  State<ManageBookingsScreen> createState() => _ManageBookingsScreenState();
+}
+
+class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
+  final _bookingsStream = FirebaseFirestore.instance
+      .collection('bookings')
+      .snapshots();
+
+  /// Bookings already checked for expired videos during this visit.
+  final _videoCleanupChecked = <String>{};
+
+  /// Runs the video retention cleanup once per booking, after the frame,
+  /// using the data already in the snapshot (no extra reads per row/rebuild).
+  void _scheduleVideoCleanup(List<QueryDocumentSnapshot> docs) {
+    final pending = docs.where((d) => _videoCleanupChecked.add(d.id)).toList();
+    if (pending.isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      for (final doc in pending) {
+        try {
+          await BookingService.deleteExpiredVideos(
+            doc.id,
+            doc.data() as Map<String, dynamic>,
+          );
+        } catch (e) {
+          debugPrint('Video cleanup failed for ${doc.id}: $e');
+        }
+      }
+    });
+  }
 
   Future<void> _deleteBooking(BuildContext context, String id) async {
     showDialog(
@@ -36,10 +68,18 @@ class ManageBookingsScreen extends StatelessWidget {
           ),
           TextButton(
             onPressed: () async {
-              await FirebaseFirestore.instance
-                  .collection('bookings')
-                  .doc(id)
-                  .delete();
+              try {
+                await FirebaseFirestore.instance
+                    .collection('bookings')
+                    .doc(id)
+                    .delete();
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('$e'), backgroundColor: Colors.red),
+                  );
+                }
+              }
               if (dialogContext.mounted) Navigator.pop(dialogContext);
             },
             child: Text(
@@ -89,10 +129,7 @@ class ManageBookingsScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(context.t('manageBookingsTitle')),
         backgroundColor: Colors.black,
-        actions: const [
-          LanguageToggleButton(dark: true),
-          SizedBox(width: 8),
-        ],
+        actions: const [LanguageToggleButton(dark: true), SizedBox(width: 8)],
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.orange,
@@ -109,7 +146,7 @@ class ManageBookingsScreen extends StatelessWidget {
           await Future<void>.delayed(const Duration(milliseconds: 600));
         },
         child: StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance.collection('bookings').snapshots(),
+          stream: _bookingsStream,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -133,6 +170,7 @@ class ManageBookingsScreen extends StatelessWidget {
             }
 
             final docs = _sortedDocs(snapshot.data?.docs ?? []);
+            _scheduleVideoCleanup(docs);
             if (docs.isEmpty) {
               return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -152,300 +190,318 @@ class ManageBookingsScreen extends StatelessWidget {
 
             return ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.fromLTRB(16, 16, 16, 80 + bottomPad),
-            itemCount: docs.length,
-            itemBuilder: (context, index) {
-              final doc = docs[index];
-              final booking = doc.data() as Map<String, dynamic>;
-              
-              // Cleanup old videos for this booking if return date + 3 days passed
-              BookingService.checkAndDeleteOldVideos(doc.id);
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 80 + bottomPad),
+              itemCount: docs.length,
+              itemBuilder: (context, index) {
+                final doc = docs[index];
+                final booking = doc.data() as Map<String, dynamic>;
 
-              final status = (booking['status'] ?? 'pending').toString();
-              final statusTranslated = context.t(status.toLowerCase());
-              final carName = resolveBookingCar(booking);
-              final customer = resolveBookingName(booking);
-              final email = booking['user_email']?.toString() ?? '';
-              final pickup = formatBookingDate(
-                booking['pickupDate'] ?? booking['startDate'],
-              );
-              final returnDate = formatBookingDate(booking['returnDate']);
-              final total = booking['total_amount'];
-              final finalAmount = booking['final_amount'];
-              final hasExtraKm = bookingHasExtraKmCharge(booking);
+                final status = (booking['status'] ?? 'pending').toString();
+                final statusTranslated = context.t(status.toLowerCase());
+                final carName = resolveBookingCar(booking);
+                final customer = resolveBookingName(booking);
+                final email = booking['user_email']?.toString() ?? '';
+                final pickup = formatBookingDate(
+                  booking['pickupDate'] ?? booking['startDate'],
+                );
+                final returnDate = formatBookingDate(booking['returnDate']);
+                final total = booking['total_amount'];
+                final finalAmount = booking['final_amount'];
+                final hasExtraKm = bookingHasExtraKmCharge(booking);
 
-              return Card(
-                color: Colors.grey.shade900,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                margin: const EdgeInsets.only(bottom: 16),
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.directions_car,
-                            color: Colors.orange,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              carName,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _statusColor(status)
-                                  .withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              statusTranslated.toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: _statusColor(status),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        '${context.t('customer')}: $customer',
-                        style: TextStyle(color: Colors.grey.shade300),
-                      ),
-                      if (email.isNotEmpty)
-                        Text(
-                          '${context.t('email')}: $email',
-                          style: TextStyle(color: Colors.grey.shade400),
-                        ),
-                      if (pickup.isNotEmpty)
-                        Text(
-                          '${context.t('pickup')}: $pickup',
-                          style: TextStyle(color: Colors.grey.shade400),
-                        ),
-                      if (returnDate.isNotEmpty)
-                        Text(
-                          '${context.t('return')}: $returnDate',
-                          style: TextStyle(color: Colors.grey.shade400),
-                        ),
-                      if (booking['pickupLocation'] is Map &&
-                          (booking['pickupLocation']['address'] ?? '')
-                              .toString()
-                              .isNotEmpty)
-                        Text(
-                          '${context.t('from')}: ${booking['pickupLocation']['address']}',
-                          style: TextStyle(color: Colors.grey.shade400),
-                        ),
-                      if (booking['dropoffLocation'] is Map &&
-                          (booking['dropoffLocation']['address'] ?? '')
-                              .toString()
-                              .isNotEmpty)
-                        Text(
-                          '${context.t('to')}: ${booking['dropoffLocation']['address']}',
-                          style: TextStyle(color: Colors.grey.shade400),
-                        ),
-                      if ((booking['chauffeurName'] ?? '')
-                          .toString()
-                          .isNotEmpty)
-                        Text(
-                          '${context.t('chauffeur')}: ${booking['chauffeurName']}',
-                          style: TextStyle(color: Colors.grey.shade400),
-                        ),
-                      if ((booking['tripStatus'] ?? '')
-                          .toString()
-                          .isNotEmpty)
-                        Text(
-                          '${context.t('trip')}: ${booking['tripStatus']}',
-                          style: TextStyle(color: Colors.grey.shade400),
-                        ),
-                      if (total != null)
-                        Text(
-                          'Base rental: EGP ${(total as num).toStringAsFixed(0)}',
-                          style: TextStyle(color: Colors.grey.shade400),
-                        ),
-                      if (finalAmount != null &&
-                          finalAmount != total &&
-                          booking['odometer'] is Map &&
-                          (booking['odometer'] as Map)['endKm'] != null)
-                        Text(
-                          '${context.t('finalTotal')}: EGP ${(finalAmount as num).toStringAsFixed(0)}',
-                          style: const TextStyle(
-                            color: Colors.orange,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      if (hasExtraKm) ...[
-                        const SizedBox(height: 6),
+                return Card(
+                  color: Colors.grey.shade900,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Row(
                           children: [
-                            Text(
-                              '${context.t('extraKm')}: ',
-                              style: TextStyle(color: Colors.grey.shade400),
+                            const Icon(
+                              Icons.directions_car,
+                              color: Colors.orange,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                carName,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
                             ),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
+                                horizontal: 10,
+                                vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: extraKmPaymentStatusColor(booking)
+                                color: _statusColor(status)
                                     .withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
-                                extraKmPaymentStatusLabel(booking).toUpperCase(),
+                                statusTranslated.toUpperCase(),
                                 style: TextStyle(
-                                  fontSize: 10,
+                                  fontSize: 11,
                                   fontWeight: FontWeight.bold,
-                                  color: extraKmPaymentStatusColor(booking),
+                                  color: _statusColor(status),
                                 ),
                               ),
                             ),
                           ],
                         ),
-                      ],
-                      const SizedBox(height: 10),
-                      ExtraKmAdminPanel(
-                        bookingId: doc.id,
-                        booking: booking,
-                        compact: true,
-                      ),
-                      const SizedBox(height: 8),
-                      if (booking['pickupVideo'] != null || booking['returnVideo'] != null) ...[
-                        const Text(
-                          'Condition Videos:',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        const SizedBox(height: 10),
+                        Text(
+                          '${context.t('customer')}: $customer',
+                          style: TextStyle(color: Colors.grey.shade300),
                         ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            if (booking['pickupVideo'] != null)
-                              Padding(
-                                padding: const EdgeInsets.only(right: 8.0),
-                                child: ActionChip(
-                                  label: const Text('Pickup Video'),
-                                  avatar: const Icon(Icons.play_circle_fill, size: 16),
+                        if (email.isNotEmpty)
+                          Text(
+                            '${context.t('email')}: $email',
+                            style: TextStyle(color: Colors.grey.shade400),
+                          ),
+                        if (pickup.isNotEmpty)
+                          Text(
+                            '${context.t('pickup')}: $pickup',
+                            style: TextStyle(color: Colors.grey.shade400),
+                          ),
+                        if (returnDate.isNotEmpty)
+                          Text(
+                            '${context.t('return')}: $returnDate',
+                            style: TextStyle(color: Colors.grey.shade400),
+                          ),
+                        if (booking['pickupLocation'] is Map &&
+                            (booking['pickupLocation']['address'] ?? '')
+                                .toString()
+                                .isNotEmpty)
+                          Text(
+                            '${context.t('from')}: ${booking['pickupLocation']['address']}',
+                            style: TextStyle(color: Colors.grey.shade400),
+                          ),
+                        if (booking['dropoffLocation'] is Map &&
+                            (booking['dropoffLocation']['address'] ?? '')
+                                .toString()
+                                .isNotEmpty)
+                          Text(
+                            '${context.t('to')}: ${booking['dropoffLocation']['address']}',
+                            style: TextStyle(color: Colors.grey.shade400),
+                          ),
+                        if ((booking['chauffeurName'] ?? '')
+                            .toString()
+                            .isNotEmpty)
+                          Text(
+                            '${context.t('chauffeur')}: ${booking['chauffeurName']}',
+                            style: TextStyle(color: Colors.grey.shade400),
+                          ),
+                        if ((booking['tripStatus'] ?? '').toString().isNotEmpty)
+                          Text(
+                            '${context.t('trip')}: ${booking['tripStatus']}',
+                            style: TextStyle(color: Colors.grey.shade400),
+                          ),
+                        if (total != null)
+                          Text(
+                            'Base rental: EGP ${(total as num).toStringAsFixed(0)}',
+                            style: TextStyle(color: Colors.grey.shade400),
+                          ),
+                        if (finalAmount != null &&
+                            finalAmount != total &&
+                            booking['odometer'] is Map &&
+                            (booking['odometer'] as Map)['endKm'] != null)
+                          Text(
+                            '${context.t('finalTotal')}: EGP ${(finalAmount as num).toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              color: Colors.orange,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        if (hasExtraKm) ...[
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Text(
+                                '${context.t('extraKm')}: ',
+                                style: TextStyle(color: Colors.grey.shade400),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: extraKmPaymentStatusColor(booking)
+                                      .withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  extraKmPaymentStatusLabel(booking)
+                                      .toUpperCase(),
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: extraKmPaymentStatusColor(booking),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                        const SizedBox(height: 10),
+                        ExtraKmAdminPanel(
+                          bookingId: doc.id,
+                          booking: booking,
+                          compact: true,
+                        ),
+                        const SizedBox(height: 8),
+                        if (booking['pickupVideo'] != null ||
+                            booking['returnVideo'] != null) ...[
+                          const Text(
+                            'Condition Videos:',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              if (booking['pickupVideo'] != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 8.0),
+                                  child: ActionChip(
+                                    label: const Text('Pickup Video'),
+                                    avatar: const Icon(
+                                      Icons.play_circle_fill,
+                                      size: 16,
+                                    ),
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => VideoViewerScreen(
+                                            url: booking['pickupVideo']['url'],
+                                            title:
+                                                'Pickup Condition - $carName',
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              if (booking['returnVideo'] != null)
+                                ActionChip(
+                                  label: const Text('Return Video'),
+                                  avatar: const Icon(
+                                    Icons.play_circle_fill,
+                                    size: 16,
+                                  ),
                                   onPressed: () {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
                                         builder: (_) => VideoViewerScreen(
-                                          url: booking['pickupVideo']['url'],
-                                          title: 'Pickup Condition - $carName',
+                                          url: booking['returnVideo']['url'],
+                                          title: 'Return Condition - $carName',
                                         ),
                                       ),
                                     );
                                   },
                                 ),
-                              ),
-                            if (booking['returnVideo'] != null)
-                              ActionChip(
-                                label: const Text('Return Video'),
-                                avatar: const Icon(Icons.play_circle_fill, size: 16),
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => VideoViewerScreen(
-                                        url: booking['returnVideo']['url'],
-                                        title: 'Return Condition - $carName',
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                          ],
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                        TrafficViolationsAdminPanel(
+                          sourceType: TrafficViolationService.sourceBooking,
+                          rentalId: doc.id,
+                          rentalData: booking,
+                          compact: true,
                         ),
                         const SizedBox(height: 8),
-                      ],
-                      TrafficViolationsAdminPanel(
-                        sourceType: TrafficViolationService.sourceBooking,
-                        rentalId: doc.id,
-                        rentalData: booking,
-                        compact: true,
-                      ),
-                      const SizedBox(height: 8),
-                      if (booking['tripStatus'] == 'in_progress')
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8.0),
-                          child: OutlinedButton.icon(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const AdminSecurityHub(),
+                        if (booking['tripStatus'] == 'in_progress')
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const AdminSecurityHub(),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(
+                                Icons.security,
+                                color: Colors.orange,
+                                size: 18,
+                              ),
+                              label: const Text(
+                                'LIVE SECURITY TRACKING',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
                                 ),
-                              );
-                            },
-                            icon: const Icon(Icons.security, color: Colors.orange, size: 18),
-                            label: const Text(
-                              'LIVE SECURITY TRACKING',
-                              style: TextStyle(color: Colors.white, fontSize: 12),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Colors.orange),
-                            ),
-                          ),
-                        ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          if ((booking['phone'] ?? '').toString().isNotEmpty)
-                            IconButton(
-                              tooltip: 'WhatsApp Customer',
-                              icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFF25D366)),
-                              onPressed: () => WhatsAppService.messageCustomer(
-                                phone: booking['phone'].toString(),
-                                customerName: customer,
-                                bookingId: doc.id,
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Colors.orange),
                               ),
                             ),
-                          IconButton(
-                            tooltip: 'Edit',
-                            icon: const Icon(Icons.edit, color: Colors.blue),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => EditBookingScreen(
-                                    bookingId: doc.id,
-                                    bookingData: booking,
-                                  ),
+                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            if ((booking['phone'] ?? '').toString().isNotEmpty)
+                              IconButton(
+                                tooltip: 'WhatsApp Customer',
+                                icon: const Icon(
+                                  Icons.chat_bubble_outline,
+                                  color: Color(0xFF25D366),
                                 ),
-                              );
-                            },
-                          ),
-                          IconButton(
-                            tooltip: 'Delete',
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => _deleteBooking(context, doc.id),
-                          ),
-                        ],
-                      ),
-                    ],
+                                onPressed: () =>
+                                    WhatsAppService.messageCustomer(
+                                      phone: booking['phone'].toString(),
+                                      customerName: customer,
+                                      bookingId: doc.id,
+                                    ),
+                              ),
+                            IconButton(
+                              tooltip: 'Edit',
+                              icon: const Icon(Icons.edit, color: Colors.blue),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => EditBookingScreen(
+                                      bookingId: doc.id,
+                                      bookingData: booking,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                            IconButton(
+                              tooltip: 'Delete',
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () => _deleteBooking(context, doc.id),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            },
-          );
-        },
+                );
+              },
+            );
+          },
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }

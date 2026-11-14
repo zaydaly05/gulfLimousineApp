@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
+import '../utils/rental_dates.dart';
+
 class NewBookingScreen extends StatefulWidget {
   const NewBookingScreen({super.key});
 
@@ -26,12 +28,7 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
   DateTime? returnDate;
   bool _isLoading = false;
 
-  static const _statuses = [
-    'pending',
-    'confirmed',
-    'completed',
-    'cancelled',
-  ];
+  static const _statuses = ['pending', 'confirmed', 'completed', 'cancelled'];
 
   @override
   void dispose() {
@@ -43,8 +40,7 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
 
   int get _days {
     if (pickupDate == null || returnDate == null) return 0;
-    final diff = returnDate!.difference(pickupDate!).inDays;
-    return diff <= 0 ? 1 : diff;
+    return RentalDates.rentalDays(pickupDate!, returnDate!);
   }
 
   double get _total => pricePerDay * _days;
@@ -352,11 +348,7 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
           children: [
             const Icon(Icons.calendar_today, size: 18, color: Colors.orange),
             const SizedBox(width: 10),
-            Text(
-              date == null
-                  ? label
-                  : DateFormat('dd MMM yyyy').format(date),
-            ),
+            Text(date == null ? label : DateFormat('dd MMM yyyy').format(date)),
           ],
         ),
       ),

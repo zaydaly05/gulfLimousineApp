@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import '../l10n/locale_service.dart';
 import '../theme/app_theme.dart';
 
@@ -132,7 +133,8 @@ class ContactScreen extends StatelessWidget {
                         icon: Icons.chat_bubble_rounded,
                         label: context.t('whatsapp'),
                         color: const Color(0xFF25D366),
-                        onTap: () => _launch(Uri.parse('https://wa.me/$_whatsapp')),
+                        onTap: () =>
+                            _launch(Uri.parse('https://wa.me/$_whatsapp')),
                       ),
                       _ModernContactCard(
                         icon: Icons.call_rounded,
@@ -150,7 +152,9 @@ class ContactScreen extends StatelessWidget {
                         icon: Icons.location_on_rounded,
                         label: context.t('location'),
                         color: Colors.red.shade400,
-                        onTap: () => _launch(Uri.parse('https://maps.google.com/?q=Cairo,Egypt')),
+                        onTap: () => _launch(
+                          Uri.parse('https://maps.google.com/?q=Cairo,Egypt'),
+                        ),
                       ),
                     ],
                   ),
@@ -176,7 +180,10 @@ class ContactScreen extends StatelessWidget {
                         const CircleAvatar(
                           backgroundColor: AppTheme.accent,
                           radius: 24,
-                          child: Icon(Icons.flash_on_rounded, color: Colors.white),
+                          child: Icon(
+                            Icons.flash_on_rounded,
+                            color: Colors.white,
+                          ),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
@@ -210,11 +217,17 @@ class ContactScreen extends StatelessWidget {
                   // Info Section
                   Row(
                     children: [
-                      const Icon(Icons.access_time_filled_rounded, color: AppTheme.accent),
+                      const Icon(
+                        Icons.access_time_filled_rounded,
+                        color: AppTheme.accent,
+                      ),
                       const SizedBox(width: 12),
                       Text(
                         context.t('openingHours'),
-                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 18,
+                        ),
                       ),
                     ],
                   ),
@@ -248,7 +261,10 @@ class ContactScreen extends StatelessWidget {
                           letterSpacing: -0.5,
                         ),
                       ),
-                      const Icon(Icons.help_outline_rounded, color: Colors.grey),
+                      const Icon(
+                        Icons.help_outline_rounded,
+                        color: Colors.grey,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -284,11 +300,20 @@ class ContactScreen extends StatelessWidget {
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            _ModernSocialIcon(icon: Icons.facebook_rounded, onTap: () {}),
+                            _ModernSocialIcon(
+                              icon: Icons.facebook_rounded,
+                              onTap: () {},
+                            ),
                             const SizedBox(width: 20),
-                            _ModernSocialIcon(icon: Icons.camera_alt_rounded, onTap: () {}),
+                            _ModernSocialIcon(
+                              icon: Icons.camera_alt_rounded,
+                              onTap: () {},
+                            ),
                             const SizedBox(width: 20),
-                            _ModernSocialIcon(icon: Icons.public_rounded, onTap: () {}),
+                            _ModernSocialIcon(
+                              icon: Icons.public_rounded,
+                              onTap: () {},
+                            ),
                           ],
                         ),
                       ],
@@ -389,12 +414,8 @@ class _StyledFaqTile extends StatelessWidget {
             color: AppTheme.primary,
           ),
         ),
-        shape: const RoundedRectangleBorder(
-          side: BorderSide.none,
-        ),
-        collapsedShape: const RoundedRectangleBorder(
-          side: BorderSide.none,
-        ),
+        shape: const RoundedRectangleBorder(side: BorderSide.none),
+        collapsedShape: const RoundedRectangleBorder(side: BorderSide.none),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         expandedAlignment: Alignment.topLeft,
         textColor: AppTheme.accent,

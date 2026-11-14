@@ -17,9 +17,7 @@ class MyTrafficViolationsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      return Scaffold(
-        body: Center(child: Text(context.t('signInTickets'))),
-      );
+      return Scaffold(body: Center(child: Text(context.t('signInTickets'))));
     }
 
     return Scaffold(
@@ -49,21 +47,22 @@ class _UserViolationsList extends StatelessWidget {
               ? Stream<QuerySnapshot<Map<String, dynamic>>>.empty()
               : TrafficViolationService.watchForEmail(user.email!),
           builder: (context, byEmail) {
-            final merged = <String, QueryDocumentSnapshot<Map<String, dynamic>>>{};
+            final merged =
+                <String, QueryDocumentSnapshot<Map<String, dynamic>>>{};
             for (final doc in [...?byId.data?.docs, ...?byEmail.data?.docs]) {
               merged[doc.id] = doc;
             }
-            final docs = merged.values.where((doc) {
-              return (doc.data()['status'] ?? '') != 'waived';
-            }).toList()
-              ..sort((a, b) {
-                final aDate = a.data()['createdAt'];
-                final bDate = b.data()['createdAt'];
-                if (aDate is Timestamp && bDate is Timestamp) {
-                  return bDate.compareTo(aDate);
-                }
-                return 0;
-              });
+            final docs =
+                merged.values.where((doc) {
+                  return (doc.data()['status'] ?? '') != 'waived';
+                }).toList()..sort((a, b) {
+                  final aDate = a.data()['createdAt'];
+                  final bDate = b.data()['createdAt'];
+                  if (aDate is Timestamp && bDate is Timestamp) {
+                    return bDate.compareTo(aDate);
+                  }
+                  return 0;
+                });
 
             if (byId.connectionState == ConnectionState.waiting &&
                 docs.isEmpty) {
@@ -125,7 +124,8 @@ class _UserViolationsList extends StatelessWidget {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                data['car_name']?.toString() ?? context.t('cars'),
+                                data['car_name']?.toString() ??
+                                    context.t('cars'),
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
@@ -136,12 +136,12 @@ class _UserViolationsList extends StatelessWidget {
                               awaitingCash
                                   ? 'CASH PENDING'
                                   : pending
-                                      ? context.t('unpaid').toUpperCase()
-                                      : context.t(status.toLowerCase()).toUpperCase(),
+                                  ? context.t('unpaid').toUpperCase()
+                                  : context
+                                        .t(status.toLowerCase())
+                                        .toUpperCase(),
                               style: TextStyle(
-                                color: pending
-                                    ? Colors.orange
-                                    : Colors.green,
+                                color: pending ? Colors.orange : Colors.green,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 12,
                               ),
@@ -228,16 +228,19 @@ class _ViolationPaymentScreenState extends State<ViolationPaymentScreen> {
   double get _amount => TrafficViolationService.amountOf(widget.data);
 
   Future<void> _payWithMethod(String method, Widget screen) async {
-    final confirmed = await Navigator.push<bool>(
+    // Card/wallet screens pop `true`, InstaPay pops its transaction id
+    // (a String), so accept any non-null result as a completed payment.
+    final result = await Navigator.push<Object?>(
       context,
       MaterialPageRoute(builder: (_) => screen),
     );
-    if (confirmed == true) {
+    if (result != null && result != false && mounted) {
       await _completePayment(method, paid: true);
     }
   }
 
   Future<void> _completePayment(String method, {required bool paid}) async {
+    if (_isProcessing) return;
     setState(() => _isProcessing = true);
     try {
       await TrafficViolationService.pay(
@@ -261,7 +264,10 @@ class _ViolationPaymentScreenState extends State<ViolationPaymentScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Payment failed: $e'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('Payment failed: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
       if (mounted) setState(() => _isProcessing = false);
@@ -289,7 +295,10 @@ class _ViolationPaymentScreenState extends State<ViolationPaymentScreen> {
               children: [
                 Text(
                   context.t('ticketSummary'),
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Card(
@@ -297,12 +306,20 @@ class _ViolationPaymentScreenState extends State<ViolationPaymentScreen> {
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       children: [
-                        _row(context.t('cars'), widget.data['car_name']?.toString() ?? context.t('cars')),
-                        if (dateLabel.isNotEmpty) _row(context.t('pickupDate'), dateLabel),
+                        _row(
+                          context.t('cars'),
+                          widget.data['car_name']?.toString() ??
+                              context.t('cars'),
+                        ),
+                        if (dateLabel.isNotEmpty)
+                          _row(context.t('pickupDate'), dateLabel),
                         if ((widget.data['ticketNumber'] ?? '')
                             .toString()
                             .isNotEmpty)
-                          _row('Ticket', widget.data['ticketNumber'].toString()),
+                          _row(
+                            'Ticket',
+                            widget.data['ticketNumber'].toString(),
+                          ),
                         if ((widget.data['description'] ?? '')
                             .toString()
                             .isNotEmpty)
@@ -323,7 +340,10 @@ class _ViolationPaymentScreenState extends State<ViolationPaymentScreen> {
                 const SizedBox(height: 28),
                 Text(
                   context.t('paymentMethod'),
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 _method(

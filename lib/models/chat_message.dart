@@ -33,7 +33,8 @@ class ChatMessage {
       text: data['text']?.toString() ?? '',
       isUser: data['isUser'] == true,
       timestamp: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      suggestions: (data['suggestions'] as List<dynamic>?)
+      suggestions:
+          (data['suggestions'] as List<dynamic>?)
               ?.map((item) => item.toString())
               .toList() ??
           const [],

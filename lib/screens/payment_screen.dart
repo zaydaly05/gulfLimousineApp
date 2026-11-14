@@ -23,6 +23,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   String? _signatureUrl;
 
   Future<void> _payWithMethod(String method, Widget screen) async {
+    if (_isProcessing) return;
     if (_signatureUrl == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please sign the rental agreement first')),
@@ -33,19 +34,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
       context,
       MaterialPageRoute(builder: (_) => screen),
     );
-    if (result != null) {
-      String? reference;
-      if (result is String) reference = result;
-      await _completePayment(method, reference: reference);
+    if (result != null && mounted) {
+      await _completePayment(
+        method,
+        reference: result is String ? result : null,
+      );
     }
   }
 
   Future<void> _completePayment(String method, {String? reference}) async {
-    if (_signatureUrl == null && method != 'cash') {
-       // Should already be checked in _payWithMethod, but safety first
-       return;
-    }
-    if (method == 'cash' && _signatureUrl == null) {
+    // Guards against a double tap creating two bookings.
+    if (_isProcessing) return;
+    if (_signatureUrl == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please sign the rental agreement first')),
       );
@@ -79,7 +79,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Payment failed: $e'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('Payment failed: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
       if (mounted) setState(() => _isProcessing = false);
@@ -131,7 +134,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
                           iconColor: Colors.blue,
                         ),
                       _summaryRow('Duration', '${rental.days} day(s)'),
-                      _summaryRow('Rate', 'EGP ${rental.pricePerDay.toStringAsFixed(0)} / day'),
+                      _summaryRow(
+                        'Rate',
+                        'EGP ${rental.pricePerDay.toStringAsFixed(0)} / day',
+                      ),
                       const Divider(height: 24),
                       _summaryRow(
                         'Total',
@@ -147,11 +153,17 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   ),
                   const SizedBox(height: 12),
                   Card(
-                    color: _signatureUrl != null ? Colors.green.shade50 : Colors.blue.shade50,
+                    color: _signatureUrl != null
+                        ? Colors.green.shade50
+                        : Colors.blue.shade50,
                     child: ListTile(
                       leading: Icon(
-                        _signatureUrl != null ? Icons.verified : Icons.assignment_late,
-                        color: _signatureUrl != null ? Colors.green : Colors.blue,
+                        _signatureUrl != null
+                            ? Icons.verified
+                            : Icons.assignment_late,
+                        color: _signatureUrl != null
+                            ? Colors.green
+                            : Colors.blue,
                       ),
                       title: Text(
                         _signatureUrl != null
@@ -159,7 +171,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             : 'Sign Rental Agreement',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: _signatureUrl != null ? Colors.green.shade900 : Colors.blue.shade900,
+                          color: _signatureUrl != null
+                              ? Colors.green.shade900
+                              : Colors.blue.shade900,
                         ),
                       ),
                       subtitle: Text(
@@ -174,12 +188,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         final sig = await Navigator.push<String>(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => RentalAgreementScreen(
-                              rentalDetails: rental,
-                            ),
+                            builder: (_) =>
+                                RentalAgreementScreen(rentalDetails: rental),
                           ),
                         );
-                        if (sig != null) {
+                        if (sig != null && mounted) {
                           setState(() => _signatureUrl = sig);
                         }
                       },

@@ -1,14 +1,12 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+
 import 'firebase_options.dart';
-import 'package:gulflimousine_travel/screens/adminDashboard_screen.dart';
-import 'package:gulflimousine_travel/screens/intro_screen.dart';
+import 'screens/intro_screen.dart';
 import 'theme/app_theme.dart';
 import 'screens/dashboard_screen.dart';
-import 'services/notification_service.dart';
 import 'services/biometric_service.dart';
 import 'services/auth_navigation.dart';
 import 'widgets/biometric_lock_screen.dart';
@@ -48,10 +46,7 @@ class GulfLimousineApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           locale: LocaleService.instance.locale,
-          supportedLocales: const [
-            Locale('en'),
-            Locale('ar'),
-          ],
+          supportedLocales: const [Locale('en'), Locale('ar')],
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
@@ -87,7 +82,7 @@ class _AuthGateState extends State<AuthGate> {
 
     try {
       final home = await AuthNavigation.homeForCurrentUser();
-      
+
       if (await BiometricService.isEnabledForCurrentUser()) {
         return BiometricLockScreen(child: home);
       }

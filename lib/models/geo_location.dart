@@ -11,11 +11,7 @@ class GeoLocation {
     required this.address,
   });
 
-  Map<String, dynamic> toMap() => {
-        'lat': lat,
-        'lng': lng,
-        'address': address,
-      };
+  Map<String, dynamic> toMap() => {'lat': lat, 'lng': lng, 'address': address};
 
   factory GeoLocation.fromMap(Map<String, dynamic>? map) {
     if (map == null) {
@@ -55,16 +51,12 @@ class LiveLocation {
   final double lng;
   final DateTime? updatedAt;
 
-  const LiveLocation({
-    required this.lat,
-    required this.lng,
-    this.updatedAt,
-  });
+  const LiveLocation({required this.lat, required this.lng, this.updatedAt});
 
   Map<String, dynamic> toMap() => {
-        'lat': lat,
-        'lng': lng,
-        'updatedAt': FieldValue.serverTimestamp(),
+    'lat': lat,
+    'lng': lng,
+    'updatedAt': FieldValue.serverTimestamp(),
   };
 
   factory LiveLocation.fromMap(Map<String, dynamic>? map) {

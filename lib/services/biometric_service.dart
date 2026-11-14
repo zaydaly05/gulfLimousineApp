@@ -38,7 +38,8 @@ class BiometricService {
   static Future<String> methodLabel() async {
     final types = await availableTypes();
     final hasFace = types.contains(BiometricType.face);
-    final hasFingerprint = types.contains(BiometricType.fingerprint) ||
+    final hasFingerprint =
+        types.contains(BiometricType.fingerprint) ||
         types.contains(BiometricType.strong) ||
         types.contains(BiometricType.weak);
     if (hasFace && hasFingerprint) return 'Face ID / fingerprint';

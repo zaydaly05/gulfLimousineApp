@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../services/cloudinary_service.dart';
 
 class EditCarScreen extends StatefulWidget {
   final String carId;
   final Map<String, dynamic> carData;
 
-  const EditCarScreen({
-    super.key,
-    required this.carId,
-    required this.carData,
-  });
+  const EditCarScreen({super.key, required this.carId, required this.carData});
 
   @override
   State<EditCarScreen> createState() => _EditCarScreenState();
@@ -31,15 +28,23 @@ class _EditCarScreenState extends State<EditCarScreen> {
   void initState() {
     super.initState();
 
-    nameController =
-        TextEditingController(text: widget.carData['name']);
-    brandController =
-        TextEditingController(text: widget.carData['brand']);
+    final data = widget.carData;
+    nameController = TextEditingController(text: data['name']?.toString());
+    brandController = TextEditingController(text: data['brand']?.toString());
     priceController = TextEditingController(
-        text: widget.carData['price_per_day'].toString());
+      text: data['price_per_day']?.toString() ?? '',
+    );
 
-    imageUrl = widget.carData['image_url'];
-    publicId = widget.carData['public_id'];
+    imageUrl = data['image_url']?.toString();
+    publicId = data['public_id']?.toString();
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    brandController.dispose();
+    priceController.dispose();
+    super.dispose();
   }
 
   Future<void> replaceImage() async {
@@ -50,14 +55,23 @@ class _EditCarScreenState extends State<EditCarScreen> {
     if (publicId != null && publicId!.isNotEmpty) {
       await cloudinary.deleteImage(publicId!);
     }
+    if (!mounted) return;
 
     setState(() {
-      imageUrl = imageData['url'];
-      publicId = imageData['public_id'];
+      // uploadBytes returns 'secure_url'; reading 'url' wiped the image.
+      imageUrl = imageData['secure_url']?.toString();
+      publicId = imageData['public_id']?.toString();
     });
   }
 
   Future<void> updateCar() async {
+    final price = double.tryParse(priceController.text.trim());
+    if (price == null || price <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a valid price per day')),
+      );
+      return;
+    }
     try {
       setState(() => isLoading = true);
 
@@ -65,21 +79,20 @@ class _EditCarScreenState extends State<EditCarScreen> {
           .collection('cars')
           .doc(widget.carId)
           .update({
-        'name': nameController.text,
-        'brand': brandController.text,
-        'price_per_day':
-        double.parse(priceController.text),
-        'image_url': imageUrl,
-        'public_id': publicId,
-      });
+            'name': nameController.text.trim(),
+            'brand': brandController.text.trim(),
+            'price_per_day': price,
+            'image_url': imageUrl,
+            'public_id': publicId,
+          });
 
-      Navigator.pop(context);
+      if (mounted) Navigator.pop(context);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Error: $e")));
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
@@ -152,9 +165,7 @@ class _EditCarScreenState extends State<EditCarScreen> {
             Container(
               color: Colors.black.withValues(alpha: 0.6),
               child: const Center(
-                child: CircularProgressIndicator(
-                  color: Colors.orange,
-                ),
+                child: CircularProgressIndicator(color: Colors.orange),
               ),
             ),
         ],
@@ -163,28 +174,24 @@ class _EditCarScreenState extends State<EditCarScreen> {
   }
 
   Widget buildTextField(
-      TextEditingController controller,
-      String label, {
-        bool isNumber = false,
-      }) {
+    TextEditingController controller,
+    String label, {
+    bool isNumber = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: TextField(
         controller: controller,
-        keyboardType:
-        isNumber ? TextInputType.number : null,
+        keyboardType: isNumber ? TextInputType.number : null,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle:
-          const TextStyle(color: Colors.white70),
+          labelStyle: const TextStyle(color: Colors.white70),
           enabledBorder: OutlineInputBorder(
-            borderSide:
-            BorderSide(color: Colors.grey.shade700),
+            borderSide: BorderSide(color: Colors.grey.shade700),
           ),
           focusedBorder: OutlineInputBorder(
-            borderSide:
-            const BorderSide(color: Colors.orange),
+            borderSide: const BorderSide(color: Colors.orange),
           ),
         ),
       ),

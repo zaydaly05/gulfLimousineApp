@@ -7,18 +7,13 @@ class ChatbotReply {
   final String text;
   final List<String> suggestions;
 
-  const ChatbotReply({
-    required this.text,
-    this.suggestions = const [],
-  });
+  const ChatbotReply({required this.text, this.suggestions = const []});
 }
 
 class ChatbotService {
-  ChatbotService({
-    FirebaseFirestore? firestore,
-    FirebaseAuth? auth,
-  })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _auth = auth ?? FirebaseAuth.instance;
+  ChatbotService({FirebaseFirestore? firestore, FirebaseAuth? auth})
+    : _firestore = firestore ?? FirebaseFirestore.instance,
+      _auth = auth ?? FirebaseAuth.instance;
 
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
@@ -64,7 +59,9 @@ class ChatbotService {
 
   ChatbotReply welcomeMessage({String? userName}) {
     final name = userName?.trim();
-    final greeting = name != null && name.isNotEmpty ? 'Hi $name!' : 'Hi there!';
+    final greeting = name != null && name.isNotEmpty
+        ? 'Hi $name!'
+        : 'Hi there!';
 
     return ChatbotReply(
       text:
@@ -84,22 +81,49 @@ class ChatbotService {
       );
     }
 
-    if (_matches(message, ['hello', 'hi', 'hey', 'good morning', 'good evening'])) {
+    if (_matches(message, [
+      'hello',
+      'hi',
+      'hey',
+      'good morning',
+      'good evening',
+    ])) {
       return ChatbotReply(
         text: 'Hello! How can I help you with your Gulf Limousine experience today?',
         suggestions: welcomeSuggestions,
       );
     }
 
-    if (_matches(message, ['car', 'cars', 'fleet', 'available', 'rent', 'vehicle'])) {
+    if (_matches(message, [
+      'car',
+      'cars',
+      'fleet',
+      'available',
+      'rent',
+      'vehicle',
+    ])) {
       return _availableCarsReply();
     }
 
-    if (_matches(message, ['booking', 'bookings', 'reservation', 'my booking', 'rental'])) {
+    if (_matches(message, [
+      'booking',
+      'bookings',
+      'reservation',
+      'my booking',
+      'rental',
+    ])) {
       return _bookingsReply();
     }
 
-    if (_matches(message, ['payment', 'pay', 'wallet', 'card', 'cash', 'instapay', 'checkout'])) {
+    if (_matches(message, [
+      'payment',
+      'pay',
+      'wallet',
+      'card',
+      'cash',
+      'instapay',
+      'checkout',
+    ])) {
       return const ChatbotReply(
         text:
             'We support these payment options:\n'
@@ -113,7 +137,14 @@ class ChatbotService {
       );
     }
 
-    if (_matches(message, ['price', 'cost', 'rate', 'how much', 'fee', 'pricing'])) {
+    if (_matches(message, [
+      'price',
+      'cost',
+      'rate',
+      'how much',
+      'fee',
+      'pricing',
+    ])) {
       return _pricingReply();
     }
 
@@ -136,7 +167,14 @@ class ChatbotService {
       );
     }
 
-    if (_matches(message, ['contact', 'phone', 'email', 'support', 'help', 'call'])) {
+    if (_matches(message, [
+      'contact',
+      'phone',
+      'email',
+      'support',
+      'help',
+      'call',
+    ])) {
       return const ChatbotReply(
         text:
             'Need human support? Reach us at:\n'
@@ -147,7 +185,13 @@ class ChatbotService {
       );
     }
 
-    if (_matches(message, ['location', 'where', 'cairo', 'address', 'pickup'])) {
+    if (_matches(message, [
+      'location',
+      'where',
+      'cairo',
+      'address',
+      'pickup',
+    ])) {
       return const ChatbotReply(
         text:
             'Gulf Limousine Travel is based in Cairo, Egypt.\n'
@@ -156,7 +200,15 @@ class ChatbotService {
       );
     }
 
-    if (_matches(message, ['security', 'geofence', 'safe zone', 'limit', 'lock', 'stolen', 'theft'])) {
+    if (_matches(message, [
+      'security',
+      'geofence',
+      'safe zone',
+      'limit',
+      'lock',
+      'stolen',
+      'theft',
+    ])) {
       return const ChatbotReply(
         text:
             'Our security measures include:\n'
@@ -300,7 +352,11 @@ class ChatbotService {
 
     return ChatbotReply(
       text: buffer.toString().trim(),
-      suggestions: const ['Show available cars', 'Payment methods', 'Contact support'],
+      suggestions: const [
+        'Show available cars',
+        'Payment methods',
+        'Contact support',
+      ],
     );
   }
 
@@ -326,14 +382,17 @@ class ChatbotService {
       final price = doc.data()['price_per_day'] ?? doc.data()['price'];
       if (price is! num) continue;
       final value = price.toDouble();
-      minPrice = minPrice == null ? value : (value < minPrice ? value : minPrice);
-      maxPrice = maxPrice == null ? value : (value > maxPrice ? value : maxPrice);
+      minPrice = minPrice == null
+          ? value
+          : (value < minPrice ? value : minPrice);
+      maxPrice = maxPrice == null
+          ? value
+          : (value > maxPrice ? value : maxPrice);
     }
 
     if (minPrice == null || maxPrice == null) {
       return const ChatbotReply(
-        text:
-            'Rates vary by vehicle. Browse Cars shows the exact daily price before checkout.',
+        text: 'Rates vary by vehicle. Browse Cars shows the exact daily price before checkout.',
         suggestions: ['Show available cars'],
       );
     }

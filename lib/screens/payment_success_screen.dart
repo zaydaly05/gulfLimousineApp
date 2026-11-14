@@ -9,8 +9,7 @@ class PaymentSuccessScreen extends StatelessWidget {
   const PaymentSuccessScreen({
     super.key,
     this.title = 'Payment Successful',
-    this.message =
-        'Thank you for choosing Gulf Limousine Travel.\nYour car has been successfully booked.',
+    this.message = 'Thank you for choosing Gulf Limousine Travel.\nYour car has been successfully booked.',
   });
 
   @override

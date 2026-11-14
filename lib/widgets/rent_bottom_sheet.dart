@@ -7,6 +7,7 @@ import '../screens/payment_screen.dart';
 import '../services/booking_service.dart';
 import 'expandable_address_row.dart';
 import '../l10n/locale_service.dart';
+import '../utils/rental_dates.dart';
 
 class RentBottomSheet extends StatefulWidget {
   final Map<String, dynamic> car;
@@ -28,7 +29,7 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
 
   int get _days {
     if (pickupDate == null || returnDate == null) return 0;
-    return returnDate!.difference(pickupDate!).inDays + 1;
+    return RentalDates.rentalDays(pickupDate!, returnDate!);
   }
 
   double get _total => _pricePerDay * _days;
@@ -38,16 +39,18 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
     final initial = isPickup
         ? (pickupDate ?? now)
         : (returnDate ??
-            pickupDate?.add(const Duration(days: 1)) ??
-            now.add(const Duration(days: 1)));
+              pickupDate?.add(const Duration(days: 1)) ??
+              now.add(const Duration(days: 1)));
 
+    // Return can't be before pickup, so start its calendar at the pickup date.
+    final first = !isPickup && pickupDate != null ? pickupDate! : now;
     final picked = await showDatePicker(
       context: context,
-      initialDate: initial,
-      firstDate: now,
+      initialDate: initial.isBefore(first) ? first : initial,
+      firstDate: first,
       lastDate: now.add(const Duration(days: 365)),
     );
-    if (picked == null) return;
+    if (picked == null || !mounted) return;
 
     setState(() {
       if (isPickup) {
@@ -66,12 +69,14 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
       context,
       MaterialPageRoute(
         builder: (_) => MapLocationPicker(
-          title: isPickup ? context.t('pickupLocation') : context.t('dropoffLocation'),
+          title: isPickup
+              ? context.t('pickupLocation')
+              : context.t('dropoffLocation'),
           initial: isPickup ? pickupLocation : dropoffLocation,
         ),
       ),
     );
-    if (result == null) return;
+    if (result == null || !mounted) return;
     setState(() {
       if (isPickup) {
         pickupLocation = result;
@@ -89,22 +94,19 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
       return;
     }
     if (returnDate!.isBefore(pickupDate!)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.t('returnAfterPickup'))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.t('returnAfterPickup'))));
       return;
     }
     if (_days < 1) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.t('rentalMinDay'))),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.t('rentalMinDay'))));
       return;
     }
     if (pickupLocation == null || dropoffLocation == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.t('selectPickupDropoffLoc')),
-        ),
+        SnackBar(content: Text(context.t('selectPickupDropoffLoc'))),
       );
       return;
     }
@@ -121,9 +123,10 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
       dropoffLocation: dropoffLocation,
     );
 
-    Navigator.pop(context);
-    Navigator.push(
-      context,
+    // Capture the navigator first: this sheet's context goes away on pop.
+    final navigator = Navigator.of(context);
+    navigator.pop();
+    navigator.push(
       MaterialPageRoute(builder: (_) => PaymentScreen(rental: rental)),
     );
   }
@@ -161,21 +164,23 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
             ),
             const SizedBox(height: 4),
             Text(
-              '${widget.car['brand'] ?? ''} · EGP $_pricePerDay ${context.t('perDay')}',
+              '${widget.car['brand'] ?? ''} · EGP ${_pricePerDay.toStringAsFixed(0)} ${context.t('perDay')}',
               style: TextStyle(color: Colors.grey.shade600),
             ),
             const SizedBox(height: 20),
             _DateRow(
               label: context.t('pickupDate'),
-              value:
-                  pickupDate != null ? dateFmt.format(pickupDate!) : context.t('selectDate'),
+              value: pickupDate != null
+                  ? dateFmt.format(pickupDate!)
+                  : context.t('selectDate'),
               onTap: () => _pickDate(true),
             ),
             const SizedBox(height: 12),
             _DateRow(
               label: context.t('returnDateLabel'),
-              value:
-                  returnDate != null ? dateFmt.format(returnDate!) : context.t('selectDate'),
+              value: returnDate != null
+                  ? dateFmt.format(returnDate!)
+                  : context.t('selectDate'),
               onTap: () => _pickDate(false),
             ),
             const SizedBox(height: 12),
@@ -205,7 +210,9 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('$_days ${context.t('days')} × EGP $_pricePerDay'),
+                    Text(
+                      '$_days ${context.t('days')} × EGP ${_pricePerDay.toStringAsFixed(0)}',
+                    ),
                     Text(
                       'EGP ${_total.toStringAsFixed(0)}',
                       style: const TextStyle(
@@ -257,7 +264,11 @@ class _DateRow extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_today, color: Color(0xFFFF8C00), size: 20),
+            const Icon(
+              Icons.calendar_today,
+              color: Color(0xFFFF8C00),
+              size: 20,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(

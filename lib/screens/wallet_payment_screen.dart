@@ -61,7 +61,10 @@ class _WalletPaymentScreenState extends State<WalletPaymentScreen> {
                       ),
                       title: Text(wallet),
                       trailing: selected
-                          ? const Icon(Icons.check_circle, color: Color(0xFFFF8C00))
+                          ? const Icon(
+                              Icons.check_circle,
+                              color: Color(0xFFFF8C00),
+                            )
                           : null,
                       onTap: () => setState(() => _selectedWallet = wallet),
                     ),

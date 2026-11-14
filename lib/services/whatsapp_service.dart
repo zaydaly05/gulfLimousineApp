@@ -6,7 +6,8 @@ class WhatsAppService {
 
   /// Contact Gulf Limousine Admin
   static Future<void> contactAdmin({String? message}) async {
-    final text = message ?? 'Hello Gulf Limousine, I have an inquiry about my rental.';
+    final text =
+        message ?? 'Hello Gulf Limousine, I have an inquiry about my rental.';
     await _launchWhatsApp(_adminPhone, text);
   }
 
@@ -26,7 +27,8 @@ class WhatsAppService {
     required String customerName,
     String? bookingId,
   }) async {
-    final text = 'Hello $customerName, this is Gulf Limousine Travel regarding your booking ${bookingId != null ? '#$bookingId' : ''}.';
+    final text =
+        'Hello $customerName, this is Gulf Limousine Travel regarding your booking ${bookingId != null ? '#$bookingId' : ''}.';
     await _launchWhatsApp(phone, text);
   }
 
@@ -34,7 +36,8 @@ class WhatsAppService {
   static Future<void> _launchWhatsApp(String phone, String message) async {
     // Remove non-numeric characters from phone
     final cleanPhone = phone.replaceAll(RegExp(r'[^0-9+]'), '');
-    final url = 'https://wa.me/$cleanPhone?text=${Uri.encodeComponent(message)}';
+    final url =
+        'https://wa.me/$cleanPhone?text=${Uri.encodeComponent(message)}';
     final uri = Uri.parse(url);
 
     try {

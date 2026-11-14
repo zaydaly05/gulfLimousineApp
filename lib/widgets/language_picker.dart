@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
+
 import '../l10n/locale_service.dart';
 
 class LanguagePicker extends StatelessWidget {
   final bool compact;
   final bool dark;
 
-  const LanguagePicker({
-    super.key,
-    this.compact = false,
-    this.dark = false,
-  });
+  const LanguagePicker({super.key, this.compact = false, this.dark = false});
 
   @override
   Widget build(BuildContext context) {
@@ -41,13 +38,17 @@ class LanguagePicker extends StatelessWidget {
               label: Text(
                 context.t('english'),
                 style: TextStyle(
-                  color: selected == 'en' ? Colors.white : (dark ? Colors.white70 : Colors.black87),
+                  color: selected == 'en'
+                      ? Colors.white
+                      : (dark ? Colors.white70 : Colors.black87),
                   fontWeight: FontWeight.bold,
                 ),
               ),
               selected: selected == 'en',
               selectedColor: Colors.orange,
-              backgroundColor: dark ? Colors.grey.shade800 : Colors.grey.shade200,
+              backgroundColor: dark
+                  ? Colors.grey.shade800
+                  : Colors.grey.shade200,
               onSelected: (_) => service.setLocale(const Locale('en')),
             ),
             const SizedBox(width: 10),
@@ -55,13 +56,17 @@ class LanguagePicker extends StatelessWidget {
               label: Text(
                 context.t('arabic'),
                 style: TextStyle(
-                  color: selected == 'ar' ? Colors.white : (dark ? Colors.white70 : Colors.black87),
+                  color: selected == 'ar'
+                      ? Colors.white
+                      : (dark ? Colors.white70 : Colors.black87),
                   fontWeight: FontWeight.bold,
                 ),
               ),
               selected: selected == 'ar',
               selectedColor: Colors.orange,
-              backgroundColor: dark ? Colors.grey.shade800 : Colors.grey.shade200,
+              backgroundColor: dark
+                  ? Colors.grey.shade800
+                  : Colors.grey.shade200,
               onSelected: (_) => service.setLocale(const Locale('ar')),
             ),
           ],

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+
 import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
 
@@ -11,8 +12,10 @@ class ManageChauffeursScreen extends StatelessWidget {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: Colors.grey.shade900,
-        title: Text(context.t('delete'),
-            style: const TextStyle(color: Colors.white)),
+        title: Text(
+          context.t('delete'),
+          style: const TextStyle(color: Colors.white),
+        ),
         content: Text(
           context.t('cannotBeUndone'),
           style: const TextStyle(color: Colors.white70),
@@ -24,13 +27,19 @@ class ManageChauffeursScreen extends StatelessWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(context.t('delete'), style: const TextStyle(color: Colors.red)),
+            child: Text(
+              context.t('delete'),
+              style: const TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ),
     );
     if (ok == true) {
-      await FirebaseFirestore.instance.collection('chauffeurs').doc(id).delete();
+      await FirebaseFirestore.instance
+          .collection('chauffeurs')
+          .doc(id)
+          .delete();
     }
   }
 
@@ -74,8 +83,10 @@ class ManageChauffeursScreen extends StatelessWidget {
                   ),
                 ),
                 SwitchListTile(
-                  title: Text(context.t('active'),
-                      style: const TextStyle(color: Colors.white70)),
+                  title: Text(
+                    context.t('active'),
+                    style: const TextStyle(color: Colors.white70),
+                  ),
                   value: active,
                   activeThumbColor: Colors.orange,
                   onChanged: (v) => setLocal(() => active = v),
@@ -109,7 +120,10 @@ class ManageChauffeursScreen extends StatelessWidget {
                   }
                   if (dialogContext.mounted) Navigator.pop(dialogContext);
                 },
-                child: Text(context.t('save'), style: const TextStyle(color: Colors.orange)),
+                child: Text(
+                  context.t('save'),
+                  style: const TextStyle(color: Colors.orange),
+                ),
               ),
             ],
           );
@@ -125,10 +139,7 @@ class ManageChauffeursScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(context.t('chauffeursTitle')),
         backgroundColor: Colors.black,
-        actions: const [
-          LanguageToggleButton(dark: true),
-          SizedBox(width: 8),
-        ],
+        actions: const [LanguageToggleButton(dark: true), SizedBox(width: 8)],
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.orange,
@@ -140,7 +151,9 @@ class ManageChauffeursScreen extends StatelessWidget {
           await Future<void>.delayed(const Duration(milliseconds: 600));
         },
         child: StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance.collection('chauffeurs').snapshots(),
+          stream: FirebaseFirestore.instance
+              .collection('chauffeurs')
+              .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -164,57 +177,57 @@ class ManageChauffeursScreen extends StatelessWidget {
             }
             return ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.fromLTRB(
-              16,
-              16,
-              16,
-              80 + MediaQuery.viewPaddingOf(context).bottom,
-            ),
-            itemCount: docs.length,
-            itemBuilder: (context, index) {
-              final doc = docs[index];
-              final data = doc.data() as Map<String, dynamic>;
-              final active = data['active'] != false;
-              return Card(
-                color: Colors.grey.shade900,
-                margin: const EdgeInsets.only(bottom: 12),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.orange.withValues(alpha: 0.2),
-                    child: const Icon(Icons.person, color: Colors.orange),
-                  ),
-                  title: Text(
-                    data['name']?.toString() ?? context.t('chauffeur'),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
+              padding: EdgeInsets.fromLTRB(
+                16,
+                16,
+                16,
+                80 + MediaQuery.viewPaddingOf(context).bottom,
+              ),
+              itemCount: docs.length,
+              itemBuilder: (context, index) {
+                final doc = docs[index];
+                final data = doc.data() as Map<String, dynamic>;
+                final active = data['active'] != false;
+                return Card(
+                  color: Colors.grey.shade900,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.orange.withValues(alpha: 0.2),
+                      child: const Icon(Icons.person, color: Colors.orange),
+                    ),
+                    title: Text(
+                      data['name']?.toString() ?? context.t('chauffeur'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    subtitle: Text(
+                      '${data['phone'] ?? ''}${active ? '' : ' · Inactive'}',
+                      style: TextStyle(color: Colors.grey.shade400),
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.blue),
+                          onPressed: () =>
+                              _openForm(context, id: doc.id, data: data),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => _delete(context, doc.id),
+                        ),
+                      ],
                     ),
                   ),
-                  subtitle: Text(
-                    '${data['phone'] ?? ''}${active ? '' : ' · Inactive'}',
-                    style: TextStyle(color: Colors.grey.shade400),
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.blue),
-                        onPressed: () =>
-                            _openForm(context, id: doc.id, data: data),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _delete(context, doc.id),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          );
-        },
+                );
+              },
+            );
+          },
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../l10n/locale_service.dart';
 
 class SignUpDialog extends StatefulWidget {
@@ -17,16 +18,30 @@ class _SignUpDialogState extends State<SignUpDialog> {
 
   bool _isLoading = false;
 
+  @override
+  void dispose() {
+    nameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
   /// 📝 SIGN UP WITH FIREBASE
-  Future<void> _signUp(BuildContext context) async {
+  Future<void> _signUp() async {
+    if (nameController.text.trim().isEmpty ||
+        emailController.text.trim().isEmpty ||
+        passwordController.text.isEmpty) {
+      _showError(context.t('fillAllFields'));
+      return;
+    }
     try {
       setState(() => _isLoading = true);
 
-      UserCredential userCredential =
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
+      UserCredential userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+            email: emailController.text.trim(),
+            password: passwordController.text.trim(),
+          );
 
       String uid = userCredential.user!.uid;
 
@@ -42,13 +57,12 @@ class _SignUpDialogState extends State<SignUpDialog> {
 
       if (!mounted) return;
 
+      final messenger = ScaffoldMessenger.of(context);
+      final createdText = context.t('accountCreated');
       Navigator.pop(context);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.t('accountCreated')),
-          backgroundColor: Colors.green,
-        ),
+      messenger.showSnackBar(
+        SnackBar(content: Text(createdText), backgroundColor: Colors.green),
       );
     } on FirebaseAuthException catch (e) {
       _showError(e.message ?? context.t('signupFailed'));
@@ -62,10 +76,7 @@ class _SignUpDialogState extends State<SignUpDialog> {
   void _showError(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
@@ -75,10 +86,7 @@ class _SignUpDialogState extends State<SignUpDialog> {
       child: Material(
         color: Colors.transparent,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            maxWidth: 380,
-            minWidth: 250,
-          ),
+          constraints: const BoxConstraints(maxWidth: 380, minWidth: 250),
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -110,8 +118,7 @@ class _SignUpDialogState extends State<SignUpDialog> {
                   controller: nameController,
                   decoration: InputDecoration(
                     labelText: context.t('fullName'),
-                    labelStyle:
-                    const TextStyle(color: Colors.orange),
+                    labelStyle: const TextStyle(color: Colors.orange),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -125,8 +132,7 @@ class _SignUpDialogState extends State<SignUpDialog> {
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
                     labelText: context.t('email'),
-                    labelStyle:
-                    const TextStyle(color: Colors.orange),
+                    labelStyle: const TextStyle(color: Colors.orange),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -140,8 +146,7 @@ class _SignUpDialogState extends State<SignUpDialog> {
                   obscureText: true,
                   decoration: InputDecoration(
                     labelText: context.t('password'),
-                    labelStyle:
-                    const TextStyle(color: Colors.orange),
+                    labelStyle: const TextStyle(color: Colors.orange),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -154,8 +159,9 @@ class _SignUpDialogState extends State<SignUpDialog> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
-                      onPressed:
-                      _isLoading ? null : () => Navigator.pop(context),
+                      onPressed: _isLoading
+                          ? null
+                          : () => Navigator.pop(context),
                       child: Text(
                         context.t('cancel'),
                         style: const TextStyle(color: Colors.black),
@@ -163,21 +169,19 @@ class _SignUpDialogState extends State<SignUpDialog> {
                     ),
                     const SizedBox(width: 12),
                     ElevatedButton(
-                      onPressed: _isLoading
-                          ? null
-                          : () => _signUp(context),
+                      onPressed: _isLoading ? null : _signUp,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.orange,
                       ),
                       child: _isLoading
                           ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
                           : Text(context.t('signUp')),
                     ),
                   ],

@@ -46,7 +46,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '671779610901',
     projectId: 'gulf-limousine-travel-1d4c7',
     authDomain: 'gulf-limousine-travel-1d4c7.firebaseapp.com',
-    databaseURL: 'https://gulf-limousine-travel-1d4c7-default-rtdb.firebaseio.com',
+    databaseURL:
+        'https://gulf-limousine-travel-1d4c7-default-rtdb.firebaseio.com',
     storageBucket: 'gulf-limousine-travel-1d4c7.firebasestorage.app',
     measurementId: 'G-WSTXH53CZS',
   );
@@ -56,7 +57,8 @@ class DefaultFirebaseOptions {
     appId: '1:671779610901:android:e6146b712bd612e983491c',
     messagingSenderId: '671779610901',
     projectId: 'gulf-limousine-travel-1d4c7',
-    databaseURL: 'https://gulf-limousine-travel-1d4c7-default-rtdb.firebaseio.com',
+    databaseURL:
+        'https://gulf-limousine-travel-1d4c7-default-rtdb.firebaseio.com',
     storageBucket: 'gulf-limousine-travel-1d4c7.firebasestorage.app',
   );
 
@@ -65,7 +67,8 @@ class DefaultFirebaseOptions {
     appId: '1:671779610901:ios:a0be12bd82220ace83491c',
     messagingSenderId: '671779610901',
     projectId: 'gulf-limousine-travel-1d4c7',
-    databaseURL: 'https://gulf-limousine-travel-1d4c7-default-rtdb.firebaseio.com',
+    databaseURL:
+        'https://gulf-limousine-travel-1d4c7-default-rtdb.firebaseio.com',
     storageBucket: 'gulf-limousine-travel-1d4c7.firebasestorage.app',
     iosBundleId: 'com.example.gulflimousineTravel',
   );
@@ -75,7 +78,8 @@ class DefaultFirebaseOptions {
     appId: '1:671779610901:ios:a0be12bd82220ace83491c',
     messagingSenderId: '671779610901',
     projectId: 'gulf-limousine-travel-1d4c7',
-    databaseURL: 'https://gulf-limousine-travel-1d4c7-default-rtdb.firebaseio.com',
+    databaseURL:
+        'https://gulf-limousine-travel-1d4c7-default-rtdb.firebaseio.com',
     storageBucket: 'gulf-limousine-travel-1d4c7.firebasestorage.app',
     iosBundleId: 'com.example.gulflimousineTravel',
   );
@@ -86,9 +90,9 @@ class DefaultFirebaseOptions {
     messagingSenderId: '671779610901',
     projectId: 'gulf-limousine-travel-1d4c7',
     authDomain: 'gulf-limousine-travel-1d4c7.firebaseapp.com',
-    databaseURL: 'https://gulf-limousine-travel-1d4c7-default-rtdb.firebaseio.com',
+    databaseURL:
+        'https://gulf-limousine-travel-1d4c7-default-rtdb.firebaseio.com',
     storageBucket: 'gulf-limousine-travel-1d4c7.firebasestorage.app',
     measurementId: 'G-WJ3G6YPX1Z',
   );
-
 }

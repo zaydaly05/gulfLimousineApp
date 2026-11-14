@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+
 import '../models/geo_location.dart';
 import '../services/booking_service.dart';
 import '../services/km_billing_service.dart';
@@ -56,10 +57,7 @@ class MyBookingsScreen extends StatelessWidget {
               return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 children: const [
-                  SizedBox(
-                    height: 400,
-                    child: _EmptyBookings(),
-                  ),
+                  SizedBox(height: 400, child: _EmptyBookings()),
                 ],
               );
             }
@@ -97,8 +95,11 @@ class _EmptyBookings extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.calendar_today_outlined,
-                size: 64, color: Colors.grey.shade400),
+            Icon(
+              Icons.calendar_today_outlined,
+              size: 64,
+              color: Colors.grey.shade400,
+            ),
             const SizedBox(height: 16),
             Text(
               context.t('noBookingsYet'),
@@ -168,18 +169,20 @@ class _BookingCard extends StatelessWidget {
   Future<void> _cancel(BuildContext context) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text(context.t('cancelBookingQ')),
         content: Text(context.t('cannotBeUndone')),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(dialogContext, false),
             child: Text(context.t('keep')),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(context.t('cancelBookingBtn'),
-                style: const TextStyle(color: Colors.red)),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(
+              context.t('cancelBookingBtn'),
+              style: const TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ),
@@ -188,13 +191,15 @@ class _BookingCard extends StatelessWidget {
     try {
       await BookingService.cancelBooking(bookingId);
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.t('bookingCancelled'))),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.t('bookingCancelled'))));
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$e'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -212,14 +217,13 @@ class _BookingCard extends StatelessWidget {
     final pickupLoc = GeoLocation.tryParse(data['pickupLocation']);
     final dropoffLoc = GeoLocation.tryParse(data['dropoffLocation']);
     final hasChauffeur = (data['chauffeurId'] ?? '').toString().isNotEmpty;
-    final canCancel =
-        status == 'pending' || status == 'confirmed';
-    final canTrack = hasChauffeur &&
+    final canCancel = status == 'pending' || status == 'confirmed';
+    final canTrack =
+        hasChauffeur &&
         status != 'cancelled' &&
         tripStatus != 'completed' &&
         tripStatus != 'cancelled';
-    final canReview =
-        status == 'completed' && data['reviewed'] != true;
+    final canReview = status == 'completed' && data['reviewed'] != true;
 
     final odometer = data['odometer'];
     final kmAllowance = data['kmAllowance'];
@@ -227,36 +231,43 @@ class _BookingCard extends StatelessWidget {
     final endKm = odometer is Map ? odometer['endKm'] : null;
     final hasStartKm = startKm != null;
     final hasEndKm = endKm != null;
-    final canRecordStart = !hasStartKm &&
+    final canRecordStart =
+        !hasStartKm &&
         status != 'cancelled' &&
         status != 'completed' &&
         (status == 'confirmed' || status == 'pending');
 
     final agreement = data['agreement'];
-    final isSigned = agreement != null && agreement['isSigned'] == true;
+    final isSigned = agreement is Map && agreement['isSigned'] == true;
 
-    final canRecordEnd = hasStartKm &&
-        !hasEndKm &&
-        status != 'cancelled';
-    
+    final canRecordEnd = hasStartKm && !hasEndKm && status != 'cancelled';
+
     final hasPickupVideo = data['pickupVideo'] != null;
     final hasReturnVideo = data['returnVideo'] != null;
-    final canRecordPickupVideo = !hasPickupVideo &&
+    final canRecordPickupVideo =
+        !hasPickupVideo && (status == 'confirmed' || status == 'pending');
+    // 'in_progress' lives on tripStatus (set when pickup km is recorded);
+    // booking status never takes that value, so checking status hid the
+    // return-video button forever.
+    final canRecordReturnVideo =
+        hasStartKm &&
+        !hasReturnVideo &&
         status != 'cancelled' &&
-        status != 'completed' &&
-        (status == 'confirmed' || status == 'assigned' || status == 'pending');
-    final canRecordReturnVideo = hasStartKm && !hasReturnVideo && status == 'in_progress';
+        tripStatus == 'in_progress';
 
     final finalAmount = data['final_amount'];
     final extraKmCharge = kmAllowance is Map
         ? (kmAllowance['extraKmChargeEgp'] as num?)?.toDouble()
         : null;
-    final drivenKm =
-        kmAllowance is Map ? (kmAllowance['drivenKm'] as num?)?.toInt() : null;
-    final allowedKm =
-        kmAllowance is Map ? (kmAllowance['allowedKm'] as num?)?.toInt() : null;
-    final extraKm =
-        kmAllowance is Map ? (kmAllowance['extraKm'] as num?)?.toInt() : null;
+    final drivenKm = kmAllowance is Map
+        ? (kmAllowance['drivenKm'] as num?)?.toInt()
+        : null;
+    final allowedKm = kmAllowance is Map
+        ? (kmAllowance['allowedKm'] as num?)?.toInt()
+        : null;
+    final extraKm = kmAllowance is Map
+        ? (kmAllowance['extraKm'] as num?)?.toInt()
+        : null;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -279,8 +290,10 @@ class _BookingCard extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: _statusColor(status).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
@@ -297,35 +310,55 @@ class _BookingCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            if (pickup.isNotEmpty) _row(Icons.event, context.t('pickup'), pickup),
+            if (pickup.isNotEmpty)
+              _row(Icons.event, context.t('pickup'), pickup),
             if (returnD.isNotEmpty)
               _row(Icons.event_available, context.t('return'), returnD),
-            if (days != null) _row(Icons.timelapse, context.t('duration'), '$days ${context.t('days')}'),
+            if (days != null)
+              _row(
+                Icons.timelapse,
+                context.t('duration'),
+                '$days ${context.t('days')}',
+              ),
             if (total != null)
               _row(
                 Icons.payments_outlined,
                 context.t('total'),
-                'EGP ${(total as num).toStringAsFixed(0)}',
+                'EGP ${total is num ? total.toStringAsFixed(0) : total}',
               ),
             if (data['payment_method'] != null)
-              _row(Icons.credit_card, context.t('paidVia'),
-                  data['payment_method'].toString()),
+              _row(
+                Icons.credit_card,
+                context.t('paidVia'),
+                data['payment_method'].toString(),
+              ),
             if (pickupLoc != null)
               _row(Icons.place, context.t('from'), pickupLoc.address),
             if (dropoffLoc != null)
               _row(Icons.flag, context.t('to'), dropoffLoc.address),
             if (hasChauffeur) ...[
-              _row(Icons.person, context.t('chauffeur'),
-                  (data['chauffeurName'] ?? '').toString()),
+              _row(
+                Icons.person,
+                context.t('chauffeur'),
+                (data['chauffeurName'] ?? '').toString(),
+              ),
               if ((data['chauffeurPhone'] ?? '').toString().isNotEmpty)
-                _row(Icons.phone, context.t('driverPhone'),
-                    data['chauffeurPhone'].toString()),
+                _row(
+                  Icons.phone,
+                  context.t('driverPhone'),
+                  data['chauffeurPhone'].toString(),
+                ),
             ],
             if (tripStatus.isNotEmpty)
-              _row(Icons.route, context.t('trip'), tripStatus.replaceAll('_', ' ')),
+              _row(
+                Icons.route,
+                context.t('trip'),
+                tripStatus.replaceAll('_', ' '),
+              ),
             if (hasStartKm)
               _row(Icons.speed, context.t('pickupKm'), startKm.toString()),
-            if (hasEndKm) _row(Icons.speed, context.t('returnKm'), endKm.toString()),
+            if (hasEndKm)
+              _row(Icons.speed, context.t('returnKm'), endKm.toString()),
             if (drivenKm != null && allowedKm != null)
               _row(
                 Icons.straighten,
@@ -348,7 +381,7 @@ class _BookingCard extends StatelessWidget {
               _row(
                 Icons.payments,
                 context.t('finalTotal'),
-                'EGP ${(finalAmount as num).toStringAsFixed(0)}',
+                'EGP ${finalAmount is num ? finalAmount.toStringAsFixed(0) : finalAmount}',
               ),
             if (extraKmCharge != null &&
                 extraKmCharge > 0 &&
@@ -414,9 +447,8 @@ class _BookingCard extends StatelessWidget {
               children: [
                 if (pickupLoc != null)
                   OutlinedButton.icon(
-                    onPressed: () => MapsLauncher.openDirections(
-                      destination: pickupLoc,
-                    ),
+                    onPressed: () =>
+                        MapsLauncher.openDirections(destination: pickupLoc),
                     icon: const Icon(Icons.directions, size: 18),
                     label: Text(context.t('directions')),
                   ),
@@ -444,7 +476,11 @@ class _BookingCard extends StatelessWidget {
                       carName: carName,
                       bookingId: bookingId,
                     ),
-                    icon: const Icon(Icons.chat_bubble_outline, size: 18, color: Color(0xFF25D366)),
+                    icon: const Icon(
+                      Icons.chat_bubble_outline,
+                      size: 18,
+                      color: Color(0xFF25D366),
+                    ),
                     label: Text(context.t('whatsapp')),
                   ),
                 if (hasChauffeur &&
@@ -576,10 +612,15 @@ class _BookingCard extends StatelessWidget {
                 if (canCancel)
                   OutlinedButton.icon(
                     onPressed: () => _cancel(context),
-                    icon: const Icon(Icons.cancel_outlined,
-                        size: 18, color: Colors.red),
-                    label: Text(context.t('cancel'),
-                        style: const TextStyle(color: Colors.red)),
+                    icon: const Icon(
+                      Icons.cancel_outlined,
+                      size: 18,
+                      color: Colors.red,
+                    ),
+                    label: Text(
+                      context.t('cancel'),
+                      style: const TextStyle(color: Colors.red),
+                    ),
                   ),
                 if (canReview)
                   OutlinedButton.icon(

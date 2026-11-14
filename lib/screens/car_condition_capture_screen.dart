@@ -1,7 +1,9 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
+
 import '../services/booking_service.dart';
 import '../services/cloudinary_service.dart';
 
@@ -18,7 +20,8 @@ class CarConditionCaptureScreen extends StatefulWidget {
   });
 
   @override
-  State<CarConditionCaptureScreen> createState() => _CarConditionCaptureScreenState();
+  State<CarConditionCaptureScreen> createState() =>
+      _CarConditionCaptureScreenState();
 }
 
 class _CarConditionCaptureScreenState extends State<CarConditionCaptureScreen> {
@@ -32,8 +35,9 @@ class _CarConditionCaptureScreenState extends State<CarConditionCaptureScreen> {
 
   bool get _isPickup => widget.mode == ConditionCaptureMode.pickup;
 
-  String get _title =>
-      _isPickup ? 'Record Car Condition (Pickup)' : 'Record Car Condition (Return)';
+  String get _title => _isPickup
+      ? 'Record Car Condition (Pickup)'
+      : 'Record Car Condition (Return)';
 
   @override
   void dispose() {
@@ -50,12 +54,22 @@ class _CarConditionCaptureScreenState extends State<CarConditionCaptureScreen> {
       source: source,
       maxDuration: const Duration(minutes: 2),
     );
-    
+
     if (video == null || !mounted) return;
 
     final file = File(video.path);
     final controller = VideoPlayerController.file(file);
-    await controller.initialize();
+    try {
+      await controller.initialize();
+    } catch (e) {
+      await controller.dispose();
+      if (mounted) setState(() => _error = 'Could not open video: $e');
+      return;
+    }
+    if (!mounted) {
+      await controller.dispose();
+      return;
+    }
 
     setState(() {
       _videoFile = file;
@@ -67,14 +81,14 @@ class _CarConditionCaptureScreenState extends State<CarConditionCaptureScreen> {
   void _showCaptureOptions() {
     showModalBottomSheet(
       context: context,
-      builder: (_) => SafeArea(
+      builder: (sheetContext) => SafeArea(
         child: Wrap(
           children: [
             ListTile(
               leading: const Icon(Icons.videocam),
               title: const Text('Record video'),
               onTap: () {
-                Navigator.pop(context);
+                Navigator.pop(sheetContext);
                 _captureVideo(ImageSource.camera);
               },
             ),
@@ -82,7 +96,7 @@ class _CarConditionCaptureScreenState extends State<CarConditionCaptureScreen> {
               leading: const Icon(Icons.video_library),
               title: const Text('Choose from gallery'),
               onTap: () {
-                Navigator.pop(context);
+                Navigator.pop(sheetContext);
                 _captureVideo(ImageSource.gallery);
               },
             ),
@@ -151,7 +165,9 @@ class _CarConditionCaptureScreenState extends State<CarConditionCaptureScreen> {
                   border: Border.all(color: Colors.grey.shade400),
                 ),
                 clipBehavior: Clip.antiAlias,
-                child: _videoController != null && _videoController!.value.isInitialized
+                child:
+                    _videoController != null &&
+                        _videoController!.value.isInitialized
                     ? Stack(
                         alignment: Alignment.center,
                         children: [
@@ -161,7 +177,9 @@ class _CarConditionCaptureScreenState extends State<CarConditionCaptureScreen> {
                           ),
                           IconButton(
                             icon: Icon(
-                              _videoController!.value.isPlaying ? Icons.pause : Icons.play_arrow,
+                              _videoController!.value.isPlaying
+                                  ? Icons.pause
+                                  : Icons.play_arrow,
                               size: 50,
                               color: Colors.white,
                             ),
@@ -194,10 +212,7 @@ class _CarConditionCaptureScreenState extends State<CarConditionCaptureScreen> {
             ),
             const SizedBox(height: 24),
             if (_error != null) ...[
-              Text(
-                _error!,
-                style: const TextStyle(color: Colors.red),
-              ),
+              Text(_error!, style: const TextStyle(color: Colors.red)),
               const SizedBox(height: 12),
             ],
             ElevatedButton.icon(

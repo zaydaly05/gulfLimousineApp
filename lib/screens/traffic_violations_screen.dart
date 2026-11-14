@@ -13,7 +13,8 @@ class TrafficViolationsScreen extends StatefulWidget {
   const TrafficViolationsScreen({super.key});
 
   @override
-  State<TrafficViolationsScreen> createState() => _TrafficViolationsScreenState();
+  State<TrafficViolationsScreen> createState() =>
+      _TrafficViolationsScreenState();
 }
 
 class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
@@ -57,15 +58,15 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         title: Text(context.t('trafficViolationsTitle')),
-        actions: const [
-          LanguageToggleButton(dark: true),
-          SizedBox(width: 8),
-        ],
+        actions: const [LanguageToggleButton(dark: true), SizedBox(width: 8)],
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: Colors.orange,
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Add violation', style: TextStyle(color: Colors.white)),
+        label: const Text(
+          'Add violation',
+          style: TextStyle(color: Colors.white),
+        ),
         onPressed: _addFromPicker,
       ),
       body: RefreshIndicator(
@@ -75,282 +76,306 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
         },
         child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
           stream: TrafficViolationService.watchAll(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(
-              child: Text(
-                'Could not load traffic violations',
-                style: TextStyle(color: Colors.red.shade300),
-              ),
-            );
-          }
-
-          final docs = List<QueryDocumentSnapshot<Map<String, dynamic>>>.from(
-            snapshot.data?.docs ?? [],
-          );
-          docs.sort((a, b) {
-            final aDate = a.data()['createdAt'];
-            final bDate = b.data()['createdAt'];
-            if (aDate is Timestamp && bDate is Timestamp) {
-              return bDate.compareTo(aDate);
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
             }
-            return 0;
-          });
-
-          final pendingTotal = TrafficViolationService.pendingTotal(docs);
-          final paidTotal = docs.fold<double>(0, (total, doc) {
-            final data = doc.data();
-            if ((data['status'] ?? '') != 'paid') return total;
-            return total + TrafficViolationService.amountOf(data);
-          });
-
-          final query = _personQuery.trim().toLowerCase();
-          final visible = docs.where((doc) {
-            final data = doc.data();
-            if (_status != 'all' && (data['status'] ?? '') != _status) {
-              return false;
-            }
-            if (_source != 'all' && (data['sourceType'] ?? '') != _source) {
-              return false;
-            }
-            if (query.isEmpty) return true;
-            final haystack = [
-              data['customerName'],
-              data['user_email'],
-              data['phone'],
-              data['car_name'],
-              data['ticketNumber'],
-            ].join(' ').toLowerCase();
-            return haystack.contains(query);
-          }).toList();
-
-          return ListView.builder(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, 88 + bottomPad),
-            itemCount: visible.length + 1,
-            itemBuilder: (context, index) {
-              if (index == 0) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Admin only. Customers never see these charges.',
-                        style: TextStyle(color: Colors.white70),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _totalTile(
-                              'Pending',
-                              'EGP ${pendingTotal.toStringAsFixed(0)}',
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _totalTile(
-                              'Collected',
-                              'EGP ${paidTotal.toStringAsFixed(0)}',
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        style: const TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          hintText: 'Search customer, phone, car, ticket',
-                          hintStyle: TextStyle(color: Colors.grey.shade500),
-                          prefixIcon: const Icon(Icons.search, color: Colors.orange),
-                          enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.grey.shade700),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderSide: const BorderSide(color: Colors.orange),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onChanged: (v) => setState(() => _personQuery = v),
-                      ),
-                      const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 8,
-                        children: [
-                          _chip('All status', 'all', _status, (v) {
-                            setState(() => _status = v);
-                          }),
-                          _chip('Pending', 'pending', _status, (v) {
-                            setState(() => _status = v);
-                          }),
-                          _chip('Paid', 'paid', _status, (v) {
-                            setState(() => _status = v);
-                          }),
-                          _chip('Waived', 'waived', _status, (v) {
-                            setState(() => _status = v);
-                          }),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 8,
-                        children: [
-                          _chip('All rentals', 'all', _source, (v) {
-                            setState(() => _source = v);
-                          }),
-                          _chip('Paid rentals', TrafficViolationService.sourceBooking, _source, (v) {
-                            setState(() => _source = v);
-                          }),
-                          _chip('Gift cars', TrafficViolationService.sourceGift, _source, (v) {
-                            setState(() => _source = v);
-                          }),
-                        ],
-                      ),
-                      if (visible.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 24),
-                          child: Center(
-                            child: Text(
-                              'No traffic violations match these filters.',
-                              style: TextStyle(color: Colors.white70),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                );
-              }
-
-              final doc = visible[index - 1];
-              final data = doc.data();
-              final status = (data['status'] ?? 'pending').toString();
-              final date = data['violationDate'];
-              final dateLabel = date is Timestamp
-                  ? DateFormat('dd MMM yyyy').format(date.toDate())
-                  : '';
-              final isGift =
-                  (data['sourceType'] ?? '') == TrafficViolationService.sourceGift;
-
-              return Card(
-                color: Colors.grey.shade900,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                margin: const EdgeInsets.only(bottom: 12),
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            isGift ? Icons.card_giftcard : Icons.directions_car,
-                            color: Colors.orange,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              data['customerName']?.toString() ?? 'Customer',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _statusColor(status).withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              status.toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: _statusColor(status),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'EGP ${TrafficViolationService.amountOf(data).toStringAsFixed(0)}'
-                        '${dateLabel.isEmpty ? '' : ' · $dateLabel'}',
-                        style: const TextStyle(
-                          color: Colors.orange,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      Text(
-                        '${isGift ? 'Gift car' : 'Rental'} · ${data['car_name'] ?? 'Car'}',
-                        style: TextStyle(color: Colors.grey.shade400),
-                      ),
-                      if ((data['phone'] ?? '').toString().isNotEmpty)
-                        Text(
-                          'Phone: ${data['phone']}',
-                          style: TextStyle(color: Colors.grey.shade400),
-                        ),
-                      if ((data['ticketNumber'] ?? '').toString().isNotEmpty)
-                        Text(
-                          'Ticket: ${data['ticketNumber']}',
-                          style: TextStyle(color: Colors.grey.shade400),
-                        ),
-                      if ((data['description'] ?? '').toString().isNotEmpty)
-                        Text(
-                          '${data['description']}',
-                          style: TextStyle(color: Colors.grey.shade500),
-                        ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          if (status != 'paid')
-                            TextButton(
-                              onPressed: () => TrafficViolationService.setStatus(
-                                doc.id,
-                                'paid',
-                              ),
-                              child: const Text('Mark paid'),
-                            ),
-                          if (status == 'pending')
-                            TextButton(
-                              onPressed: () => TrafficViolationService.setStatus(
-                                doc.id,
-                                'waived',
-                              ),
-                              child: const Text('Waive'),
-                            ),
-                          const Spacer(),
-                          TextButton(
-                            onPressed: () => TrafficViolationService.delete(doc.id),
-                            child: const Text(
-                              'Delete',
-                              style: TextStyle(color: Colors.redAccent),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+            if (snapshot.hasError) {
+              return Center(
+                child: Text(
+                  'Could not load traffic violations',
+                  style: TextStyle(color: Colors.red.shade300),
                 ),
               );
-            },
-          );
-        },
+            }
+
+            final docs = List<QueryDocumentSnapshot<Map<String, dynamic>>>.from(
+              snapshot.data?.docs ?? [],
+            );
+            docs.sort((a, b) {
+              final aDate = a.data()['createdAt'];
+              final bDate = b.data()['createdAt'];
+              if (aDate is Timestamp && bDate is Timestamp) {
+                return bDate.compareTo(aDate);
+              }
+              return 0;
+            });
+
+            final pendingTotal = TrafficViolationService.pendingTotal(docs);
+            final paidTotal = docs.fold<double>(0, (total, doc) {
+              final data = doc.data();
+              if ((data['status'] ?? '') != 'paid') return total;
+              return total + TrafficViolationService.amountOf(data);
+            });
+
+            final query = _personQuery.trim().toLowerCase();
+            final visible = docs.where((doc) {
+              final data = doc.data();
+              if (_status != 'all' && (data['status'] ?? '') != _status) {
+                return false;
+              }
+              if (_source != 'all' && (data['sourceType'] ?? '') != _source) {
+                return false;
+              }
+              if (query.isEmpty) return true;
+              final haystack = [
+                data['customerName'],
+                data['user_email'],
+                data['phone'],
+                data['car_name'],
+                data['ticketNumber'],
+              ].join(' ').toLowerCase();
+              return haystack.contains(query);
+            }).toList();
+
+            return ListView.builder(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 88 + bottomPad),
+              itemCount: visible.length + 1,
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Admin only. Customers never see these charges.',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _totalTile(
+                                'Pending',
+                                'EGP ${pendingTotal.toStringAsFixed(0)}',
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _totalTile(
+                                'Collected',
+                                'EGP ${paidTotal.toStringAsFixed(0)}',
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          style: const TextStyle(color: Colors.white),
+                          decoration: InputDecoration(
+                            hintText: 'Search customer, phone, car, ticket',
+                            hintStyle: TextStyle(color: Colors.grey.shade500),
+                            prefixIcon: const Icon(
+                              Icons.search,
+                              color: Colors.orange,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade700,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: const BorderSide(
+                                color: Colors.orange,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onChanged: (v) => setState(() => _personQuery = v),
+                        ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          children: [
+                            _chip('All status', 'all', _status, (v) {
+                              setState(() => _status = v);
+                            }),
+                            _chip('Pending', 'pending', _status, (v) {
+                              setState(() => _status = v);
+                            }),
+                            _chip('Paid', 'paid', _status, (v) {
+                              setState(() => _status = v);
+                            }),
+                            _chip('Waived', 'waived', _status, (v) {
+                              setState(() => _status = v);
+                            }),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 8,
+                          children: [
+                            _chip('All rentals', 'all', _source, (v) {
+                              setState(() => _source = v);
+                            }),
+                            _chip(
+                              'Paid rentals',
+                              TrafficViolationService.sourceBooking,
+                              _source,
+                              (v) {
+                                setState(() => _source = v);
+                              },
+                            ),
+                            _chip(
+                              'Gift cars',
+                              TrafficViolationService.sourceGift,
+                              _source,
+                              (v) {
+                                setState(() => _source = v);
+                              },
+                            ),
+                          ],
+                        ),
+                        if (visible.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 24),
+                            child: Center(
+                              child: Text(
+                                'No traffic violations match these filters.',
+                                style: TextStyle(color: Colors.white70),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                }
+
+                final doc = visible[index - 1];
+                final data = doc.data();
+                final status = (data['status'] ?? 'pending').toString();
+                final date = data['violationDate'];
+                final dateLabel = date is Timestamp
+                    ? DateFormat('dd MMM yyyy').format(date.toDate())
+                    : '';
+                final isGift =
+                    (data['sourceType'] ?? '') ==
+                    TrafficViolationService.sourceGift;
+
+                return Card(
+                  color: Colors.grey.shade900,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              isGift
+                                  ? Icons.card_giftcard
+                                  : Icons.directions_car,
+                              color: Colors.orange,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                data['customerName']?.toString() ?? 'Customer',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _statusColor(status)
+                                    .withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                status.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: _statusColor(status),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'EGP ${TrafficViolationService.amountOf(data).toStringAsFixed(0)}'
+                          '${dateLabel.isEmpty ? '' : ' · $dateLabel'}',
+                          style: const TextStyle(
+                            color: Colors.orange,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          '${isGift ? 'Gift car' : 'Rental'} · ${data['car_name'] ?? 'Car'}',
+                          style: TextStyle(color: Colors.grey.shade400),
+                        ),
+                        if ((data['phone'] ?? '').toString().isNotEmpty)
+                          Text(
+                            'Phone: ${data['phone']}',
+                            style: TextStyle(color: Colors.grey.shade400),
+                          ),
+                        if ((data['ticketNumber'] ?? '').toString().isNotEmpty)
+                          Text(
+                            'Ticket: ${data['ticketNumber']}',
+                            style: TextStyle(color: Colors.grey.shade400),
+                          ),
+                        if ((data['description'] ?? '').toString().isNotEmpty)
+                          Text(
+                            '${data['description']}',
+                            style: TextStyle(color: Colors.grey.shade500),
+                          ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            if (status != 'paid')
+                              TextButton(
+                                onPressed: () =>
+                                    TrafficViolationService.setStatus(
+                                      doc.id,
+                                      'paid',
+                                    ),
+                                child: const Text('Mark paid'),
+                              ),
+                            if (status == 'pending')
+                              TextButton(
+                                onPressed: () =>
+                                    TrafficViolationService.setStatus(
+                                      doc.id,
+                                      'waived',
+                                    ),
+                                child: const Text('Waive'),
+                              ),
+                            const Spacer(),
+                            TextButton(
+                              onPressed: () =>
+                                  TrafficViolationService.delete(doc.id),
+                              child: const Text(
+                                'Delete',
+                                style: TextStyle(color: Colors.redAccent),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _chip(
     String label,
@@ -384,7 +409,10 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
+          Text(
+            label,
+            style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+          ),
           const SizedBox(height: 6),
           Text(
             value,

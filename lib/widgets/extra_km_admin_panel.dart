@@ -128,19 +128,17 @@ class _ExtraKmAdminPanelState extends State<ExtraKmAdminPanel> {
             ],
           ),
           const SizedBox(height: 8),
-          if (startKm != null)
-            _line('Pickup km', startKm.toString()),
+          if (startKm != null) _line('Pickup km', startKm.toString()),
           if (endKm != null) _line('Return km', endKm.toString()),
           if (km != null) ...[
-            if (km['drivenKm'] != null)
-              _line('Driven', '${km['drivenKm']} km'),
+            if (km['drivenKm'] != null) _line('Driven', '${km['drivenKm']} km'),
             if (km['allowedKm'] != null)
               _line('Allowed', '${km['allowedKm']} km'),
             if ((km['extraKm'] as num? ?? 0) > 0)
               _line(
                 'Extra km',
                 '${km['extraKm']} km × '
-                '${KmBillingService.extraKmRateEgp.toStringAsFixed(0)} EGP',
+                    '${KmBillingService.extraKmRateEgp.toStringAsFixed(0)} EGP',
               ),
             if ((km['extraKmChargeEgp'] as num? ?? 0) > 0)
               _line(
@@ -153,7 +151,7 @@ class _ExtraKmAdminPanelState extends State<ExtraKmAdminPanel> {
             _line(
               'Final total',
               'EGP ${finalAmount.toStringAsFixed(0)} '
-              '(base EGP ${baseAmount.toStringAsFixed(0)})',
+                  '(base EGP ${baseAmount.toStringAsFixed(0)})',
             ),
           if (hasExtra) ...[
             const SizedBox(height: 8),
@@ -164,8 +162,10 @@ class _ExtraKmAdminPanelState extends State<ExtraKmAdminPanel> {
                   style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: extraKmPaymentStatusColor(_booking)
                         .withValues(alpha: 0.2),
