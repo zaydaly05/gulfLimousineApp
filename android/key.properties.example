@@ -1,0 +1,9 @@
+# Copy this file to android/key.properties (git-ignored) and fill it in.
+# Never commit key.properties or the .jks keystore.
+#
+# storeFile is relative to android/app/, or an absolute path.
+# Keep the keystore OUTSIDE the repository and back it up somewhere safe.
+storeFile=C:/Users/YOU/keys/gulf-limousine-upload.jks
+storePassword=YOUR_KEYSTORE_PASSWORD
+keyAlias=upload
+keyPassword=YOUR_KEY_PASSWORD

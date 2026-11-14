@@ -1,17 +1,71 @@
-# gulflimousine_travel
+# Gulf Limousine Travel
 
-A new Flutter project.
+Flutter app for Gulf Limousine Travel luxury car rentals in Cairo, backed by
+Firebase (Auth, Firestore, Messaging) and Cloudinary for images and videos.
 
-## Getting Started
+- Android application ID: `com.gulflimousine.travel`
+- Cloud Functions (optional, Blaze plan): see [`functions/README.md`](functions/README.md)
 
-This project is a starting point for a Flutter application.
+## Development
 
-A few resources to get you started if this is your first Flutter project:
+```bash
+flutter pub get
+flutter run
+flutter analyze
+flutter test
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Releasing to Google Play
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### 1. Create the upload keystore (once)
+
+Run this on your own computer, **outside** the repository. `keytool` ships with
+Java and with Android Studio (`<Android Studio>/jbr/bin/keytool`).
+
+```bash
+keytool -genkey -v -keystore gulf-limousine-upload.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+```
+
+- Choose a strong password and store it in a password manager.
+- **Back up the `.jks` file** (password manager, encrypted cloud drive). With
+  Play App Signing a lost upload key can be reset through Play support, but it
+  takes days.
+- Never commit the keystore or its passwords. `*.jks`, `*.keystore` and
+  `key.properties` are git-ignored.
+
+### 2. Point the build at it
+
+Copy `android/key.properties.example` to `android/key.properties` and fill in
+the path and passwords. Without this file, release builds fall back to the
+debug key, which Google Play rejects.
+
+### 3. Build the app bundle
+
+Google Play takes an Android App Bundle (`.aab`), not an APK:
+
+```bash
+flutter build appbundle --release
+```
+
+The bundle is written to `build/app/outputs/bundle/release/app-release.aab`
+(with newer Android Gradle Plugin versions: `android/app/build/outputs/bundle/release/`).
+
+Bump `version:` in `pubspec.yaml` (e.g. `1.0.1+2`) before every upload: the
+number after `+` must increase each time.
+
+### 4. Upload
+
+In the Play Console, create the app, keep **Play App Signing** enabled (the
+default), and upload the `.aab` to a testing track first.
+
+### 5. Register signing certificates with Firebase
+
+Google Sign-In only works for signing certificates registered in Firebase.
+Add both SHA-1 fingerprints to the Android app in Firebase (Project settings
+→ Your apps → `com.gulflimousine.travel` → Add fingerprint):
+
+- **Upload key:** `keytool -list -v -keystore gulf-limousine-upload.jks -alias upload`
+- **App signing key** (the one Google signs installs with): Play Console →
+  Test and release → App integrity → App signing.
+
+Then download the updated `google-services.json` into `android/app/`.

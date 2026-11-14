@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../config/app_info.dart';
 import '../models/geo_location.dart';
 
 /// Shared map setup: one place for the tile source, the brand tint and the
@@ -30,7 +31,7 @@ const List<double> kLightMapMatrix = [
 TileLayer appTileLayer({List<double> matrix = kDarkMapMatrix}) {
   return TileLayer(
     urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-    userAgentPackageName: 'com.example.gulflimousine_travel',
+    userAgentPackageName: AppInfo.androidAppId,
     tileBuilder: (context, tileWidget, tile) => ColorFiltered(
       colorFilter: ColorFilter.matrix(matrix),
       child: tileWidget,
