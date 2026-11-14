@@ -1,0 +1,61 @@
+name: gulflimousine_travel
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  flutter_localizations:
+    sdk: flutter
+
+  # Firebase
+  firebase_core: ^4.14.0
+  cloud_firestore: ^6.9.0
+  firebase_auth: ^6.6.1
+  firebase_messaging: ^16.6.0
+  firebase_data_connect: ^0.3.2
+
+  # Utilities
+  intl: ^0.20.3
+  url_launcher: ^6.3.0
+  google_sign_in: ^7.2.0
+  video_player: ^2.8.2
+  flutter_map: ^8.3.2
+  geocoding: ^5.0.0
+  geolocator: ^14.0.3
+  latlong2: ^0.10.1
+  image_picker: ^1.1.2
+  http: ^1.2.1
+  flutter_local_notifications: ^22.3.0
+  fl_chart: ^1.2.0
+  firebase_ai: ^4.0.0
+  firebase_app_check: ^0.4.7
+  local_auth: ^3.0.0
+  shared_preferences: ^2.5.3
+  flutter_secure_storage: ^11.0.0
+  cached_network_image: ^4.0.0
+  qr_flutter: ^4.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/app_icon.png"
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/videos/intro.mp4
+    - assets/icon/app_icon.png
+

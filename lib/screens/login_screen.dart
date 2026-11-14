@@ -1,0 +1,513 @@
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter/foundation.dart';
+import 'dashboard_screen.dart';
+import 'forgot_password.dart';
+import 'signup_screen.dart';
+import '../services/biometric_service.dart';
+import '../services/auth_navigation.dart';
+import '../widgets/language_picker.dart';
+import '../l10n/locale_service.dart';
+
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+
+  bool _isLoading = false;
+  bool _biometricHardwareAvailable = false;
+  String _biometricLabel = 'Fingerprint';
+
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeGoogleSignIn();
+    _prepareBiometricLogin();
+  }
+
+  Future<void> _prepareBiometricLogin() async {
+    final hardware = await BiometricService.isHardwareAvailable();
+    final canDirect = await BiometricService.canLoginWithBiometrics();
+    final label = await BiometricService.methodLabel();
+    if (!mounted) return;
+    setState(() {
+      _biometricHardwareAvailable = hardware;
+      _biometricLabel = label;
+    });
+    if (canDirect) {
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      if (mounted) await _loginWithBiometrics();
+    }
+  }
+
+  Future<void> _initializeGoogleSignIn() async {
+    try {
+      await _googleSignIn.initialize(
+        serverClientId:
+        '671779610901-3ifha330389vg8bg9rdmjjtnalvrnjjg.apps.googleusercontent.com',
+      );
+
+      debugPrint('Google Sign-In initialized successfully');
+    } catch (e) {
+      debugPrint('Google Sign-In initialization failed: $e');
+    }
+  }
+
+  /// 🔐 EMAIL LOGIN
+  Future<void> _login(BuildContext context) async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    if (email.isEmpty || password.isEmpty) {
+      _showError("Please enter email and password");
+      return;
+    }
+
+    try {
+      setState(() => _isLoading = true);
+
+      UserCredential userCredential =
+      await FirebaseAuth.instance
+          .signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      )
+          .timeout(const Duration(seconds: 15));
+
+      await BiometricService.rememberEmailLogin(email, password);
+      if (await BiometricService.isHardwareAvailable()) {
+        await BiometricService.setEnabledForUid(userCredential.user!.uid, true);
+      }
+      await _handleUserNavigation(userCredential.user!);
+    } on FirebaseAuthException catch (e) {
+      _showError(e.message ?? "Login failed");
+    } catch (e) {
+      _showError("An unexpected error occurred: $e");
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  /// 🔥 GOOGLE LOGIN
+  Future<void> _loginWithGoogle() async {
+    try {
+      setState(() => _isLoading = true);
+
+      await _googleSignIn.signOut();
+
+      final GoogleSignInAccount googleUser =
+      await _googleSignIn.authenticate();
+
+      final GoogleSignInAuthentication googleAuth =
+          googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        idToken: googleAuth.idToken,
+      );
+
+      UserCredential userCredential =
+      await FirebaseAuth.instance
+          .signInWithCredential(credential)
+          .timeout(const Duration(seconds: 15));
+
+      await _createUserIfNotExists(userCredential.user!);
+      await _handleUserNavigation(userCredential.user!);
+    } catch (e) {
+      debugPrint("GOOGLE ERROR: $e");
+
+      if (mounted) {
+        final errorStr = e.toString().toLowerCase();
+        if (errorStr.contains('canceled') || errorStr.contains('cancelled')) {
+          // Silent if user just cancelled
+          return;
+        }
+        _showError("Google Sign-In failed: $e");
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  /// 📦 Create Firestore user if first login
+  Future<void> _createUserIfNotExists(User user) async {
+    final userRef =
+    FirebaseFirestore.instance.collection('users').doc(user.uid);
+
+    final userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+      await userRef.set({
+        'name':
+        user.displayName ??
+            user.email?.split('@').first ??
+            'User',
+        'email': user.email,
+        'phone': '',
+        'phone_number': '',
+        'role': 'user',
+        'auth_provider': 'google',
+        'profile_completed': false,
+        'created_at': FieldValue.serverTimestamp(),
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      return;
+    }
+
+    final data = userDoc.data() ?? {};
+    final updates = <String, dynamic>{};
+
+    if ((data['name'] == null ||
+        data['name'].toString().isEmpty) &&
+        user.displayName != null &&
+        user.displayName!.isNotEmpty) {
+      updates['name'] = user.displayName;
+    }
+
+    if (data['auth_provider'] == null) {
+      updates['auth_provider'] = 'google';
+    }
+
+    if (data['created_at'] == null &&
+        data['createdAt'] != null) {
+      updates['created_at'] = data['createdAt'];
+    }
+
+    if (updates.isNotEmpty) {
+      await userRef.update(updates);
+    }
+  }
+
+  Future<void> _loginWithBiometrics() async {
+    if (_isLoading) return;
+    try {
+      setState(() => _isLoading = true);
+      final hasSaved = await BiometricService.hasStoredPassword();
+      final emailInput = _emailController.text.trim();
+      final passwordInput = _passwordController.text.trim();
+
+      if (hasSaved) {
+        final user = await BiometricService.loginWithBiometrics();
+        await _handleUserNavigation(user, offerBiometrics: false);
+      } else if (emailInput.isNotEmpty && passwordInput.isNotEmpty) {
+        final ok = await BiometricService.authenticate(
+          reason: 'Authenticate $_biometricLabel to save login credentials',
+        );
+        if (!ok) {
+          if (mounted) _showError('$_biometricLabel authentication failed or cancelled');
+          return;
+        }
+        UserCredential userCredential = await FirebaseAuth.instance
+            .signInWithEmailAndPassword(
+              email: emailInput,
+              password: passwordInput,
+            )
+            .timeout(const Duration(seconds: 15));
+
+        await BiometricService.rememberEmailLogin(emailInput, passwordInput);
+        await BiometricService.setEnabledForUid(userCredential.user!.uid, true);
+        await _handleUserNavigation(userCredential.user!, offerBiometrics: false);
+      } else {
+        final ok = await BiometricService.authenticate(
+          reason: 'Authenticate $_biometricLabel for login',
+        );
+        if (ok && mounted) {
+          _showError(
+            context.t('setupBiometrics', args: {'method': _biometricLabel}),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        _showError(e.toString().replaceFirst('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  /// 🚀 Navigate Based on Role
+  Future<void> _handleUserNavigation(
+    User user, {
+    bool offerBiometrics = true,
+  }) async {
+    try {
+      if (!mounted) return;
+      if (offerBiometrics) {
+        await BiometricService.maybeOfferEnable(context);
+        if (!mounted) return;
+      }
+      await AuthNavigation.goToRoleHome(context);
+    } catch (e) {
+      debugPrint('Navigation error: $e');
+
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const DashboardScreen(),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final orangeColor = Colors.orange;
+
+    return Scaffold(
+      backgroundColor: Colors.white24,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Align(
+                    alignment: Alignment.topRight,
+                    child: LanguageToggleButton(dark: true),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  Text(
+                    context.t('appNameFull'),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orange,
+                    ),
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  if (_biometricHardwareAvailable) ...[
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          side: const BorderSide(color: Colors.orange, width: 1.5),
+                        ),
+                      ),
+                      onPressed: _isLoading ? null : _loginWithBiometrics,
+                      icon: const Icon(Icons.fingerprint, color: Colors.orange, size: 28),
+                      label: Text(
+                        context.t('loginWithBiometrics', args: {'method': _biometricLabel}),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      context.t('orUseEmail'),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+
+                  TextField(
+                    controller: _emailController,
+                    decoration:
+                    _inputDecoration(context.t('email'), Icons.email),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  TextField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    decoration: _inputDecoration(
+                      context.t('password'),
+                      Icons.lock,
+                      suffixIcon: _biometricHardwareAvailable
+                          ? IconButton(
+                              icon: const Icon(
+                                Icons.fingerprint,
+                                color: Colors.orange,
+                                size: 26,
+                              ),
+                              tooltip: context.t(
+                                'loginWithBiometrics',
+                                args: {'method': _biometricLabel},
+                              ),
+                              onPressed: _isLoading ? null : _loginWithBiometrics,
+                            )
+                          : null,
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                            const ForgotPasswordDialog(),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        context.t('forgotPassword'),
+                        style: const TextStyle(color: Colors.orange),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: orangeColor,
+                      padding:
+                      const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    onPressed:
+                    _isLoading ? null : () => _login(context),
+                    child: _isLoading
+                        ? const CircularProgressIndicator(
+                      color: Colors.white,
+                    )
+                        : Text(
+                      context.t('login'),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  OutlinedButton.icon(
+                    icon: const Icon(
+                      Icons.login,
+                      color: Colors.orange,
+                    ),
+                    label: Text(
+                      context.t('continueGoogle'),
+                      style: const TextStyle(color: Colors.orange),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(
+                        color: Colors.orange,
+                      ),
+                      padding:
+                      const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    onPressed:
+                    _isLoading ? null : _loginWithGoogle,
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(context.t('noAccount')),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                              const SignUpDialog(),
+                            ),
+                          );
+                        },
+                        child: Text(
+                          context.t('signUp'),
+                          style: const TextStyle(
+                            color: Colors.orange,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration(
+    String label,
+    IconData icon, {
+    Widget? suffixIcon,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(
+        icon,
+        color: Colors.orange,
+      ),
+      suffixIcon: suffixIcon,
+      enabledBorder: OutlineInputBorder(
+        borderSide: const BorderSide(color: Colors.orange),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderSide: const BorderSide(
+          color: Colors.orange,
+          width: 2,
+        ),
+        borderRadius: BorderRadius.circular(12),
+      ),
+    );
+  }
+}

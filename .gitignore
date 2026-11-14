@@ -1,0 +1,56 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IDE and Editor files
+*.iml
+*.ipr
+*.iws
+.idea/
+.vscode/
+.artifacts/
+
+# Flutter / Dart / Pub output & build directories
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+**/build/
+/coverage/
+
+# Android build and local config files
+android/local.properties
+android/.gradle/
+android/.kotlin/
+key.properties
+**/*.keystore
+**/*.jks
+
+# iOS ephemeral build files
+ios/Flutter/ephemeral/
+ios/Flutter/Flutter.podspec
+ios/Flutter/Flutter.framework
+ios/Flutter/App.framework
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+
+# Symbolication and obfuscation
+app.*.symbols
+app.*.map.json
+
+# Widget Preview related
+.widget_preview/
