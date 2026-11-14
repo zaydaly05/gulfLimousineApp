@@ -82,16 +82,31 @@ class CloudinaryService {
     );
   }
 
+  /// Whether deletes go to the `deleteCloudinaryAsset` Cloud Function.
+  ///
+  /// Off by default: Cloud Functions need the paid Firebase Blaze plan, so
+  /// until the functions are deployed (see functions/README.md) deletes are
+  /// skipped and files simply stay in Cloudinary. After deploying, build with
+  /// `--dart-define=CLOUDINARY_SERVER_DELETES=true` to turn them on.
+  static const serverDeletesEnabled = bool.fromEnvironment(
+    'CLOUDINARY_SERVER_DELETES',
+  );
+
   /// Deletes an asset from Cloudinary.
   ///
   /// Cloudinary only accepts signed deletes, and the API secret must not ship
   /// in the app, so this calls the `deleteCloudinaryAsset` Cloud Function
   /// (functions/index.js), which checks the caller is an admin.
+  /// Does nothing while [serverDeletesEnabled] is false.
   /// Throws [FirebaseFunctionsException] if the delete is refused or fails.
   Future<void> deleteAsset(
     String publicId, {
     String resourceType = 'image',
   }) async {
+    if (!serverDeletesEnabled) {
+      debugPrint('Cloudinary delete skipped (server deletes off): $publicId');
+      return;
+    }
     await FirebaseFunctions.instance
         .httpsCallable('deleteCloudinaryAsset')
         .call<Map<String, dynamic>>({
