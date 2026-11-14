@@ -11,10 +11,7 @@ class ExpandableAddressText extends StatefulWidget {
     super.key,
     required this.text,
     this.collapsedLines = 2,
-    this.style = const TextStyle(
-      fontWeight: FontWeight.w600,
-      height: 1.35,
-    ),
+    this.style = const TextStyle(fontWeight: FontWeight.w600, height: 1.35),
     this.actionColor = const Color(0xFFFF8C00),
   });
 

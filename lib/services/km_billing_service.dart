@@ -16,8 +16,7 @@ class KmBillingService {
   static const int kmPerDay = 120;
   static const double extraKmRateEgp = 5.0;
 
-  static int allowedKm(int rentalDays) =>
-      rentalDays.clamp(1, 3650) * kmPerDay;
+  static int allowedKm(int rentalDays) => rentalDays.clamp(1, 3650) * kmPerDay;
 
   static KmBillingResult calculate({
     required int startKm,
@@ -44,6 +43,5 @@ class KmBillingService {
   static double finalAmount({
     required double baseAmount,
     required KmBillingResult billing,
-  }) =>
-      baseAmount + billing.extraKmChargeEgp;
+  }) => baseAmount + billing.extraKmChargeEgp;
 }

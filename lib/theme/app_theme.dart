@@ -29,9 +29,7 @@ class AppTheme {
         backgroundColor: accent,
         foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(vertical: 14),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
     ),
 
@@ -39,16 +37,10 @@ class AppTheme {
       elevation: 2,
       shadowColor: Colors.black.withValues(alpha: 0.1),
       surfaceTintColor: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
     ),
 
-    dividerTheme: DividerThemeData(
-      thickness: 1,
-      color: Colors.grey.shade200,
-    ),
-
+    dividerTheme: DividerThemeData(thickness: 1, color: Colors.grey.shade200),
 
     textTheme: const TextTheme(
       headlineSmall: TextStyle(fontWeight: FontWeight.bold),

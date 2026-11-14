@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
 import '../l10n/locale_service.dart';
 
 const _accent = Color(0xFFFF8C00);
@@ -16,13 +17,9 @@ class UserAnalyticsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(
-          child: UserBookingStatusChart(userId: userId),
-        ),
+        Expanded(child: UserBookingStatusChart(userId: userId)),
         const SizedBox(width: 12),
-        Expanded(
-          child: UserMonthlyBookingsChart(userId: userId),
-        ),
+        Expanded(child: UserMonthlyBookingsChart(userId: userId)),
       ],
     );
   }
@@ -33,10 +30,7 @@ class _ChartCard extends StatelessWidget {
   final Widget child;
   static const double height = 180;
 
-  const _ChartCard({
-    required this.title,
-    required this.child,
-  });
+  const _ChartCard({required this.title, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +79,9 @@ class UserBookingStatusChart extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const _ChartCard(
             title: 'Booking Status',
-            child: Center(child: CircularProgressIndicator(color: _accent, strokeWidth: 2)),
+            child: Center(
+              child: CircularProgressIndicator(color: _accent, strokeWidth: 2),
+            ),
           );
         }
 
@@ -154,7 +150,9 @@ class UserMonthlyBookingsChart extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const _ChartCard(
             title: 'Monthly Activity',
-            child: Center(child: CircularProgressIndicator(color: _accent, strokeWidth: 2)),
+            child: Center(
+              child: CircularProgressIndicator(color: _accent, strokeWidth: 2),
+            ),
           );
         }
 
@@ -174,19 +172,30 @@ class UserMonthlyBookingsChart extends StatelessWidget {
                     gridData: const FlGridData(show: false),
                     borderData: FlBorderData(show: false),
                     titlesData: FlTitlesData(
-                      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      topTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                      rightTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                      leftTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
                       bottomTitles: AxisTitles(
                         sideTitles: SideTitles(
                           showTitles: true,
                           reservedSize: 20,
                           getTitlesWidget: (value, meta) {
                             final i = value.toInt();
-                            if (i < 0 || i >= monthly.keys.length) return const SizedBox.shrink();
+                            if (i < 0 || i >= monthly.keys.length) {
+                              return const SizedBox.shrink();
+                            }
                             return Text(
                               monthly.keys.elementAt(i),
-                              style: TextStyle(fontSize: 9, color: Colors.grey.shade600),
+                              style: TextStyle(
+                                fontSize: 9,
+                                color: Colors.grey.shade600,
+                              ),
                             );
                           },
                         ),
@@ -200,7 +209,9 @@ class UserMonthlyBookingsChart extends StatelessWidget {
                             toY: e.value.toDouble(),
                             color: _primary,
                             width: 12,
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(4),
+                            ),
                           ),
                         ],
                       );
@@ -222,7 +233,8 @@ class UserMonthlyBookingsChart extends StatelessWidget {
 
     for (final doc in docs) {
       final data = doc.data() as Map<String, dynamic>;
-      final date = _parseDate(data['createdAt']) ??
+      final date =
+          _parseDate(data['createdAt']) ??
           _parseDate(data['pickupDate']) ??
           _parseDate(data['startDate']);
       if (date == null) continue;

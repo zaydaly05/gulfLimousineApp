@@ -53,9 +53,12 @@ class TrafficViolationsAdminPanel extends StatelessWidget {
         rentalId: rentalId,
       ),
       builder: (context, snapshot) {
-        final docs = List<QueryDocumentSnapshot<Map<String, dynamic>>>.from(
-          snapshot.data?.docs ?? [],
-        ).where((doc) => (doc.data()['sourceType'] ?? '') == sourceType).toList();
+        final docs =
+            List<QueryDocumentSnapshot<Map<String, dynamic>>>.from(
+                  snapshot.data?.docs ?? [],
+                )
+                .where((doc) => (doc.data()['sourceType'] ?? '') == sourceType)
+                .toList();
         docs.sort((a, b) {
           final aDate = a.data()['createdAt'];
           final bDate = b.data()['createdAt'];
@@ -146,7 +149,8 @@ class TrafficViolationsAdminPanel extends StatelessWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: _statusColor(status).withValues(alpha: 0.2),
+                              color: _statusColor(status)
+                                  .withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -166,10 +170,11 @@ class TrafficViolationsAdminPanel extends StatelessWidget {
                                 color: Colors.green,
                                 size: 20,
                               ),
-                              onPressed: () => TrafficViolationService.setStatus(
-                                doc.id,
-                                'paid',
-                              ),
+                              onPressed: () =>
+                                  TrafficViolationService.setStatus(
+                                    doc.id,
+                                    'paid',
+                                  ),
                             ),
                         ],
                       ),
@@ -201,7 +206,8 @@ class _AddTrafficViolationDialog extends StatefulWidget {
       _AddTrafficViolationDialogState();
 }
 
-class _AddTrafficViolationDialogState extends State<_AddTrafficViolationDialog> {
+class _AddTrafficViolationDialogState
+    extends State<_AddTrafficViolationDialog> {
   final _formKey = GlobalKey<FormState>();
   final amount = TextEditingController();
   final ticket = TextEditingController();
@@ -270,7 +276,9 @@ class _AddTrafficViolationDialogState extends State<_AddTrafficViolationDialog> 
             children: [
               TextFormField(
                 controller: amount,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 style: const TextStyle(color: Colors.white),
                 decoration: const InputDecoration(
                   labelText: 'Amount (EGP)',

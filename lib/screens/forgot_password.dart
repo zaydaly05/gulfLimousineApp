@@ -119,9 +119,7 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton(
-                      onPressed: _isLoading
-                          ? null
-                          : _sendResetEmail,
+                      onPressed: _isLoading ? null : _sendResetEmail,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.orange,
                       ),

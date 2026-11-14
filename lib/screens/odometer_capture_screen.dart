@@ -149,9 +149,7 @@ class _OdometerCaptureScreenState extends State<OdometerCaptureScreen> {
     if (!_isStart) {
       final start = _startKm;
       if (start != null && km < start) {
-        setState(
-          () => _error = 'Return reading must be at least $start km',
-        );
+        setState(() => _error = 'Return reading must be at least $start km');
         return;
       }
     }
@@ -243,7 +241,9 @@ class _OdometerCaptureScreenState extends State<OdometerCaptureScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: billing.extraKm > 0 ? Colors.orange.shade50 : Colors.green.shade50,
+        color: billing.extraKm > 0
+            ? Colors.orange.shade50
+            : Colors.green.shade50,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -370,10 +370,7 @@ class _OdometerCaptureScreenState extends State<OdometerCaptureScreen> {
             _buildBillingPreview(),
             if (_error != null) ...[
               const SizedBox(height: 12),
-              Text(
-                _error!,
-                style: const TextStyle(color: Colors.red),
-              ),
+              Text(_error!, style: const TextStyle(color: Colors.red)),
             ],
             const SizedBox(height: 24),
             ElevatedButton.icon(

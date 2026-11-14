@@ -31,8 +31,9 @@ class AnimatedCarCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ClipRRect(
-                borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(18)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(18),
+                ),
                 child: Image.asset(
                   image,
                   height: 140,
@@ -45,12 +46,12 @@ class AnimatedCarCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(name,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold)),
+                    Text(
+                      name,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     const SizedBox(height: 4),
-                    Text(price,
-                        style: const TextStyle(color: Colors.orange)),
+                    Text(price, style: const TextStyle(color: Colors.orange)),
                   ],
                 ),
               ),

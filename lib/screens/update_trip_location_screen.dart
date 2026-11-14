@@ -24,9 +24,8 @@ class UpdateTripLocationScreen extends StatelessWidget {
       lng: point.longitude,
     );
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Live location updated')),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Live location updated')));
   }
 
   Future<void> _simulateTowardPickup(BuildContext context) async {
@@ -84,15 +83,17 @@ class UpdateTripLocationScreen extends StatelessWidget {
                   .doc(bookingId)
                   .snapshots(),
               builder: (context, snapshot) {
-                final data = snapshot.data?.data() as Map<String, dynamic>? ??
+                final data =
+                    snapshot.data?.data() as Map<String, dynamic>? ??
                     bookingData;
                 final live = LiveLocation.fromMap(
                   data['liveLocation'] is Map
                       ? Map<String, dynamic>.from(data['liveLocation'] as Map)
                       : null,
                 );
-                final center =
-                    live.isValid ? LatLng(live.lat, live.lng) : initial;
+                final center = live.isValid
+                    ? LatLng(live.lat, live.lng)
+                    : initial;
 
                 return FlutterMap(
                   options: MapOptions(
@@ -102,15 +103,32 @@ class UpdateTripLocationScreen extends StatelessWidget {
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.example.gulflimousine_travel',
                       tileBuilder: (context, tileWidget, tile) {
                         return ColorFiltered(
                           colorFilter: const ColorFilter.matrix([
-                            0.6, 0, 0, 0, -60,
-                            0, 0.6, 0, 0, -60,
-                            0, 0, 0.6, 0, -60,
-                            0, 0, 0, 1, 0,
+                            0.6,
+                            0,
+                            0,
+                            0,
+                            -60,
+                            0,
+                            0.6,
+                            0,
+                            0,
+                            -60,
+                            0,
+                            0,
+                            0.6,
+                            0,
+                            -60,
+                            0,
+                            0,
+                            0,
+                            1,
+                            0,
                           ]),
                           child: tileWidget,
                         );

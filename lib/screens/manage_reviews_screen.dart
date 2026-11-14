@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+
 import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
 
@@ -13,10 +14,7 @@ class ManageReviewsScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(context.t('reviewsTitle')),
         backgroundColor: Colors.black,
-        actions: const [
-          LanguageToggleButton(dark: true),
-          SizedBox(width: 8),
-        ],
+        actions: const [LanguageToggleButton(dark: true), SizedBox(width: 8)],
       ),
       body: RefreshIndicator(
         onRefresh: () async {
@@ -33,7 +31,9 @@ class ManageReviewsScreen extends StatelessWidget {
             }
             if (snapshot.hasError) {
               return StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance.collection('reviews').snapshots(),
+                stream: FirebaseFirestore.instance
+                    .collection('reviews')
+                    .snapshots(),
                 builder: (context, snap2) {
                   final docs = snap2.data?.docs ?? [];
                   if (docs.isEmpty) {

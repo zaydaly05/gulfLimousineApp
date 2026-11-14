@@ -12,9 +12,9 @@ class GeminiChatService {
     FirebaseFirestore? firestore,
     FirebaseAuth? auth,
     ChatbotService? fallback,
-  })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _auth = auth ?? FirebaseAuth.instance,
-        _fallback = fallback ?? ChatbotService();
+  }) : _firestore = firestore ?? FirebaseFirestore.instance,
+       _auth = auth ?? FirebaseAuth.instance,
+       _fallback = fallback ?? ChatbotService();
 
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
@@ -38,15 +38,15 @@ class GeminiChatService {
 
       final system = admin
           ? 'You are the Gulf Limousine admin operations assistant. '
-              'Be concise. Use the context for fleet, booking stats, and security alerts. '
-              'You can discuss geofence breaches, engine immobilization, and condition videos. '
-              'If unsure, say so. Never invent revenue numbers not in context.'
+                'Be concise. Use the context for fleet, booking stats, and security alerts. '
+                'You can discuss geofence breaches, engine immobilization, and condition videos. '
+                'If unsure, say so. Never invent revenue numbers not in context.'
           : 'You are Gulf Limousine Travel assistant for luxury car rentals in Cairo. '
-              'Be helpful, concise, and professional. Use the live context below. '
-              'You can explain bookings, payments (card, wallet, InstaPay, cash), '
-              'security features (100km geofence from Cairo, remote engine lock), '
-              'condition videos, digital agreements, and chauffeur tracking. '
-              'If something is missing from context, say so and suggest Browse Cars or Contact.';
+                'Be helpful, concise, and professional. Use the live context below. '
+                'You can explain bookings, payments (card, wallet, InstaPay, cash), '
+                'security features (100km geofence from Cairo, remote engine lock), '
+                'condition videos, digital agreements, and chauffeur tracking. '
+                'If something is missing from context, say so and suggest Browse Cars or Contact.';
 
       final body = {
         'contents': [
@@ -61,10 +61,7 @@ class GeminiChatService {
             ],
           },
         ],
-        'generationConfig': {
-          'temperature': 0.4,
-          'maxOutputTokens': 512,
-        },
+        'generationConfig': {'temperature': 0.4, 'maxOutputTokens': 512},
       };
 
       final response = await http
@@ -128,7 +125,8 @@ class GeminiChatService {
         for (final doc in bookings.docs) {
           final d = doc.data();
           final security = d['security'];
-          final immobilized = security != null && security['isImmobilized'] == true;
+          final immobilized =
+              security != null && security['isImmobilized'] == true;
           buffer.writeln(
             '- ${d['carName'] ?? d['car_name']}: ${d['status']} '
             'trip=${d['tripStatus'] ?? 'n/a'} '
@@ -151,7 +149,8 @@ class GeminiChatService {
     final bookings = await _firestore.collection('bookings').get();
     final users = await _firestore.collection('users').get();
     final payments = await _firestore.collection('payments').get();
-    final alerts = await _firestore.collection('admin_alerts')
+    final alerts = await _firestore
+        .collection('admin_alerts')
         .orderBy('createdAt', descending: true)
         .limit(10)
         .get();
@@ -168,20 +167,20 @@ class GeminiChatService {
     final inProgress = bookings.docs
         .where((b) => (b.data()['tripStatus'] ?? '') == 'in_progress')
         .length;
-    final immobilized = bookings.docs
-        .where((b) {
-          final s = b.data()['security'];
-          return s != null && s['isImmobilized'] == true;
-        })
-        .length;
+    final immobilized = bookings.docs.where((b) {
+      final s = b.data()['security'];
+      return s != null && s['isImmobilized'] == true;
+    }).length;
 
     final buffer = StringBuffer();
     buffer.writeln('Fleet cars: ${cars.docs.length}');
     buffer.writeln('Users: ${users.docs.length}');
-    buffer.writeln('Bookings: ${bookings.docs.length} (pending $pending, in_progress $inProgress)');
+    buffer.writeln(
+      'Bookings: ${bookings.docs.length} (pending $pending, in_progress $inProgress)',
+    );
     buffer.writeln('Immobilized Vehicles: $immobilized');
     buffer.writeln('Revenue sum: EGP ${revenue.toStringAsFixed(0)}');
-    
+
     if (alerts.docs.isNotEmpty) {
       buffer.writeln('\nRecent Admin Alerts:');
       for (final a in alerts.docs) {

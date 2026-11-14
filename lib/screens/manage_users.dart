@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'add_user_screen.dart';
 import 'edit_user_screen.dart';
+
 import 'package:intl/intl.dart';
+
 import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
 
@@ -22,9 +25,7 @@ class ManageUsersScreen extends StatelessWidget {
   }
 
   static String _resolvePhone(Map<String, dynamic> user) {
-    return user['phone_number']?.toString() ??
-        user['phone']?.toString() ??
-        '';
+    return user['phone_number']?.toString() ?? user['phone']?.toString() ?? '';
   }
 
   static String _resolveAuthProvider(Map<String, dynamic> user) {
@@ -40,10 +41,7 @@ class ManageUsersScreen extends StatelessWidget {
     return createdAt is Timestamp ? createdAt : null;
   }
 
-  static int _compareUsers(
-    QueryDocumentSnapshot a,
-    QueryDocumentSnapshot b,
-  ) {
+  static int _compareUsers(QueryDocumentSnapshot a, QueryDocumentSnapshot b) {
     final aData = a.data() as Map<String, dynamic>;
     final bData = b.data() as Map<String, dynamic>;
     final aTime = _resolveCreatedAt(aData);
@@ -98,10 +96,7 @@ class ManageUsersScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(context.t('manageUsersTitle')),
         backgroundColor: Colors.black,
-        actions: const [
-          LanguageToggleButton(dark: true),
-          SizedBox(width: 8),
-        ],
+        actions: const [LanguageToggleButton(dark: true), SizedBox(width: 8)],
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.orange,
@@ -109,9 +104,7 @@ class ManageUsersScreen extends StatelessWidget {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (_) => const AddUserScreen(),
-            ),
+            MaterialPageRoute(builder: (_) => const AddUserScreen()),
           );
         },
       ),
@@ -148,121 +141,122 @@ class ManageUsersScreen extends StatelessWidget {
 
             return ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.fromLTRB(
-              16,
-              16,
-              16,
-              MediaQuery.of(context).padding.bottom + 100,
-            ),
-            itemCount: users.length,
-            itemBuilder: (context, index) {
-              final doc = users[index];
-              final user = doc.data() as Map<String, dynamic>;
+              padding: EdgeInsets.fromLTRB(
+                16,
+                16,
+                16,
+                MediaQuery.of(context).padding.bottom + 100,
+              ),
+              itemCount: users.length,
+              itemBuilder: (context, index) {
+                final doc = users[index];
+                final user = doc.data() as Map<String, dynamic>;
 
-              final timestamp = _resolveCreatedAt(user);
-              final formattedDate = timestamp != null
-                  ? DateFormat('yyyy-MM-dd HH:mm').format(timestamp.toDate())
-                  : "N/A";
-              final authProvider = _resolveAuthProvider(user);
-              final isGoogleUser = authProvider == 'Google';
+                final timestamp = _resolveCreatedAt(user);
+                final formattedDate = timestamp != null
+                    ? DateFormat('yyyy-MM-dd HH:mm').format(timestamp.toDate())
+                    : "N/A";
+                final authProvider = _resolveAuthProvider(user);
+                final isGoogleUser = authProvider == 'Google';
 
-              return Card(
-                color: Colors.grey.shade900,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                margin: const EdgeInsets.only(bottom: 16),
-                child: ListTile(
-                  contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.orange.withValues(alpha: 0.15),
-                    child: Icon(
-                      isGoogleUser ? Icons.g_mobiledata : Icons.person,
-                      color: Colors.orange,
-                      size: isGoogleUser ? 30 : 24,
+                return Card(
+                  color: Colors.grey.shade900,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
                     ),
-                  ),
-                  title: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          _resolveName(user),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isGoogleUser
-                              ? Colors.blue.withValues(alpha: 0.15)
-                              : Colors.orange.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          authProvider,
-                          style: TextStyle(
-                            color: isGoogleUser ? Colors.lightBlueAccent : Colors.orange,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(
-                      "${context.t('email')}: ${user['email'] ?? ''}\n"
-                          "${context.t('phone')}: ${_resolvePhone(user)}\n"
-                          "Role: ${user['role'] ?? ''}\n"
-                          "Created: $formattedDate",
-                      style: TextStyle(
-                        color: Colors.grey.shade400,
-                        height: 1.4,
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.orange.withValues(alpha: 0.15),
+                      child: Icon(
+                        isGoogleUser ? Icons.g_mobiledata : Icons.person,
+                        color: Colors.orange,
+                        size: isGoogleUser ? 30 : 24,
                       ),
                     ),
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit,
-                            color: Colors.blue),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => EditUserScreen(
-                                userId: doc.id,
-                                userData: user,
-                              ),
+                    title: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _resolveName(user),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
                             ),
-                          );
-                        },
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isGoogleUser
+                                ? Colors.blue.withValues(alpha: 0.15)
+                                : Colors.orange.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            authProvider,
+                            style: TextStyle(
+                              color: isGoogleUser
+                                  ? Colors.lightBlueAccent
+                                  : Colors.orange,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        "${context.t('email')}: ${user['email'] ?? ''}\n"
+                        "${context.t('phone')}: ${_resolvePhone(user)}\n"
+                        "Role: ${user['role'] ?? ''}\n"
+                        "Created: $formattedDate",
+                        style: TextStyle(
+                          color: Colors.grey.shade400,
+                          height: 1.4,
+                        ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.delete,
-                            color: Colors.red),
-                        onPressed: () =>
-                            deleteUser(context, doc.id),
-                      ),
-                    ],
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.blue),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => EditUserScreen(
+                                  userId: doc.id,
+                                  userData: user,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => deleteUser(context, doc.id),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            },
-          );
-        },
+                );
+              },
+            );
+          },
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }

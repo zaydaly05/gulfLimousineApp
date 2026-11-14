@@ -28,9 +28,7 @@ class _IntroScreenState extends State<IntroScreen>
     super.initState();
 
     // Video
-    _videoController = VideoPlayerController.asset(
-      'assets/videos/intro.mp4',
-    );
+    _videoController = VideoPlayerController.asset('assets/videos/intro.mp4');
 
     _initializeVideo();
 
@@ -48,10 +46,7 @@ class _IntroScreenState extends State<IntroScreen>
     _fadeController.forward();
 
     // Navigate after 6 seconds
-    _navigationTimer = Timer(
-      const Duration(seconds: 6),
-      _goToLogin,
-    );
+    _navigationTimer = Timer(const Duration(seconds: 6), _goToLogin);
   }
 
   Future<void> _initializeVideo() async {
@@ -95,10 +90,7 @@ class _IntroScreenState extends State<IntroScreen>
       PageRouteBuilder(
         pageBuilder: (_, _, _) => const LoginScreen(),
         transitionsBuilder: (_, animation, _, child) {
-          return FadeTransition(
-            opacity: animation,
-            child: child,
-          );
+          return FadeTransition(opacity: animation, child: child);
         },
       ),
     );
@@ -129,22 +121,18 @@ class _IntroScreenState extends State<IntroScreen>
           SizedBox.expand(
             child: _videoController.value.isInitialized
                 ? FittedBox(
-              fit: BoxFit.cover,
-              child: SizedBox(
-                width: _videoController.value.size.width,
-                height: _videoController.value.size.height,
-                child: VideoPlayer(_videoController),
-              ),
-            )
-                : const Center(
-              child: CircularProgressIndicator(),
-            ),
+                    fit: BoxFit.cover,
+                    child: SizedBox(
+                      width: _videoController.value.size.width,
+                      height: _videoController.value.size.height,
+                      child: VideoPlayer(_videoController),
+                    ),
+                  )
+                : const Center(child: CircularProgressIndicator()),
           ),
 
           // Dark luxury overlay
-          Container(
-            color: Colors.black.withValues(alpha: 0.55),
-          ),
+          Container(color: Colors.black.withValues(alpha: 0.55)),
 
           // Top action buttons: Language toggle + Skip
           Positioned(
@@ -195,9 +183,7 @@ class _IntroScreenState extends State<IntroScreen>
                   const SizedBox(height: 8),
                   Text(
                     context.t('luxuryRides'),
-                    style: const TextStyle(
-                      color: Colors.white70,
-                    ),
+                    style: const TextStyle(color: Colors.white70),
                   ),
                 ],
               ),

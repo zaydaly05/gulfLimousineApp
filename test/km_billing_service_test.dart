@@ -36,11 +36,8 @@ void main() {
 
     test('rejects a return reading below the pickup reading', () {
       expect(
-        () => KmBillingService.calculate(
-          startKm: 500,
-          endKm: 400,
-          rentalDays: 1,
-        ),
+        () =>
+            KmBillingService.calculate(startKm: 500, endKm: 400, rentalDays: 1),
         throwsArgumentError,
       );
     });

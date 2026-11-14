@@ -88,7 +88,10 @@ class _ComplimentaryRentalsScreenState
   String _personKey(Map<String, dynamic> data) {
     final email = (data['email'] ?? '').toString().trim().toLowerCase();
     final phone = (data['phone'] ?? '').toString().trim();
-    final name = (data['recipientName'] ?? 'Guest').toString().trim().toLowerCase();
+    final name = (data['recipientName'] ?? 'Guest')
+        .toString()
+        .trim()
+        .toLowerCase();
     if (phone.isNotEmpty) return 'p:$phone';
     if (email.isNotEmpty) return 'e:$email';
     return 'n:$name';
@@ -104,10 +107,7 @@ class _ComplimentaryRentalsScreenState
     await FirebaseFirestore.instance
         .collection('complimentary_rentals')
         .doc(id)
-        .update({
-      'status': status,
-      'endedAt': FieldValue.serverTimestamp(),
-    });
+        .update({'status': status, 'endedAt': FieldValue.serverTimestamp()});
 
     if (carId.isNotEmpty && (status == 'completed' || status == 'cancelled')) {
       await _releaseCarIfUnused(carId, exceptDocId: id);
@@ -146,12 +146,19 @@ class _ComplimentaryRentalsScreenState
     }
   }
 
-  Future<void> _delete(BuildContext context, String id, Map<String, dynamic> data) async {
+  Future<void> _delete(
+    BuildContext context,
+    String id,
+    Map<String, dynamic> data,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: Colors.grey.shade900,
-        title: const Text('Delete record', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Delete record',
+          style: TextStyle(color: Colors.white),
+        ),
         content: const Text(
           'Remove this complimentary rental from the list?',
           style: TextStyle(color: Colors.white70),
@@ -192,10 +199,7 @@ class _ComplimentaryRentalsScreenState
       appBar: AppBar(
         backgroundColor: Colors.black,
         title: Text(context.t('complimentaryTitle')),
-        actions: const [
-          LanguageToggleButton(dark: true),
-          SizedBox(width: 8),
-        ],
+        actions: const [LanguageToggleButton(dark: true), SizedBox(width: 8)],
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: Colors.orange,
@@ -219,294 +223,303 @@ class _ComplimentaryRentalsScreenState
           stream: FirebaseFirestore.instance
               .collection('complimentary_rentals')
               .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(
-              child: Text(
-                'Could not load complimentary rentals',
-                style: TextStyle(color: Colors.red.shade300),
-              ),
-            );
-          }
-
-          final docs = List<QueryDocumentSnapshot>.from(
-            snapshot.data?.docs ?? [],
-          );
-          docs.sort((a, b) {
-            final aData = a.data() as Map<String, dynamic>;
-            final bData = b.data() as Map<String, dynamic>;
-            final aDate = aData['createdAt'];
-            final bDate = bData['createdAt'];
-            if (aDate is Timestamp && bDate is Timestamp) {
-              return bDate.compareTo(aDate);
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
             }
-            return 0;
-          });
-
-          if (docs.isEmpty) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(32),
+            if (snapshot.hasError) {
+              return Center(
                 child: Text(
-                  'No complimentary or gift cars yet.\nTap Grant car to lend a vehicle at no charge.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white70),
+                  'Could not load complimentary rentals',
+                  style: TextStyle(color: Colors.red.shade300),
                 ),
-              ),
-            );
-          }
-
-          final now = DateTime.now();
-          final byPerson = <String, _GiftPersonTotal>{};
-
-          for (final doc in docs) {
-            final data = doc.data() as Map<String, dynamic>;
-            final key = _personKey(data);
-            final person = byPerson.putIfAbsent(
-              key,
-              () => _GiftPersonTotal(
-                key: key,
-                name: (data['recipientName'] ?? 'Guest').toString(),
-                phone: (data['phone'] ?? '').toString(),
-                email: (data['email'] ?? '').toString(),
-              ),
-            );
-            if (!_countsTowardGiftTotal(data)) continue;
-            final value = _giftedValue(data);
-            final date = _giftDate(data);
-            person.allCount += 1;
-            person.allTotal += value;
-            if (date != null && date.year == now.year) {
-              person.yearCount += 1;
-              person.yearTotal += value;
-              if (date.month == now.month) {
-                person.monthCount += 1;
-                person.monthTotal += value;
-              }
+              );
             }
-          }
 
-          final people = byPerson.values.toList()
-            ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-
-          final selectedPerson = _selectedPersonKey == null
-              ? null
-              : byPerson[_selectedPersonKey];
-          final selectedKey =
-              selectedPerson == null ? null : _selectedPersonKey;
-          final monthTotal = selectedPerson?.monthTotal ??
-              people.fold<double>(0, (total, p) => total + p.monthTotal);
-          final yearTotal = selectedPerson?.yearTotal ??
-              people.fold<double>(0, (total, p) => total + p.yearTotal);
-          final allTotal = selectedPerson?.allTotal ??
-              people.fold<double>(0, (total, p) => total + p.allTotal);
-
-          final visibleDocs = docs.where((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            if (selectedKey != null &&
-                _personKey(data) != selectedKey) {
-              return false;
-            }
-            return _inSelectedPeriod(_giftDate(data));
-          }).toList();
-
-          final filteredTotal = visibleDocs.fold<double>(0, (total, doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            if (!_countsTowardGiftTotal(data)) return total;
-            return total + _giftedValue(data);
-          });
-
-          return ListView.builder(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, 88 + bottomPad),
-            itemCount: visibleDocs.isEmpty ? 1 : visibleDocs.length + 1,
-            itemBuilder: (context, index) {
-              if (index == 0) {
-                return _GiftTotalsHeader(
-                  monthTotal: monthTotal,
-                  yearTotal: yearTotal,
-                  allTotal: allTotal,
-                  filteredTotal: filteredTotal,
-                  grantCount: visibleDocs
-                      .where(
-                        (doc) => _countsTowardGiftTotal(
-                          doc.data() as Map<String, dynamic>,
-                        ),
-                      )
-                      .length,
-                  people: people,
-                  selectedPersonKey: selectedKey,
-                  period: _period,
-                  emptyFilter: visibleDocs.isEmpty,
-                  format: _egp,
-                  onPersonChanged: (key) =>
-                      setState(() => _selectedPersonKey = key),
-                  onPeriodChanged: (period) => setState(() => _period = period),
-                );
+            final docs = List<QueryDocumentSnapshot>.from(
+              snapshot.data?.docs ?? [],
+            );
+            docs.sort((a, b) {
+              final aData = a.data() as Map<String, dynamic>;
+              final bData = b.data() as Map<String, dynamic>;
+              final aDate = aData['createdAt'];
+              final bDate = bData['createdAt'];
+              if (aDate is Timestamp && bDate is Timestamp) {
+                return bDate.compareTo(aDate);
               }
+              return 0;
+            });
 
-              final doc = visibleDocs[index - 1];
-              final data = doc.data() as Map<String, dynamic>;
-              final status = (data['status'] ?? 'active').toString();
-              final overdue = _isOverdue(data);
-              final label = overdue ? 'OVERDUE' : status.toUpperCase();
-              final color = _statusColor(status, overdue: overdue);
-              final carName = [
-                data['brand'],
-                data['car_name'] ?? data['carName'],
-              ].where((p) => p != null && p.toString().isNotEmpty).join(' ');
-              final reason = (data['reason'] ?? 'complimentary').toString();
-              final start = _fmt(data['startDate']);
-              final end = _fmt(data['endDate']);
-              final days = data['days'];
-              final price = (data['price_per_day'] as num?)?.toDouble() ?? 0;
-              final gifted = _giftedValue(data);
-
-              return Card(
-                color: Colors.grey.shade900,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                margin: const EdgeInsets.only(bottom: 14),
+            if (docs.isEmpty) {
+              return const Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.card_giftcard, color: Colors.orange),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              carName.isEmpty ? 'Car' : carName,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
+                  padding: EdgeInsets.all(32),
+                  child: Text(
+                    'No complimentary or gift cars yet.\nTap Grant car to lend a vehicle at no charge.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                ),
+              );
+            }
+
+            final now = DateTime.now();
+            final byPerson = <String, _GiftPersonTotal>{};
+
+            for (final doc in docs) {
+              final data = doc.data() as Map<String, dynamic>;
+              final key = _personKey(data);
+              final person = byPerson.putIfAbsent(
+                key,
+                () => _GiftPersonTotal(
+                  key: key,
+                  name: (data['recipientName'] ?? 'Guest').toString(),
+                  phone: (data['phone'] ?? '').toString(),
+                  email: (data['email'] ?? '').toString(),
+                ),
+              );
+              if (!_countsTowardGiftTotal(data)) continue;
+              final value = _giftedValue(data);
+              final date = _giftDate(data);
+              person.allCount += 1;
+              person.allTotal += value;
+              if (date != null && date.year == now.year) {
+                person.yearCount += 1;
+                person.yearTotal += value;
+                if (date.month == now.month) {
+                  person.monthCount += 1;
+                  person.monthTotal += value;
+                }
+              }
+            }
+
+            final people = byPerson.values.toList()
+              ..sort(
+                (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+              );
+
+            final selectedPerson = _selectedPersonKey == null
+                ? null
+                : byPerson[_selectedPersonKey];
+            final selectedKey = selectedPerson == null
+                ? null
+                : _selectedPersonKey;
+            final monthTotal =
+                selectedPerson?.monthTotal ??
+                people.fold<double>(0, (total, p) => total + p.monthTotal);
+            final yearTotal =
+                selectedPerson?.yearTotal ??
+                people.fold<double>(0, (total, p) => total + p.yearTotal);
+            final allTotal =
+                selectedPerson?.allTotal ??
+                people.fold<double>(0, (total, p) => total + p.allTotal);
+
+            final visibleDocs = docs.where((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              if (selectedKey != null && _personKey(data) != selectedKey) {
+                return false;
+              }
+              return _inSelectedPeriod(_giftDate(data));
+            }).toList();
+
+            final filteredTotal = visibleDocs.fold<double>(0, (total, doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              if (!_countsTowardGiftTotal(data)) return total;
+              return total + _giftedValue(data);
+            });
+
+            return ListView.builder(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 88 + bottomPad),
+              itemCount: visibleDocs.isEmpty ? 1 : visibleDocs.length + 1,
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  return _GiftTotalsHeader(
+                    monthTotal: monthTotal,
+                    yearTotal: yearTotal,
+                    allTotal: allTotal,
+                    filteredTotal: filteredTotal,
+                    grantCount: visibleDocs
+                        .where(
+                          (doc) => _countsTowardGiftTotal(
+                            doc.data() as Map<String, dynamic>,
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: color.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              label,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: color,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'For: ${data['recipientName'] ?? 'Guest'}',
-                        style: TextStyle(color: Colors.grey.shade300),
-                      ),
-                      if ((data['phone'] ?? '').toString().isNotEmpty)
-                        Text(
-                          'Phone: ${data['phone']}',
-                          style: TextStyle(color: Colors.grey.shade400),
-                        ),
-                      Text(
-                        'Type: ${reason[0].toUpperCase()}${reason.substring(1)}',
-                        style: TextStyle(color: Colors.grey.shade400),
-                      ),
-                      if (start.isNotEmpty || end.isNotEmpty)
-                        Text(
-                          'Period: $start → $end'
-                          '${days != null ? ' · $days day(s)' : ''}',
-                          style: TextStyle(color: Colors.grey.shade400),
-                        ),
-                      if (gifted > 0)
-                        Text(
-                          price > 0
-                              ? 'Gift value: $days day(s) × ${_egp(price)} = ${_egp(gifted)}'
-                              : 'Gift value: ${_egp(gifted)} (not charged)',
-                          style: const TextStyle(
-                            color: Colors.orange,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      if ((data['notes'] ?? '').toString().isNotEmpty)
-                        Text(
-                          'Note: ${data['notes']}',
-                          style: TextStyle(color: Colors.grey.shade500),
-                        ),
-                      const SizedBox(height: 12),
-                      TrafficViolationsAdminPanel(
-                        sourceType: TrafficViolationService.sourceGift,
-                        rentalId: doc.id,
-                        rentalData: data,
-                      ),
-                      if (status == 'active') ...[
-                        const SizedBox(height: 12),
+                        )
+                        .length,
+                    people: people,
+                    selectedPersonKey: selectedKey,
+                    period: _period,
+                    emptyFilter: visibleDocs.isEmpty,
+                    format: _egp,
+                    onPersonChanged: (key) =>
+                        setState(() => _selectedPersonKey = key),
+                    onPeriodChanged: (period) =>
+                        setState(() => _period = period),
+                  );
+                }
+
+                final doc = visibleDocs[index - 1];
+                final data = doc.data() as Map<String, dynamic>;
+                final status = (data['status'] ?? 'active').toString();
+                final overdue = _isOverdue(data);
+                final label = overdue ? 'OVERDUE' : status.toUpperCase();
+                final color = _statusColor(status, overdue: overdue);
+                final carName = [
+                  data['brand'],
+                  data['car_name'] ?? data['carName'],
+                ].where((p) => p != null && p.toString().isNotEmpty).join(' ');
+                final reason = (data['reason'] ?? 'complimentary').toString();
+                final start = _fmt(data['startDate']);
+                final end = _fmt(data['endDate']);
+                final days = data['days'];
+                final price = (data['price_per_day'] as num?)?.toDouble() ?? 0;
+                final gifted = _giftedValue(data);
+
+                return Card(
+                  color: Colors.grey.shade900,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  margin: const EdgeInsets.only(bottom: 14),
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Row(
                           children: [
+                            const Icon(
+                              Icons.card_giftcard,
+                              color: Colors.orange,
+                            ),
+                            const SizedBox(width: 8),
                             Expanded(
-                              child: OutlinedButton(
-                                onPressed: () => _setStatus(
-                                  context,
-                                  doc.id,
-                                  data,
-                                  'cancelled',
+                              child: Text(
+                                carName.isEmpty ? 'Car' : carName,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
                                 ),
-                                child: const Text('Cancel'),
                               ),
                             ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.orange,
-                                ),
-                                onPressed: () => _setStatus(
-                                  context,
-                                  doc.id,
-                                  data,
-                                  'completed',
-                                ),
-                                child: const Text(
-                                  'End rental',
-                                  style: TextStyle(color: Colors.white),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: color.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                label,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: color,
                                 ),
                               ),
                             ),
                           ],
                         ),
-                      ] else
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton(
-                            onPressed: () => _delete(context, doc.id, data),
-                            child: const Text(
-                              'Delete',
-                              style: TextStyle(color: Colors.redAccent),
+                        const SizedBox(height: 10),
+                        Text(
+                          'For: ${data['recipientName'] ?? 'Guest'}',
+                          style: TextStyle(color: Colors.grey.shade300),
+                        ),
+                        if ((data['phone'] ?? '').toString().isNotEmpty)
+                          Text(
+                            'Phone: ${data['phone']}',
+                            style: TextStyle(color: Colors.grey.shade400),
+                          ),
+                        Text(
+                          'Type: ${reason[0].toUpperCase()}${reason.substring(1)}',
+                          style: TextStyle(color: Colors.grey.shade400),
+                        ),
+                        if (start.isNotEmpty || end.isNotEmpty)
+                          Text(
+                            'Period: $start → $end'
+                            '${days != null ? ' · $days day(s)' : ''}',
+                            style: TextStyle(color: Colors.grey.shade400),
+                          ),
+                        if (gifted > 0)
+                          Text(
+                            price > 0
+                                ? 'Gift value: $days day(s) × ${_egp(price)} = ${_egp(gifted)}'
+                                : 'Gift value: ${_egp(gifted)} (not charged)',
+                            style: const TextStyle(
+                              color: Colors.orange,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
+                        if ((data['notes'] ?? '').toString().isNotEmpty)
+                          Text(
+                            'Note: ${data['notes']}',
+                            style: TextStyle(color: Colors.grey.shade500),
+                          ),
+                        const SizedBox(height: 12),
+                        TrafficViolationsAdminPanel(
+                          sourceType: TrafficViolationService.sourceGift,
+                          rentalId: doc.id,
+                          rentalData: data,
                         ),
-                    ],
+                        if (status == 'active') ...[
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () => _setStatus(
+                                    context,
+                                    doc.id,
+                                    data,
+                                    'cancelled',
+                                  ),
+                                  child: const Text('Cancel'),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.orange,
+                                  ),
+                                  onPressed: () => _setStatus(
+                                    context,
+                                    doc.id,
+                                    data,
+                                    'completed',
+                                  ),
+                                  child: const Text(
+                                    'End rental',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ] else
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: () => _delete(context, doc.id, data),
+                              child: const Text(
+                                'Delete',
+                                style: TextStyle(color: Colors.redAccent),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            },
-          );
-        },
+                );
+              },
+            );
+          },
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 class AddComplimentaryRentalScreen extends StatefulWidget {
@@ -658,7 +671,9 @@ class _AddComplimentaryRentalScreenState
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Car granted. It is hidden from the public fleet until returned.'),
+          content: Text(
+            'Car granted. It is hidden from the public fleet until returned.',
+          ),
           backgroundColor: Colors.green,
         ),
       );
@@ -781,10 +796,7 @@ class _AddComplimentaryRentalScreenState
               },
             ),
             const SizedBox(height: 16),
-            const Text(
-              'How long?',
-              style: TextStyle(color: Colors.white70),
-            ),
+            const Text('How long?', style: TextStyle(color: Colors.white70)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -908,9 +920,7 @@ class _AddComplimentaryRentalScreenState
           children: [
             const Icon(Icons.calendar_today, size: 18, color: Colors.orange),
             const SizedBox(width: 10),
-            Text(
-              date == null ? label : DateFormat('dd MMM yyyy').format(date),
-            ),
+            Text(date == null ? label : DateFormat('dd MMM yyyy').format(date)),
           ],
         ),
       ),
@@ -969,7 +979,9 @@ class _GiftTotalsHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selected = people.where((p) => p.key == selectedPersonKey).firstOrNull;
+    final selected = people
+        .where((p) => p.key == selectedPersonKey)
+        .firstOrNull;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -1037,8 +1049,16 @@ class _GiftTotalsHeader extends StatelessWidget {
               children: [
                 Text(
                   selected == null
-                      ? 'Gifted value · ${period == 'month' ? 'this month' : period == 'year' ? 'this year' : 'all time'}'
-                      : '${selected.name} · ${period == 'month' ? 'this month' : period == 'year' ? 'this year' : 'all time'}',
+                      ? 'Gifted value · ${period == 'month'
+                            ? 'this month'
+                            : period == 'year'
+                            ? 'this year'
+                            : 'all time'}'
+                      : '${selected.name} · ${period == 'month'
+                            ? 'this month'
+                            : period == 'year'
+                            ? 'this year'
+                            : 'all time'}',
                   style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
                 ),
                 const SizedBox(height: 6),
@@ -1093,15 +1113,12 @@ class _GiftTotalsHeader extends StatelessWidget {
                   ),
                 ),
                 child: ListTile(
-                  onTap: () => onPersonChanged(
-                    selectedCard ? null : person.key,
-                  ),
+                  onTap: () =>
+                      onPersonChanged(selectedCard ? null : person.key),
                   leading: CircleAvatar(
                     backgroundColor: Colors.orange,
                     child: Text(
-                      person.name.isEmpty
-                          ? '?'
-                          : person.name[0].toUpperCase(),
+                      person.name.isEmpty ? '?' : person.name[0].toUpperCase(),
                       style: const TextStyle(color: Colors.white),
                     ),
                   ),

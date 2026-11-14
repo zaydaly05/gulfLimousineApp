@@ -29,18 +29,12 @@ class OdometerService {
                     'If you cannot read it, reply with NONE.',
               },
               {
-                'inline_data': {
-                  'mime_type': 'image/jpeg',
-                  'data': base64Image,
-                },
+                'inline_data': {'mime_type': 'image/jpeg', 'data': base64Image},
               },
             ],
           },
         ],
-        'generationConfig': {
-          'temperature': 0.1,
-          'maxOutputTokens': 32,
-        },
+        'generationConfig': {'temperature': 0.1, 'maxOutputTokens': 32},
       };
 
       final response = await http

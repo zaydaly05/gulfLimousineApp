@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
 import '../l10n/locale_service.dart';
 
 class NotificationsInboxScreen extends StatelessWidget {
@@ -10,9 +11,7 @@ class NotificationsInboxScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
-      return Scaffold(
-        body: Center(child: Text(context.t('signInTickets'))),
-      );
+      return Scaffold(body: Center(child: Text(context.t('signInTickets'))));
     }
 
     return Scaffold(
