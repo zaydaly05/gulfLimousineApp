@@ -44,4 +44,35 @@ void main() {
       );
     });
   });
+
+  group('RentalDates.rentalDays (pickup and return day both count)', () {
+    test('same-day rental is one day', () {
+      expect(
+        RentalDates.rentalDays(DateTime(2026, 5, 1), DateTime(2026, 5, 1)),
+        1,
+      );
+    });
+
+    test('1 to 3 May is three days', () {
+      expect(
+        RentalDates.rentalDays(DateTime(2026, 5, 1), DateTime(2026, 5, 3)),
+        3,
+      );
+    });
+
+    test('never less than one day', () {
+      expect(
+        RentalDates.rentalDays(DateTime(2026, 5, 3), DateTime(2026, 5, 1)),
+        1,
+      );
+    });
+
+    test('returnDateFor is the inverse of rentalDays', () {
+      final start = DateTime(2026, 4, 25);
+      for (final days in [1, 3, 7, 14, 30]) {
+        final end = RentalDates.returnDateFor(start, days);
+        expect(RentalDates.rentalDays(start, end), days);
+      }
+    });
+  });
 }

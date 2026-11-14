@@ -44,8 +44,7 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
 
   int get _days {
     if (pickupDate == null || returnDate == null) return 0;
-    final diff = RentalDates.calendarDaysBetween(pickupDate!, returnDate!);
-    return diff <= 0 ? 1 : diff;
+    return RentalDates.rentalDays(pickupDate!, returnDate!);
   }
 
   double get _total => pricePerDay * _days;

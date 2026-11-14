@@ -29,7 +29,7 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
 
   int get _days {
     if (pickupDate == null || returnDate == null) return 0;
-    return RentalDates.calendarDaysBetween(pickupDate!, returnDate!) + 1;
+    return RentalDates.rentalDays(pickupDate!, returnDate!);
   }
 
   double get _total => _pricePerDay * _days;

@@ -52,8 +52,9 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
   bool _togglingSecurity = false;
 
   /// True once the admin changes dates or car; until then the booking keeps
-  /// the days/total it was created with (customer bookings count both the
-  /// pickup and return day, so recomputing here would silently reprice them).
+  /// the days/total it was created with, so older bookings priced under a
+  /// different rule (or with a since-changed car rate) aren't silently
+  /// repriced by an unrelated edit such as a status change.
   bool _pricingChanged = false;
 
   static const _statuses = ['pending', 'confirmed', 'completed', 'cancelled'];
@@ -125,8 +126,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
     final stored = widget.bookingData['days'];
     if (!_pricingChanged && stored is num) return stored.toInt();
     if (pickupDate == null || returnDate == null) return 0;
-    final diff = RentalDates.calendarDaysBetween(pickupDate!, returnDate!);
-    return diff <= 0 ? 1 : diff;
+    return RentalDates.rentalDays(pickupDate!, returnDate!);
   }
 
   double get _total {

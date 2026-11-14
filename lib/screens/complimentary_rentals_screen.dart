@@ -547,8 +547,7 @@ class _AddComplimentaryRentalScreenState
 
   int get _days {
     if (startDate == null || endDate == null) return 0;
-    final diff = RentalDates.calendarDaysBetween(startDate!, endDate!);
-    return diff <= 0 ? 1 : diff;
+    return RentalDates.rentalDays(startDate!, endDate!);
   }
 
   double get _total => pricePerDay * _days;
@@ -582,7 +581,8 @@ class _AddComplimentaryRentalScreenState
     final start = startDate ?? DateTime.now();
     setState(() {
       startDate = DateTime(start.year, start.month, start.day);
-      endDate = startDate!.add(Duration(days: days));
+      // Pickup day counts, so "1 day" ends on the start date.
+      endDate = RentalDates.returnDateFor(startDate!, days);
     });
   }
 
