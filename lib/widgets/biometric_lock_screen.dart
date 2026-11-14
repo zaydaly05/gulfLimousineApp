@@ -1,7 +1,6 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../screens/login_screen.dart';
+import '../services/auth_navigation.dart';
 import '../services/biometric_service.dart';
 
 class BiometricLockScreen extends StatefulWidget {
@@ -26,9 +25,10 @@ class _BiometricLockScreenState extends State<BiometricLockScreen> {
 
   Future<void> _unlock() async {
     setState(() => _busy = true);
-    _label = await BiometricService.methodLabel();
+    final label = await BiometricService.methodLabel();
+    if (mounted) setState(() => _label = label);
     final ok = await BiometricService.authenticate(
-                  reason: 'Unlock with $_label',
+      reason: 'Unlock with $label',
     );
     if (!mounted) return;
     setState(() {
@@ -37,15 +37,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen> {
     });
   }
 
-  Future<void> _usePassword() async {
-    await FirebaseAuth.instance.signOut();
-    if (!mounted) return;
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (route) => false,
-    );
-  }
+  Future<void> _usePassword() => AuthNavigation.signOut(context);
 
   @override
   Widget build(BuildContext context) {

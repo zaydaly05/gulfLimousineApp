@@ -107,26 +107,29 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
+                    // Boxes share the width so the row fits small phones.
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         _cardBox(
                           controller: card1,
                           focusNode: card1Focus,
                           nextFocus: card2Focus,
                         ),
+                        const SizedBox(width: 8),
                         _cardBox(
                           controller: card2,
                           focusNode: card2Focus,
                           nextFocus: card3Focus,
                           previousFocus: card1Focus,
                         ),
+                        const SizedBox(width: 8),
                         _cardBox(
                           controller: card3,
                           focusNode: card3Focus,
                           nextFocus: card4Focus,
                           previousFocus: card2Focus,
                         ),
+                        const SizedBox(width: 8),
                         _cardBox(
                           controller: card4,
                           focusNode: card4Focus,
@@ -162,7 +165,9 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                             validator: (v) {
                               if (v == null || v.length != 2) return 'MM';
                               final m = int.tryParse(v);
-                              if (m == null || m < 1 || m > 12) return 'Invalid';
+                              if (m == null || m < 1 || m > 12) {
+                                return 'Invalid';
+                              }
                               return null;
                             },
                           ),
@@ -179,8 +184,12 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                             validator: (v) {
                               if (v == null || v.length != 4) return 'YYYY';
                               final y = int.tryParse(v);
-                              if (y == null || y < DateTime.now().year) {
-                                return 'Invalid';
+                              final m = int.tryParse(month.text);
+                              final now = DateTime.now();
+                              if (y == null || y < now.year) return 'Invalid';
+                              // Same year: the card must not have expired.
+                              if (y == now.year && m != null && m < now.month) {
+                                return 'Expired';
                               }
                               return null;
                             },
@@ -251,8 +260,7 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
     FocusNode? nextFocus,
     FocusNode? previousFocus,
   }) {
-    return SizedBox(
-      width: 70,
+    return Expanded(
       child: TextFormField(
         controller: controller,
         focusNode: focusNode,
@@ -298,8 +306,9 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
       obscureText: obscureText,
       keyboardType: TextInputType.number,
       textAlign: TextAlign.center,
-      textInputAction:
-          nextFocus != null ? TextInputAction.next : TextInputAction.done,
+      textInputAction: nextFocus != null
+          ? TextInputAction.next
+          : TextInputAction.done,
       inputFormatters: [
         FilteringTextInputFormatter.digitsOnly,
         LengthLimitingTextInputFormatter(maxLength),

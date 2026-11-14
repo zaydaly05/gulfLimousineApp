@@ -10,6 +10,7 @@ import 'map_location_picker.dart';
 import 'update_trip_location_screen.dart';
 import 'video_viewer_screen.dart';
 import '../services/booking_service.dart';
+import '../utils/rental_dates.dart';
 
 class EditBookingScreen extends StatefulWidget {
   final String bookingId;
@@ -47,13 +48,15 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
   DateTime? pickupDate;
   DateTime? returnDate;
   bool _isLoading = false;
+  late bool _isImmobilized;
+  bool _togglingSecurity = false;
 
-  static const _statuses = [
-    'pending',
-    'confirmed',
-    'completed',
-    'cancelled',
-  ];
+  /// True once the admin changes dates or car; until then the booking keeps
+  /// the days/total it was created with (customer bookings count both the
+  /// pickup and return day, so recomputing here would silently reprice them).
+  bool _pricingChanged = false;
+
+  static const _statuses = ['pending', 'confirmed', 'completed', 'cancelled'];
 
   static const _tripStatuses = [
     'pending',
@@ -97,6 +100,9 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
 
     pickupDate = _parseDate(data['pickupDate'] ?? data['startDate']);
     returnDate = _parseDate(data['returnDate']);
+
+    final security = data['security'];
+    _isImmobilized = security is Map && security['isImmobilized'] == true;
   }
 
   @override
@@ -116,12 +122,18 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
   }
 
   int get _days {
+    final stored = widget.bookingData['days'];
+    if (!_pricingChanged && stored is num) return stored.toInt();
     if (pickupDate == null || returnDate == null) return 0;
-    final diff = returnDate!.difference(pickupDate!).inDays;
+    final diff = RentalDates.calendarDaysBetween(pickupDate!, returnDate!);
     return diff <= 0 ? 1 : diff;
   }
 
-  double get _total => pricePerDay * _days;
+  double get _total {
+    final stored = widget.bookingData['total_amount'];
+    if (!_pricingChanged && stored is num) return stored.toDouble();
+    return pricePerDay * _days;
+  }
 
   Future<void> _pickLocation({required bool isPickup}) async {
     final result = await Navigator.push<GeoLocation>(
@@ -168,37 +180,40 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
       setState(() => _isLoading = true);
 
       final previousTrip = (widget.bookingData['tripStatus'] ?? '').toString();
-      final previousChauffeur =
-          (widget.bookingData['chauffeurId'] ?? '').toString();
+      final previousChauffeur = (widget.bookingData['chauffeurId'] ?? '')
+          .toString();
 
       await FirebaseFirestore.instance
           .collection('bookings')
           .doc(widget.bookingId)
           .update({
-        'customerName': nameController.text.trim(),
-        'userName': nameController.text.trim(),
-        'user_email': emailController.text.trim(),
-        'phone': phoneController.text.trim(),
-        if (selectedCarId != null) 'car_id': selectedCarId,
-        'car_name': selectedCarName,
-        'carName': selectedCarName,
-        'brand': selectedBrand,
-        'pickupDate': Timestamp.fromDate(pickupDate!),
-        'returnDate': Timestamp.fromDate(returnDate!),
-        'startDate': Timestamp.fromDate(pickupDate!),
-        'days': _days,
-        'price_per_day': pricePerDay,
-        'total_amount': _total,
-        'status': status,
-        'tripStatus': tripStatus,
-        if (chauffeurId != null) 'chauffeurId': chauffeurId,
-        'chauffeurName': chauffeurName,
-        'chauffeurPhone': chauffeurPhone,
-        if (pickupLocation != null) 'pickupLocation': pickupLocation!.toMap(),
-        if (dropoffLocation != null)
-          'dropoffLocation': dropoffLocation!.toMap(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+            'customerName': nameController.text.trim(),
+            'userName': nameController.text.trim(),
+            'user_email': emailController.text.trim(),
+            'phone': phoneController.text.trim(),
+            if (selectedCarId != null) 'car_id': selectedCarId,
+            'car_name': selectedCarName,
+            'carName': selectedCarName,
+            'brand': selectedBrand,
+            'pickupDate': Timestamp.fromDate(pickupDate!),
+            'returnDate': Timestamp.fromDate(returnDate!),
+            'startDate': Timestamp.fromDate(pickupDate!),
+            'days': _days,
+            'price_per_day': pricePerDay,
+            'total_amount': _total,
+            'status': status,
+            'tripStatus': tripStatus,
+            // Delete the id when unassigned, otherwise the customer still sees
+            // a chauffeur (and the Track button) after the admin removed them.
+            'chauffeurId': chauffeurId ?? FieldValue.delete(),
+            'chauffeurName': chauffeurName,
+            'chauffeurPhone': chauffeurPhone,
+            if (pickupLocation != null)
+              'pickupLocation': pickupLocation!.toMap(),
+            if (dropoffLocation != null)
+              'dropoffLocation': dropoffLocation!.toMap(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
 
       final userId = widget.bookingData['userId']?.toString();
       if (userId != null && userId.isNotEmpty) {
@@ -210,33 +225,34 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
               .doc(userId)
               .collection('notifications')
               .add({
-            'title': 'Chauffeur assigned',
-            'body':
-                '$chauffeurName will drive your trip. Track from My Bookings.',
-            'type': 'chauffeur_assigned',
-            'bookingId': widget.bookingId,
-            'read': false,
-            'createdAt': FieldValue.serverTimestamp(),
-          });
+                'title': 'Chauffeur assigned',
+                'body':
+                    '$chauffeurName will drive your trip. Track from My Bookings.',
+                'type': 'chauffeur_assigned',
+                'bookingId': widget.bookingId,
+                'read': false,
+                'createdAt': FieldValue.serverTimestamp(),
+              });
         } else if (tripStatus != previousTrip) {
           await FirebaseFirestore.instance
               .collection('users')
               .doc(userId)
               .collection('notifications')
               .add({
-            'title': 'Trip update',
-            'body': 'Your trip is now ${tripStatus.replaceAll('_', ' ')}.',
-            'type': 'trip_$tripStatus',
-            'bookingId': widget.bookingId,
-            'read': false,
-            'createdAt': FieldValue.serverTimestamp(),
-          });
+                'title': 'Trip update',
+                'body': 'Your trip is now ${tripStatus.replaceAll('_', ' ')}.',
+                'type': 'trip_$tripStatus',
+                'bookingId': widget.bookingId,
+                'read': false,
+                'createdAt': FieldValue.serverTimestamp(),
+              });
         }
       }
 
       if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(
           content: Text('Booking updated successfully'),
           backgroundColor: Colors.green,
@@ -266,6 +282,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
     if (picked == null) return;
 
     setState(() {
+      _pricingChanged = true;
       if (isPickup) {
         pickupDate = picked;
         if (returnDate != null && returnDate!.isBefore(picked)) {
@@ -314,7 +331,8 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
               builder: (context, snapshot) {
                 final cars = snapshot.data?.docs ?? [];
                 return DropdownButtonFormField<String>(
-                  initialValue: selectedCarId != null &&
+                  initialValue:
+                      selectedCarId != null &&
                           cars.any((c) => c.id == selectedCarId)
                       ? selectedCarId
                       : null,
@@ -339,6 +357,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                     final doc = cars.firstWhere((c) => c.id == id);
                     final car = doc.data() as Map<String, dynamic>;
                     setState(() {
+                      _pricingChanged = true;
                       selectedCarId = id;
                       selectedCarName = (car['name'] ?? 'Car').toString();
                       selectedBrand = (car['brand'] ?? '').toString();
@@ -394,7 +413,8 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
               builder: (context, snapshot) {
                 final chauffeurs = snapshot.data?.docs ?? [];
                 return DropdownButtonFormField<String>(
-                  initialValue: chauffeurId != null &&
+                  initialValue:
+                      chauffeurId != null &&
                           chauffeurs.any((c) => c.id == chauffeurId)
                       ? chauffeurId
                       : null,
@@ -402,14 +422,13 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                   style: const TextStyle(color: Colors.white),
                   decoration: _decoration('Chauffeur'),
                   hint: Text(
-                    chauffeurName.isNotEmpty ? chauffeurName : 'Assign chauffeur',
+                    chauffeurName.isNotEmpty
+                        ? chauffeurName
+                        : 'Assign chauffeur',
                     style: const TextStyle(color: Colors.white70),
                   ),
                   items: [
-                    const DropdownMenuItem(
-                      value: '',
-                      child: Text('None'),
-                    ),
+                    const DropdownMenuItem(value: '', child: Text('None')),
                     ...chauffeurs.map((doc) {
                       final c = doc.data() as Map<String, dynamic>;
                       return DropdownMenuItem(
@@ -473,8 +492,10 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                 widget.bookingData['returnVideo'] != null) ...[
               const Text(
                 'Condition Videos:',
-                style:
-                    TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 4),
               Row(
@@ -582,16 +603,35 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
     );
   }
 
+  Future<void> _toggleImmobilization(bool value) async {
+    setState(() => _togglingSecurity = true);
+    try {
+      await BookingService.toggleImmobilization(
+        bookingId: widget.bookingId,
+        immobilized: value,
+      );
+      if (mounted) setState(() => _isImmobilized = value);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$e'), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) setState(() => _togglingSecurity = false);
+    }
+  }
+
   Widget _securityPanel() {
-    final security = widget.bookingData['security'];
-    final isImmobilized = security != null && security['isImmobilized'] == true;
+    final isImmobilized = _isImmobilized;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isImmobilized ? Colors.red.shade900 : Colors.grey.shade900,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isImmobilized ? Colors.red : Colors.grey.shade700),
+        border: Border.all(
+          color: isImmobilized ? Colors.red : Colors.grey.shade700,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -635,14 +675,8 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
               ),
               Switch(
                 value: isImmobilized,
-                onChanged: (v) async {
-                  await BookingService.toggleImmobilization(
-                    bookingId: widget.bookingId,
-                    immobilized: v,
-                  );
-                  if (mounted) setState(() {});
-                },
-                activeColor: Colors.red,
+                onChanged: _togglingSecurity ? null : _toggleImmobilization,
+                activeThumbColor: Colors.red,
               ),
             ],
           ),
@@ -696,7 +730,10 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
-        Text(value, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+        Text(
+          value,
+          style: TextStyle(color: color, fontWeight: FontWeight.bold),
+        ),
       ],
     );
   }

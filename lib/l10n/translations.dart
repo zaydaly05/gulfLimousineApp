@@ -23,6 +23,8 @@ const translations = <String, Map<String, String>>{
     'fullName': 'Full Name',
     'phone': 'Phone',
     'accountCreated': 'Account created successfully',
+    'fillAllFields': 'Please fill in all fields',
+    'enterEmail': 'Please enter your email',
     'signupFailed': 'Signup failed',
     'cancel': 'Cancel',
     'logout': 'Logout',
@@ -67,8 +69,7 @@ const translations = <String, Map<String, String>>{
     'profileSavedBioFailed':
         'Profile saved, but fingerprint was not confirmed. Try again.',
     'weLoveHear': "We'd love to hear from you",
-    'contactIntro':
-        'For bookings, support, or inquiries, reach out through any channel below.',
+    'contactIntro': 'For bookings, support, or inquiries, reach out through any channel below.',
     'location': 'Location',
     'cairoEgypt': 'Cairo, Egypt',
     'luxuryRides': 'Luxury rides, reliable service',
@@ -156,8 +157,7 @@ const translations = <String, Map<String, String>>{
     'biometricHint': 'Use fingerprint or Face ID to log in',
     'biometricHintSave': 'Turn on, then tap Save Changes',
     'enableBiometric': 'Enable biometric login?',
-    'enableBiometricBody':
-        'Use {method} to log in next time. You can also turn this on in Profile.',
+    'enableBiometricBody': 'Use {method} to log in next time. You can also turn this on in Profile.',
     'notNow': 'Not now',
     'enable': 'Enable',
     'setupBiometrics':
@@ -193,8 +193,7 @@ const translations = <String, Map<String, String>>{
     'chooseRecipientCarDuration':
         'Choose the person, car, and how long they keep it',
     'addTrafficViolation': 'Add a traffic violation',
-    'adminOnlyCharge':
-        'Admin-only charge for a customer rental or gift car',
+    'adminOnlyCharge': 'Admin-only charge for a customer rental or gift car',
     'noPendingTickets':
         'No pending tickets. Add one from a booking, gift car, or Manage.',
     'pending': 'Pending',
@@ -275,6 +274,8 @@ const translations = <String, Map<String, String>>{
     'fullName': 'الاسم الكامل',
     'phone': 'الهاتف',
     'accountCreated': 'تم إنشاء الحساب بنجاح',
+    'fillAllFields': 'يرجى ملء جميع الحقول',
+    'enterEmail': 'يرجى إدخال بريدك الإلكتروني',
     'signupFailed': 'فشل إنشاء الحساب',
     'cancel': 'إلغاء',
     'logout': 'تسجيل الخروج',
@@ -319,8 +320,7 @@ const translations = <String, Map<String, String>>{
     'profileSavedBioFailed':
         'تم حفظ الملف، لكن لم يتم تأكيد البصمة. حاول مرة أخرى.',
     'weLoveHear': 'يسعدنا تواصلك معنا',
-    'contactIntro':
-        'للحجوزات أو الدعم أو الاستفسارات، تواصل معنا عبر أي من القنوات التالية.',
+    'contactIntro': 'للحجوزات أو الدعم أو الاستفسارات، تواصل معنا عبر أي من القنوات التالية.',
     'location': 'الموقع',
     'cairoEgypt': 'القاهرة، مصر',
     'luxuryRides': 'رحلات فاخرة وخدمة موثوقة',
@@ -408,12 +408,10 @@ const translations = <String, Map<String, String>>{
     'biometricHint': 'استخدم البصمة أو Face ID لتسجيل الدخول',
     'biometricHintSave': 'فعّل الخيار ثم اضغط حفظ التغييرات',
     'enableBiometric': 'تفعيل الدخول بالبصمة؟',
-    'enableBiometricBody':
-        'استخدم {method} لتسجيل الدخول في المرة القادمة. يمكنك تغيير ذلك من الملف الشخصي.',
+    'enableBiometricBody': 'استخدم {method} لتسجيل الدخول في المرة القادمة. يمكنك تغيير ذلك من الملف الشخصي.',
     'notNow': 'ليس الآن',
     'enable': 'تفعيل',
-    'setupBiometrics':
-        'يرجى إدخال البريد الإلكتروني وكلمة المرور مرة واحدة لتفعيل دخول {method}.',
+    'setupBiometrics': 'يرجى إدخال البريد الإلكتروني وكلمة المرور مرة واحدة لتفعيل دخول {method}.',
     'fingerprint': 'البصمة',
     'faceId': 'Face ID',
     'faceAndFinger': 'Face ID / البصمة',
@@ -497,7 +495,8 @@ const translations = <String, Map<String, String>>{
     'faqPickup': 'كيف يمكنني استلام السيارة؟',
     'faqPickupAns': 'يمكنك استلامها من مكتبنا في القاهرة، أو يمكننا توصيلها إلى موقعك مقابل رسوم إضافية.',
     'faqInsurance': 'هل التأمين مشمول؟',
-    'faqInsuranceAns': 'نعم، جميع إيجاراتنا تشمل تأميناً شاملاً قياسياً مع وجود مبلغ تحمل.',
+    'faqInsuranceAns':
+        'نعم، جميع إيجاراتنا تشمل تأميناً شاملاً قياسياً مع وجود مبلغ تحمل.',
     'faqDocs': 'ما هي الأوراق المطلوبة؟',
     'faqDocsAns': 'تحتاج إلى بطاقة رقم قومي سارية أو جواز سفر، ورخصة قيادة سارية المفعول.',
   },

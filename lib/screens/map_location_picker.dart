@@ -10,11 +10,7 @@ class MapLocationPicker extends StatefulWidget {
   final String title;
   final GeoLocation? initial;
 
-  const MapLocationPicker({
-    super.key,
-    required this.title,
-    this.initial,
-  });
+  const MapLocationPicker({super.key, required this.title, this.initial});
 
   @override
   State<MapLocationPicker> createState() => _MapLocationPickerState();
@@ -97,8 +93,9 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
     if (query.isEmpty) return;
     setState(() => _resolving = true);
     try {
-      final results =
-          await _geocoding.locationFromAddress('$query, Cairo, Egypt');
+      final results = await _geocoding.locationFromAddress(
+        '$query, Cairo, Egypt',
+      );
       if (results.isNotEmpty) {
         final loc = results.first;
         final point = LatLng(loc.latitude, loc.longitude);
@@ -110,7 +107,9 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
     if (mounted) {
       setState(() => _resolving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Address not found. Try a Cairo landmark.')),
+        const SnackBar(
+          content: Text('Address not found. Try a Cairo landmark.'),
+        ),
       );
     }
   }
@@ -135,9 +134,8 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
       await _reverseGeocode(point);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not get location: $e')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Could not get location: $e')));
     }
   }
 
@@ -178,8 +176,9 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
                       ),
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 14),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                      ),
                     ),
                     onSubmitted: (_) => _searchAddress(),
                   ),
@@ -226,15 +225,32 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.example.gulflimousine_travel',
                       tileBuilder: (context, tileWidget, tile) {
                         return ColorFiltered(
                           colorFilter: const ColorFilter.matrix([
-                            0.7, 0, 0, 0, 40,
-                            0, 0.7, 0, 0, 40,
-                            0, 0, 0.7, 0, 40,
-                            0, 0, 0, 1, 0,
+                            0.7,
+                            0,
+                            0,
+                            0,
+                            40,
+                            0,
+                            0.7,
+                            0,
+                            0,
+                            40,
+                            0,
+                            0,
+                            0.7,
+                            0,
+                            40,
+                            0,
+                            0,
+                            0,
+                            1,
+                            0,
                           ]),
                           child: tileWidget,
                         );
@@ -280,7 +296,8 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
                   ),
                   const SizedBox(height: 12),
                   ElevatedButton(
-                    onPressed: _address.isEmpty ? null : _confirm,
+                    // Wait for the address lookup so the pin and address match.
+                    onPressed: _address.isEmpty || _resolving ? null : _confirm,
                     child: const Text('Confirm Location'),
                   ),
                 ],

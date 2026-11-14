@@ -1,6 +1,8 @@
+import 'dart:math' as math;
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'dart:math' as Math;
+import 'package:flutter/foundation.dart';
 
 import '../models/geo_location.dart';
 import 'km_billing_service.dart';
@@ -32,17 +34,17 @@ class RentalDetails {
   double get totalAmount => pricePerDay * days;
 
   Map<String, dynamic> toMap() => {
-        'carId': carId,
-        'carName': carName,
-        'brand': brand,
-        'pricePerDay': pricePerDay,
-        'pickupDate': pickupDate.toIso8601String(),
-        'returnDate': returnDate.toIso8601String(),
-        'days': days,
-        'totalAmount': totalAmount,
-        if (pickupLocation != null) 'pickupLocation': pickupLocation!.toMap(),
-        if (dropoffLocation != null) 'dropoffLocation': dropoffLocation!.toMap(),
-      };
+    'carId': carId,
+    'carName': carName,
+    'brand': brand,
+    'pricePerDay': pricePerDay,
+    'pickupDate': pickupDate.toIso8601String(),
+    'returnDate': returnDate.toIso8601String(),
+    'days': days,
+    'totalAmount': totalAmount,
+    if (pickupLocation != null) 'pickupLocation': pickupLocation!.toMap(),
+    if (dropoffLocation != null) 'dropoffLocation': dropoffLocation!.toMap(),
+  };
 
   factory RentalDetails.fromMap(Map<String, dynamic> map) {
     return RentalDetails(
@@ -81,7 +83,12 @@ class BookingService {
 
     final status = paymentStatus == 'paid' ? 'confirmed' : 'pending';
 
-    final bookingRef = await _firestore.collection('bookings').add({
+    // Booking and payment are written atomically: a failure can no longer
+    // leave a booking without its payment record (or the reverse).
+    final bookingRef = _firestore.collection('bookings').doc();
+    final paymentRef = _firestore.collection('payments').doc();
+    final batch = _firestore.batch();
+    batch.set(bookingRef, {
       'userId': user.uid,
       'user_email': userEmail,
       'userName': userName,
@@ -115,7 +122,7 @@ class BookingService {
         },
     });
 
-    await _firestore.collection('payments').add({
+    batch.set(paymentRef, {
       'userId': user.uid,
       'user_email': userEmail,
       'booking_id': bookingRef.id,
@@ -126,6 +133,7 @@ class BookingService {
       'status': paymentStatus,
       'payment_date': FieldValue.serverTimestamp(),
     });
+    await batch.commit();
 
     // In-app notifications (never fail the payment if rules block a write)
     try {
@@ -207,7 +215,8 @@ class BookingService {
       'chauffeurId': chauffeurId,
       'chauffeurName': chauffeurName,
       'chauffeurPhone': chauffeurPhone,
-      if (currentTrip == 'pending' || currentTrip.isEmpty) 'tripStatus': 'assigned',
+      if (currentTrip == 'pending' || currentTrip.isEmpty)
+        'tripStatus': 'assigned',
       'updatedAt': FieldValue.serverTimestamp(),
     });
 
@@ -258,7 +267,7 @@ class BookingService {
     required double lng,
   }) async {
     final bookingRef = _firestore.collection('bookings').doc(bookingId);
-    
+
     await bookingRef.update({
       'liveLocation': {
         'lat': lat,
@@ -283,13 +292,21 @@ class BookingService {
     }
   }
 
-  static double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
-    var p = 0.017453292519943295;
-    var c = Math.cos;
-    var a = 0.5 - c((lat2 - lat1) * p) / 2 +
-        c(lat1 * p) * c(lat2 * p) *
-            (1 - c((lon2 - lon1) * p)) / 2;
-    return 12742 * Math.asin(Math.sqrt(a));
+  static double _calculateDistance(
+    double lat1,
+    double lon1,
+    double lat2,
+    double lon2,
+  ) {
+    const p = math.pi / 180;
+    final a =
+        0.5 -
+        math.cos((lat2 - lat1) * p) / 2 +
+        math.cos(lat1 * p) *
+            math.cos(lat2 * p) *
+            (1 - math.cos((lon2 - lon1) * p)) /
+            2;
+    return 12742 * math.asin(math.sqrt(a)); // 2 * Earth radius (km)
   }
 
   static Future<void> toggleImmobilization({
@@ -312,9 +329,9 @@ class BookingService {
       await _notifyUser(
         userId: userId,
         title: immobilized ? 'Vehicle Immobilized' : 'Vehicle Restored',
-        body: immobilized 
-          ? 'Your vehicle has been remotely locked for security reasons. Contact support.'
-          : 'Your vehicle access has been restored.',
+        body: immobilized
+            ? 'Your vehicle has been remotely locked for security reasons. Contact support.'
+            : 'Your vehicle access has been restored.',
         type: 'security_alert',
         bookingId: bookingId,
       );
@@ -339,7 +356,7 @@ class BookingService {
     });
 
     // Simulate sending email (in a real app, this triggers a Cloud Function)
-    print('Sending rental agreement copy to ${user.email}...');
+    debugPrint('Sending rental agreement copy to ${user.email}...');
   }
 
   static Future<void> _notifyUser({
@@ -354,13 +371,13 @@ class BookingService {
         .doc(userId)
         .collection('notifications')
         .add({
-      'title': title,
-      'body': body,
-      'type': type,
-      'bookingId': ?bookingId,
-      'read': false,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+          'title': title,
+          'body': body,
+          'type': type,
+          'bookingId': ?bookingId,
+          'read': false,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
   }
 
   static Future<void> _notifyAdmins({
@@ -514,8 +531,7 @@ class BookingService {
     );
 
     final carId = data['car_id']?.toString() ?? data['carId']?.toString();
-    final carName =
-        (data['carName'] ?? data['car_name'] ?? 'car').toString();
+    final carName = (data['carName'] ?? data['car_name'] ?? 'car').toString();
 
     await ref.update({
       'odometer': {
@@ -535,8 +551,9 @@ class BookingService {
         'extraKmChargeEgp': billing.extraKmChargeEgp,
       },
       'final_amount': finalAmount,
-      'extraKmPaymentStatus':
-          billing.extraKm > 0 ? 'pending' : 'not_applicable',
+      'extraKmPaymentStatus': billing.extraKm > 0
+          ? 'pending'
+          : 'not_applicable',
       'status': 'completed',
       'tripStatus': 'completed',
       'updatedAt': FieldValue.serverTimestamp(),
@@ -572,7 +589,7 @@ class BookingService {
         title: 'Rental completed',
         body: billing.extraKm > 0
             ? '$carName returned. Extra ${billing.extraKm} km: '
-                'EGP ${billing.extraKmChargeEgp.toStringAsFixed(0)} due.'
+                  'EGP ${billing.extraKmChargeEgp.toStringAsFixed(0)} due.'
             : '$carName returned. No extra km charges.',
         type: 'rental_completed',
         bookingId: bookingId,
@@ -582,7 +599,8 @@ class BookingService {
     try {
       await _notifyAdmins(
         title: 'Return km recorded',
-        body: '$carName returned at $km km. '
+        body:
+            '$carName returned at $km km. '
             'Extra: ${billing.extraKm} km (EGP ${billing.extraKmChargeEgp.toStringAsFixed(0)})',
         type: 'odometer_end',
         bookingId: bookingId,
@@ -622,28 +640,26 @@ class BookingService {
     } catch (_) {}
   }
 
-  static Future<void> checkAndDeleteOldVideos(String bookingId) async {
-    final doc = await _firestore.collection('bookings').doc(bookingId).get();
-    if (!doc.exists) return;
-
-    final data = doc.data()!;
+  /// Removes condition videos 3 days after the return date.
+  ///
+  /// Takes the booking [data] the caller already has, so scanning a list of
+  /// bookings costs no extra reads.
+  static Future<void> deleteExpiredVideos(
+    String bookingId,
+    Map<String, dynamic> data,
+  ) async {
+    if (data['pickupVideo'] == null && data['returnVideo'] == null) return;
     final returnDate = data['returnDate'];
     if (returnDate is! Timestamp) return;
 
     final expiryDate = returnDate.toDate().add(const Duration(days: 3));
     if (DateTime.now().isAfter(expiryDate)) {
       final cloudinary = CloudinaryService();
-      
-      if (data['pickupVideo'] != null) {
-        final publicId = data['pickupVideo']['publicId'];
-        if (publicId != null) {
-          await cloudinary.deleteAsset(publicId, resourceType: 'video');
-        }
-      }
-      
-      if (data['returnVideo'] != null) {
-        final publicId = data['returnVideo']['publicId'];
-        if (publicId != null) {
+
+      for (final field in ['pickupVideo', 'returnVideo']) {
+        final video = data[field];
+        final publicId = video is Map ? video['publicId']?.toString() : null;
+        if (publicId != null && publicId.isNotEmpty) {
           await cloudinary.deleteAsset(publicId, resourceType: 'video');
         }
       }
@@ -717,7 +733,9 @@ class BookingService {
             : 0.0;
         await _notifyUser(
           userId: userId,
-          title: paid ? 'Extra km payment confirmed' : 'Extra km payment pending',
+          title: paid
+              ? 'Extra km payment confirmed'
+              : 'Extra km payment pending',
           body: paid
               ? 'Your extra km charge of EGP ${charge.toStringAsFixed(0)} is marked as paid.'
               : 'Your extra km charge of EGP ${charge.toStringAsFixed(0)} is pending payment.',

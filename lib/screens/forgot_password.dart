@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import '../l10n/locale_service.dart';
 
 class ForgotPasswordDialog extends StatefulWidget {
@@ -13,8 +14,18 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
   final TextEditingController emailController = TextEditingController();
   bool _isLoading = false;
 
+  @override
+  void dispose() {
+    emailController.dispose();
+    super.dispose();
+  }
+
   /// 🔑 SEND PASSWORD RESET EMAIL
-  Future<void> _sendResetEmail(BuildContext context) async {
+  Future<void> _sendResetEmail() async {
+    if (emailController.text.trim().isEmpty) {
+      _showError(context.t('enterEmail'));
+      return;
+    }
     try {
       setState(() => _isLoading = true);
 
@@ -24,13 +35,12 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
 
       if (!mounted) return;
 
+      final messenger = ScaffoldMessenger.of(context);
+      final sentText = context.t('resetLinkSent');
       Navigator.pop(context);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.t('resetLinkSent')),
-          backgroundColor: Colors.green,
-        ),
+      messenger.showSnackBar(
+        SnackBar(content: Text(sentText), backgroundColor: Colors.green),
       );
     } on FirebaseAuthException catch (e) {
       _showError(e.message ?? 'Failed to send reset email');
@@ -44,10 +54,7 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
   void _showError(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
@@ -57,10 +64,7 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
       child: Material(
         color: Colors.transparent,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            maxWidth: 320,
-            minWidth: 250,
-          ),
+          constraints: const BoxConstraints(maxWidth: 320, minWidth: 250),
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -92,8 +96,7 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
                     labelText: context.t('email'),
-                    labelStyle:
-                    const TextStyle(color: Colors.orange),
+                    labelStyle: const TextStyle(color: Colors.orange),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -106,8 +109,9 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
-                      onPressed:
-                      _isLoading ? null : () => Navigator.pop(context),
+                      onPressed: _isLoading
+                          ? null
+                          : () => Navigator.pop(context),
                       child: Text(
                         context.t('cancel'),
                         style: const TextStyle(color: Colors.black),
@@ -117,19 +121,19 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
                     ElevatedButton(
                       onPressed: _isLoading
                           ? null
-                          : () => _sendResetEmail(context),
+                          : _sendResetEmail,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.orange,
                       ),
                       child: _isLoading
                           ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
                           : Text(context.t('sendResetLink')),
                     ),
                   ],

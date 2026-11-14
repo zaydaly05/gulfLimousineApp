@@ -8,6 +8,7 @@ import '../services/traffic_violation_service.dart';
 
 import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
+import '../utils/rental_dates.dart';
 
 class ComplimentaryRentalsScreen extends StatefulWidget {
   const ComplimentaryRentalsScreen({super.key});
@@ -546,7 +547,7 @@ class _AddComplimentaryRentalScreenState
 
   int get _days {
     if (startDate == null || endDate == null) return 0;
-    final diff = endDate!.difference(startDate!).inDays;
+    final diff = RentalDates.calendarDaysBetween(startDate!, endDate!);
     return diff <= 0 ? 1 : diff;
   }
 

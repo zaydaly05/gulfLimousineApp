@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../services/cloudinary_service.dart';
 
 class AddCarScreen extends StatefulWidget {
@@ -56,23 +57,22 @@ class _AddCarScreenState extends State<AddCarScreen> {
 
       if (!mounted) return;
 
+      final messenger = ScaffoldMessenger.of(context);
       Navigator.pop(context);
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(
           content: Text("Car added successfully"),
           backgroundColor: Colors.green,
         ),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Error: $e"),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
       );
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -83,7 +83,7 @@ class _AddCarScreenState extends State<AddCarScreen> {
 
       final imageData = await cloudinary.uploadImage();
 
-      if (imageData != null) {
+      if (imageData != null && mounted) {
         setState(() {
           imageUrl = imageData['secure_url'];
           publicId = imageData['public_id'];
@@ -97,6 +97,7 @@ class _AddCarScreenState extends State<AddCarScreen> {
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Upload failed: $e"),
@@ -104,7 +105,7 @@ class _AddCarScreenState extends State<AddCarScreen> {
         ),
       );
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -132,19 +133,19 @@ class _AddCarScreenState extends State<AddCarScreen> {
                     borderRadius: BorderRadius.circular(16),
                     image: imageUrl != null
                         ? DecorationImage(
-                      image: NetworkImage(imageUrl!),
-                      fit: BoxFit.cover,
-                    )
+                            image: NetworkImage(imageUrl!),
+                            fit: BoxFit.cover,
+                          )
                         : null,
                   ),
                   child: imageUrl == null
                       ? const Center(
-                    child: Icon(
-                      Icons.add_a_photo,
-                      size: 50,
-                      color: Colors.white70,
-                    ),
-                  )
+                          child: Icon(
+                            Icons.add_a_photo,
+                            size: 50,
+                            color: Colors.white70,
+                          ),
+                        )
                       : null,
                 ),
               ),
@@ -153,28 +154,18 @@ class _AddCarScreenState extends State<AddCarScreen> {
 
               _input("Car Name", name),
               _input("Brand", brand),
-              _input("Price per Day", price,
-                  type: TextInputType.number),
-              _input("Number of Seats", seats,
-                  type: TextInputType.number),
+              _input("Price per Day", price, type: TextInputType.number),
+              _input("Number of Seats", seats, type: TextInputType.number),
 
               const SizedBox(height: 10),
-              const Text(
-                "Fuel Type",
-                style: TextStyle(color: Colors.white),
-              ),
+              const Text("Fuel Type", style: TextStyle(color: Colors.white)),
               const SizedBox(height: 5),
 
               DropdownButtonFormField<String>(
                 initialValue: fuelType,
                 dropdownColor: Colors.grey.shade900,
                 items: ["Petrol", "Diesel", "Electric"]
-                    .map(
-                      (e) => DropdownMenuItem(
-                    value: e,
-                    child: Text(e),
-                  ),
-                )
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
                 onChanged: (val) => setState(() => fuelType = val!),
                 decoration: InputDecoration(
@@ -196,13 +187,13 @@ class _AddCarScreenState extends State<AddCarScreen> {
                 onPressed: _isLoading ? null : _addCar,
                 child: _isLoading
                     ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
                     : const Text("Add Car"),
               ),
             ],
@@ -213,10 +204,10 @@ class _AddCarScreenState extends State<AddCarScreen> {
   }
 
   Widget _input(
-      String label,
-      TextEditingController controller, {
-        TextInputType type = TextInputType.text,
-      }) {
+    String label,
+    TextEditingController controller, {
+    TextInputType type = TextInputType.text,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextFormField(
@@ -226,13 +217,10 @@ class _AddCarScreenState extends State<AddCarScreen> {
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle:
-          const TextStyle(color: Colors.white70),
+          labelStyle: const TextStyle(color: Colors.white70),
           filled: true,
           fillColor: Colors.grey.shade800,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
           focusedBorder: const OutlineInputBorder(
             borderSide: BorderSide(color: Colors.orange),
           ),

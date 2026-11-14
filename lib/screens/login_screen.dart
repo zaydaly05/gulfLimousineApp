@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter/foundation.dart';
+
 import 'dashboard_screen.dart';
 import 'forgot_password.dart';
 import 'signup_screen.dart';
@@ -53,8 +53,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _initializeGoogleSignIn() async {
     try {
       await _googleSignIn.initialize(
-        serverClientId:
-        '671779610901-3ifha330389vg8bg9rdmjjtnalvrnjjg.apps.googleusercontent.com',
+        serverClientId: '671779610901-3ifha330389vg8bg9rdmjjtnalvrnjjg.apps.googleusercontent.com',
       );
 
       debugPrint('Google Sign-In initialized successfully');
@@ -75,18 +74,14 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       setState(() => _isLoading = true);
 
-      UserCredential userCredential =
-      await FirebaseAuth.instance
-          .signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      )
+      UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password)
           .timeout(const Duration(seconds: 15));
 
+      // Keep the credentials so biometric login can be switched on, but let
+      // the user opt in: auto-enabling here meant the "Enable biometric
+      // login?" prompt in _handleUserNavigation could never appear.
       await BiometricService.rememberEmailLogin(email, password);
-      if (await BiometricService.isHardwareAvailable()) {
-        await BiometricService.setEnabledForUid(userCredential.user!.uid, true);
-      }
       await _handleUserNavigation(userCredential.user!);
     } on FirebaseAuthException catch (e) {
       _showError(e.message ?? "Login failed");
@@ -106,18 +101,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
       await _googleSignIn.signOut();
 
-      final GoogleSignInAccount googleUser =
-      await _googleSignIn.authenticate();
+      final GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
 
-      final GoogleSignInAuthentication googleAuth =
-          googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
 
       final credential = GoogleAuthProvider.credential(
         idToken: googleAuth.idToken,
       );
 
-      UserCredential userCredential =
-      await FirebaseAuth.instance
+      UserCredential userCredential = await FirebaseAuth.instance
           .signInWithCredential(credential)
           .timeout(const Duration(seconds: 15));
 
@@ -143,17 +135,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
   /// 📦 Create Firestore user if first login
   Future<void> _createUserIfNotExists(User user) async {
-    final userRef =
-    FirebaseFirestore.instance.collection('users').doc(user.uid);
+    final userRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid);
 
     final userDoc = await userRef.get();
 
     if (!userDoc.exists) {
       await userRef.set({
-        'name':
-        user.displayName ??
-            user.email?.split('@').first ??
-            'User',
+        'name': user.displayName ?? user.email?.split('@').first ?? 'User',
         'email': user.email,
         'phone': '',
         'phone_number': '',
@@ -170,8 +160,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final data = userDoc.data() ?? {};
     final updates = <String, dynamic>{};
 
-    if ((data['name'] == null ||
-        data['name'].toString().isEmpty) &&
+    if ((data['name'] == null || data['name'].toString().isEmpty) &&
         user.displayName != null &&
         user.displayName!.isNotEmpty) {
       updates['name'] = user.displayName;
@@ -181,8 +170,7 @@ class _LoginScreenState extends State<LoginScreen> {
       updates['auth_provider'] = 'google';
     }
 
-    if (data['created_at'] == null &&
-        data['createdAt'] != null) {
+    if (data['created_at'] == null && data['createdAt'] != null) {
       updates['created_at'] = data['createdAt'];
     }
 
@@ -207,7 +195,9 @@ class _LoginScreenState extends State<LoginScreen> {
           reason: 'Authenticate $_biometricLabel to save login credentials',
         );
         if (!ok) {
-          if (mounted) _showError('$_biometricLabel authentication failed or cancelled');
+          if (mounted) {
+            _showError('$_biometricLabel authentication failed or cancelled');
+          }
           return;
         }
         UserCredential userCredential = await FirebaseAuth.instance
@@ -219,7 +209,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
         await BiometricService.rememberEmailLogin(emailInput, passwordInput);
         await BiometricService.setEnabledForUid(userCredential.user!.uid, true);
-        await _handleUserNavigation(userCredential.user!, offerBiometrics: false);
+        await _handleUserNavigation(
+          userCredential.user!,
+          offerBiometrics: false,
+        );
       } else {
         final ok = await BiometricService.authenticate(
           reason: 'Authenticate $_biometricLabel for login',
@@ -257,20 +250,16 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (_) => const DashboardScreen(),
-          ),
+          MaterialPageRoute(builder: (_) => const DashboardScreen()),
         );
       }
     }
   }
 
   void _showError(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
@@ -286,7 +275,9 @@ class _LoginScreenState extends State<LoginScreen> {
     final orangeColor = Colors.orange;
 
     return Scaffold(
-      backgroundColor: Colors.white24,
+      // Opaque: the old translucent white24 showed the OS window colour
+      // through, so the page was white or dark grey depending on dark mode.
+      backgroundColor: Colors.white,
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: SizedBox(
@@ -300,7 +291,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   const Align(
                     alignment: Alignment.topRight,
-                    child: LanguageToggleButton(dark: true),
+                    child: LanguageToggleButton(),
                   ),
 
                   const SizedBox(height: 10),
@@ -325,13 +316,23 @@ class _LoginScreenState extends State<LoginScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
-                          side: const BorderSide(color: Colors.orange, width: 1.5),
+                          side: const BorderSide(
+                            color: Colors.orange,
+                            width: 1.5,
+                          ),
                         ),
                       ),
                       onPressed: _isLoading ? null : _loginWithBiometrics,
-                      icon: const Icon(Icons.fingerprint, color: Colors.orange, size: 28),
+                      icon: const Icon(
+                        Icons.fingerprint,
+                        color: Colors.orange,
+                        size: 28,
+                      ),
                       label: Text(
-                        context.t('loginWithBiometrics', args: {'method': _biometricLabel}),
+                        context.t(
+                          'loginWithBiometrics',
+                          args: {'method': _biometricLabel},
+                        ),
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -342,15 +343,19 @@ class _LoginScreenState extends State<LoginScreen> {
                     Text(
                       context.t('orUseEmail'),
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white70),
+                      style: TextStyle(color: Colors.grey.shade700),
                     ),
                     const SizedBox(height: 20),
                   ],
 
                   TextField(
                     controller: _emailController,
-                    decoration:
-                    _inputDecoration(context.t('email'), Icons.email),
+                    keyboardType: TextInputType.emailAddress,
+                    autofillHints: const [AutofillHints.email],
+                    decoration: _inputDecoration(
+                      context.t('email'),
+                      Icons.email,
+                    ),
                   ),
 
                   const SizedBox(height: 16),
@@ -358,6 +363,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextField(
                     controller: _passwordController,
                     obscureText: true,
+                    autofillHints: const [AutofillHints.password],
+                    onSubmitted: (_) {
+                      if (!_isLoading) _login(context);
+                    },
                     decoration: _inputDecoration(
                       context.t('password'),
                       Icons.lock,
@@ -372,7 +381,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                 'loginWithBiometrics',
                                 args: {'method': _biometricLabel},
                               ),
-                              onPressed: _isLoading ? null : _loginWithBiometrics,
+                              onPressed: _isLoading
+                                  ? null
+                                  : _loginWithBiometrics,
                             )
                           : null,
                     ),
@@ -387,8 +398,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                            const ForgotPasswordDialog(),
+                            builder: (_) => const ForgotPasswordDialog(),
                           ),
                         );
                       },
@@ -404,50 +414,39 @@ class _LoginScreenState extends State<LoginScreen> {
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: orangeColor,
-                      padding:
-                      const EdgeInsets.symmetric(vertical: 16),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    onPressed:
-                    _isLoading ? null : () => _login(context),
+                    onPressed: _isLoading ? null : () => _login(context),
                     child: _isLoading
-                        ? const CircularProgressIndicator(
-                      color: Colors.white,
-                    )
+                        ? const CircularProgressIndicator(color: Colors.white)
                         : Text(
-                      context.t('login'),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                            context.t('login'),
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
 
                   const SizedBox(height: 16),
 
                   OutlinedButton.icon(
-                    icon: const Icon(
-                      Icons.login,
-                      color: Colors.orange,
-                    ),
+                    icon: const Icon(Icons.login, color: Colors.orange),
                     label: Text(
                       context.t('continueGoogle'),
                       style: const TextStyle(color: Colors.orange),
                     ),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(
-                        color: Colors.orange,
-                      ),
-                      padding:
-                      const EdgeInsets.symmetric(vertical: 14),
+                      side: const BorderSide(color: Colors.orange),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    onPressed:
-                    _isLoading ? null : _loginWithGoogle,
+                    onPressed: _isLoading ? null : _loginWithGoogle,
                   ),
 
                   const SizedBox(height: 20),
@@ -461,8 +460,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) =>
-                              const SignUpDialog(),
+                              builder: (_) => const SignUpDialog(),
                             ),
                           );
                         },
@@ -492,20 +490,14 @@ class _LoginScreenState extends State<LoginScreen> {
   }) {
     return InputDecoration(
       labelText: label,
-      prefixIcon: Icon(
-        icon,
-        color: Colors.orange,
-      ),
+      prefixIcon: Icon(icon, color: Colors.orange),
       suffixIcon: suffixIcon,
       enabledBorder: OutlineInputBorder(
         borderSide: const BorderSide(color: Colors.orange),
         borderRadius: BorderRadius.circular(12),
       ),
       focusedBorder: OutlineInputBorder(
-        borderSide: const BorderSide(
-          color: Colors.orange,
-          width: 2,
-        ),
+        borderSide: const BorderSide(color: Colors.orange, width: 2),
         borderRadius: BorderRadius.circular(12),
       ),
     );

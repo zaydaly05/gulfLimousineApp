@@ -27,16 +27,17 @@ class _ReviewBookingScreenState extends State<ReviewBookingScreen> {
   }
 
   Future<void> _submit() async {
+    if (_saving) return;
     setState(() => _saving = true);
     try {
-      final carId = (widget.bookingData['car_id'] ??
-              widget.bookingData['carId'] ??
-              '')
-          .toString();
-      final carName = (widget.bookingData['carName'] ??
-              widget.bookingData['car_name'] ??
-              'Car')
-          .toString();
+      final carId =
+          (widget.bookingData['car_id'] ?? widget.bookingData['carId'] ?? '')
+              .toString();
+      final carName =
+          (widget.bookingData['carName'] ??
+                  widget.bookingData['car_name'] ??
+                  'Car')
+              .toString();
 
       await FirebaseFirestore.instance.collection('reviews').add({
         'bookingId': widget.bookingId,
@@ -45,7 +46,8 @@ class _ReviewBookingScreenState extends State<ReviewBookingScreen> {
         'rating': _rating,
         'comment': _comment.text.trim(),
         'userId': widget.bookingData['userId'],
-        'userName': widget.bookingData['userName'] ??
+        'userName':
+            widget.bookingData['userName'] ??
             widget.bookingData['customerName'],
         'createdAt': FieldValue.serverTimestamp(),
       });
@@ -64,7 +66,9 @@ class _ReviewBookingScreenState extends State<ReviewBookingScreen> {
         for (final doc in reviews.docs) {
           sum += (doc.data()['rating'] as num?)?.toDouble() ?? 0;
         }
-        final avg = reviews.docs.isEmpty ? _rating.toDouble() : sum / reviews.docs.length;
+        final avg = reviews.docs.isEmpty
+            ? _rating.toDouble()
+            : sum / reviews.docs.length;
         await FirebaseFirestore.instance.collection('cars').doc(carId).set({
           'avgRating': avg,
           'reviewCount': reviews.docs.length,
@@ -72,8 +76,9 @@ class _ReviewBookingScreenState extends State<ReviewBookingScreen> {
       }
 
       if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('Thanks for your review!')),
       );
     } catch (e) {
@@ -88,10 +93,11 @@ class _ReviewBookingScreenState extends State<ReviewBookingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final car = (widget.bookingData['carName'] ??
-            widget.bookingData['car_name'] ??
-            'Car')
-        .toString();
+    final car =
+        (widget.bookingData['carName'] ??
+                widget.bookingData['car_name'] ??
+                'Car')
+            .toString();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Rate your trip')),

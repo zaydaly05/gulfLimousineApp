@@ -21,6 +21,16 @@ service cloud.firestore {
       );
     }
 
+    // A non-admin may never grant themselves a role other than 'user'.
+    function keepsUserRole() {
+      return request.resource.data.get('role', 'user') == 'user';
+    }
+
+    function roleUnchanged() {
+      return request.resource.data.get('role', 'user') ==
+        resource.data.get('role', 'user');
+    }
+
     function isUserBookingUpdate() {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
         'odometer',
@@ -36,13 +46,15 @@ service cloud.firestore {
         'agreement',
         'liveLocation',
         'security',
+        'reviewed',
+        'rating',
       ]);
     }
 
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId) || isAdmin();
-      allow update: if isOwner(userId) || isAdmin();
+      allow create: if isAdmin() || (isOwner(userId) && keepsUserRole());
+      allow update: if isAdmin() || (isOwner(userId) && roleUnchanged());
       allow delete: if isAdmin();
 
       match /chat_messages/{messageId} {
@@ -75,18 +87,23 @@ service cloud.firestore {
         resource.data.user_email == request.auth.token.email ||
         isAdmin()
       );
-      allow create: if isSignedIn();
+      allow create: if isAdmin() || (
+        isSignedIn() && request.resource.data.userId == request.auth.uid
+      );
       allow update: if isAdmin() || (
         isBookingOwner() && isUserBookingUpdate()
       );
-      allow delete: if isAdmin() || isBookingOwner();
+      // Customers cancel (update) instead of deleting, so billing history is kept.
+      allow delete: if isAdmin();
     }
 
     match /payments/{paymentId} {
       allow read: if isAdmin() || (
         isSignedIn() && resource.data.userId == request.auth.uid
       );
-      allow create: if isSignedIn();
+      allow create: if isAdmin() || (
+        isSignedIn() && request.resource.data.userId == request.auth.uid
+      );
       allow update, delete: if isAdmin();
     }
 

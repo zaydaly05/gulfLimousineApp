@@ -29,6 +29,12 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
 
   String? get _userId => FirebaseAuth.instance.currentUser?.uid;
 
+  // Created once: rebuilding it on every setState (typing indicator) reset the
+  // StreamBuilder to "waiting" and flashed a full-screen spinner per message.
+  late final Stream<List<ChatMessage>>? _messagesStream = _userId == null
+      ? null
+      : _chatbot.watchMessages(_userId!);
+
   @override
   void dispose() {
     _messageController.dispose();
@@ -84,24 +90,34 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     setState(() => _isTyping = true);
     await _scrollToBottom();
 
-    await Future<void>.delayed(const Duration(milliseconds: 650));
+    try {
+      await Future<void>.delayed(const Duration(milliseconds: 650));
 
-    final reply = await _gemini.generateReply(
-      trimmed,
-      admin: widget.adminMode,
-    );
-    await _chatbot.saveMessage(
-      userId,
-      ChatMessage(
-        id: '${DateTime.now().microsecondsSinceEpoch}_bot',
-        text: reply.text,
-        isUser: false,
-        timestamp: DateTime.now(),
-        suggestions: reply.suggestions,
-      ),
-    );
-
-    if (mounted) setState(() => _isTyping = false);
+      final reply = await _gemini.generateReply(
+        trimmed,
+        admin: widget.adminMode,
+      );
+      await _chatbot.saveMessage(
+        userId,
+        ChatMessage(
+          id: '${DateTime.now().microsecondsSinceEpoch}_bot',
+          text: reply.text,
+          isUser: false,
+          timestamp: DateTime.now(),
+          suggestions: reply.suggestions,
+        ),
+      );
+    } catch (e) {
+      debugPrint('Chat reply failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not get a reply. Try again.')),
+        );
+      }
+    } finally {
+      // Always re-enable input, even when the reply failed.
+      if (mounted) setState(() => _isTyping = false);
+    }
     await _scrollToBottom();
   }
 
@@ -111,16 +127,16 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text(context.t('delete')),
         content: Text(context.t('cannotBeUndone')),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(dialogContext, false),
             child: Text(context.t('cancel')),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(dialogContext, true),
             child: Text(context.t('delete')),
           ),
         ],
@@ -154,7 +170,10 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
             Text(context.t('aiAssistant')),
             Text(
               context.t('luxuryRides'),
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.normal,
+              ),
             ),
           ],
         ),
@@ -171,7 +190,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
         children: [
           Expanded(
             child: StreamBuilder<List<ChatMessage>>(
-              stream: _chatbot.watchMessages(userId),
+              stream: _messagesStream,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -218,10 +237,7 @@ class _MessageBubble extends StatelessWidget {
   final ChatMessage message;
   final ValueChanged<String> onSuggestionTap;
 
-  const _MessageBubble({
-    required this.message,
-    required this.onSuggestionTap,
-  });
+  const _MessageBubble({required this.message, required this.onSuggestionTap});
 
   @override
   Widget build(BuildContext context) {
@@ -231,27 +247,34 @@ class _MessageBubble extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Column(
-        crossAxisAlignment:
-            isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        crossAxisAlignment: isUser
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment:
-                isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+            mainAxisAlignment: isUser
+                ? MainAxisAlignment.end
+                : MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               if (!isUser) ...[
                 const CircleAvatar(
                   radius: 16,
                   backgroundColor: Color(0xFFFF8C00),
-                  child: Icon(Icons.smart_toy_outlined,
-                      color: Colors.white, size: 18),
+                  child: Icon(
+                    Icons.smart_toy_outlined,
+                    color: Colors.white,
+                    size: 18,
+                  ),
                 ),
                 const SizedBox(width: 8),
               ],
               Flexible(
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: isUser ? const Color(0xFFFF8C00) : Colors.white,
                     borderRadius: BorderRadius.only(
@@ -301,8 +324,8 @@ class _MessageBubble extends StatelessWidget {
                       (suggestion) => ActionChip(
                         label: Text(suggestion),
                         onPressed: () => onSuggestionTap(suggestion),
-                        backgroundColor:
-                            const Color(0xFFFF8C00).withValues(alpha: 0.12),
+                        backgroundColor: const Color(0xFFFF8C00)
+                            .withValues(alpha: 0.12),
                         labelStyle: const TextStyle(
                           color: Color(0xFFFF8C00),
                           fontWeight: FontWeight.w600,
@@ -330,8 +353,11 @@ class _TypingBubble extends StatelessWidget {
           const CircleAvatar(
             radius: 16,
             backgroundColor: Color(0xFFFF8C00),
-            child:
-                Icon(Icons.smart_toy_outlined, color: Colors.white, size: 18),
+            child: Icon(
+              Icons.smart_toy_outlined,
+              color: Colors.white,
+              size: 18,
+            ),
           ),
           const SizedBox(width: 8),
           Container(
@@ -403,8 +429,9 @@ class _ChatInput extends StatelessWidget {
                         padding: const EdgeInsets.only(right: 8),
                         child: ActionChip(
                           label: Text(suggestion),
-                          onPressed:
-                              enabled ? () => onSuggestionTap(suggestion) : null,
+                          onPressed: enabled
+                              ? () => onSuggestionTap(suggestion)
+                              : null,
                         ),
                       ),
                     )

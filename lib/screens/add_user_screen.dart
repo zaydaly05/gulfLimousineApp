@@ -22,6 +22,14 @@ class _AddUserScreenState extends State<AddUserScreen> {
   String role = "user";
   bool _isLoading = false;
 
+  @override
+  void dispose() {
+    name.dispose();
+    email.dispose();
+    phone.dispose();
+    super.dispose();
+  }
+
   Future<void> _createUser() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -37,18 +45,17 @@ class _AddUserScreenState extends State<AddUserScreen> {
       );
       final secondaryAuth = FirebaseAuth.instanceFor(app: secondaryApp);
 
-      final UserCredential credential =
-          await secondaryAuth.createUserWithEmailAndPassword(
-        email: email.text.trim(),
-        password: "123456", // default password
-      );
+      final UserCredential credential = await secondaryAuth
+          .createUserWithEmailAndPassword(
+            email: email.text.trim(),
+            password: "123456", // default password
+          );
 
       final uid = credential.user!.uid;
-      final secondaryFirestore =
-          FirebaseFirestore.instanceFor(app: secondaryApp);
 
-      // Write as the new user so Firestore rules allow self-profile creation.
-      await secondaryFirestore.collection('users').doc(uid).set({
+      // Written by the signed-in admin: the rules only let admins assign a
+      // role, so a new account can't make itself an admin.
+      await FirebaseFirestore.instance.collection('users').doc(uid).set({
         'name': name.text.trim(),
         'email': email.text.trim(),
         'phone': phone.text.trim(),
@@ -59,9 +66,10 @@ class _AddUserScreenState extends State<AddUserScreen> {
 
       if (!mounted) return;
 
+      final messenger = ScaffoldMessenger.of(context);
       Navigator.pop(context);
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(
           content: Text("User created successfully"),
           backgroundColor: Colors.green,
@@ -78,10 +86,7 @@ class _AddUserScreenState extends State<AddUserScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Error: $e"),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
       );
     } finally {
       if (secondaryApp != null) {
@@ -107,38 +112,26 @@ class _AddUserScreenState extends State<AddUserScreen> {
           child: ListView(
             children: [
               _input("Full Name", name),
-              _input("Email", email,
-                  type: TextInputType.emailAddress),
-              _input("Phone Number", phone,
-                  type: TextInputType.phone),
+              _input("Email", email, type: TextInputType.emailAddress),
+              _input("Phone Number", phone, type: TextInputType.phone),
 
               const SizedBox(height: 10),
 
-              const Text(
-                "User Role",
-                style: TextStyle(color: Colors.white),
-              ),
+              const Text("User Role", style: TextStyle(color: Colors.white)),
               const SizedBox(height: 5),
 
               DropdownButtonFormField<String>(
                 initialValue: role,
                 dropdownColor: Colors.grey.shade900,
                 items: ["user", "admin"]
-                    .map(
-                      (e) => DropdownMenuItem(
-                    value: e,
-                    child: Text(e),
-                  ),
-                )
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
-                onChanged: (val) =>
-                    setState(() => role = val!),
+                onChanged: (val) => setState(() => role = val!),
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: Colors.grey.shade800,
                   border: OutlineInputBorder(
-                    borderRadius:
-                    BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
               ),
@@ -153,14 +146,13 @@ class _AddUserScreenState extends State<AddUserScreen> {
                 onPressed: _isLoading ? null : _createUser,
                 child: _isLoading
                     ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child:
-                  CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
                     : const Text("Create User"),
               ),
             ],
@@ -171,31 +163,25 @@ class _AddUserScreenState extends State<AddUserScreen> {
   }
 
   Widget _input(
-      String label,
-      TextEditingController controller, {
-        TextInputType type = TextInputType.text,
-      }) {
+    String label,
+    TextEditingController controller, {
+    TextInputType type = TextInputType.text,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextFormField(
         controller: controller,
         keyboardType: type,
-        validator: (v) =>
-        v == null || v.isEmpty ? "Required" : null,
+        validator: (v) => v == null || v.isEmpty ? "Required" : null,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle:
-          const TextStyle(color: Colors.white70),
+          labelStyle: const TextStyle(color: Colors.white70),
           filled: true,
           fillColor: Colors.grey.shade800,
-          border: OutlineInputBorder(
-            borderRadius:
-            BorderRadius.circular(10),
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
           focusedBorder: const OutlineInputBorder(
-            borderSide:
-            BorderSide(color: Colors.orange),
+            borderSide: BorderSide(color: Colors.orange),
           ),
         ),
       ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+
 import '../services/booking_service.dart';
 import '../services/whatsapp_service.dart';
 import 'edit_booking_screen.dart';
@@ -15,6 +16,25 @@ class AdminSecurityHub extends StatefulWidget {
 
 class _AdminSecurityHubState extends State<AdminSecurityHub> {
   final MapController _mapController = MapController();
+  final _activeTripsStream = FirebaseFirestore.instance
+      .collection('bookings')
+      .where('tripStatus', isEqualTo: 'in_progress')
+      .snapshots();
+
+  @override
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
+  }
+
+  /// Firestore may hold coordinates as int or double; LatLng needs doubles.
+  static LatLng? _toLatLng(dynamic location) {
+    if (location is! Map) return null;
+    final lat = location['lat'];
+    final lng = location['lng'];
+    if (lat is! num || lng is! num) return null;
+    return LatLng(lat.toDouble(), lng.toDouble());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,10 +45,7 @@ class _AdminSecurityHubState extends State<AdminSecurityHub> {
         foregroundColor: Colors.white,
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('bookings')
-            .where('tripStatus', isEqualTo: 'in_progress')
-            .snapshots(),
+        stream: _activeTripsStream,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -36,17 +53,17 @@ class _AdminSecurityHubState extends State<AdminSecurityHub> {
 
           final docs = snapshot.data?.docs ?? [];
           final markers = <Marker>[];
-          final alerts = <Map<String, dynamic>>[];
 
           for (var doc in docs) {
             final data = doc.data() as Map<String, dynamic>;
-            final location = data['liveLocation'];
+            final pos = _toLatLng(data['liveLocation']);
             final security = data['security'];
-            final carName = data['carName'] ?? data['car_name'] ?? 'Car';
+            final carName = (data['carName'] ?? data['car_name'] ?? 'Car')
+                .toString();
 
-            if (location != null && location['lat'] != null && location['lng'] != null) {
-              final pos = LatLng(location['lat'], location['lng']);
-              final isImmobilized = security != null && security['isImmobilized'] == true;
+            if (pos != null) {
+              final isImmobilized =
+                  security is Map && security['isImmobilized'] == true;
 
               markers.add(
                 Marker(
@@ -58,14 +75,20 @@ class _AdminSecurityHubState extends State<AdminSecurityHub> {
                     child: Column(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.black,
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             carName,
-                            style: const TextStyle(color: Colors.white, fontSize: 10),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -92,15 +115,32 @@ class _AdminSecurityHubState extends State<AdminSecurityHub> {
                 ),
                 children: [
                   TileLayer(
-                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    urlTemplate:
+                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                     userAgentPackageName: 'com.example.gulflimousine_travel',
                     tileBuilder: (context, tileWidget, tile) {
                       return ColorFiltered(
                         colorFilter: const ColorFilter.matrix([
-                          0.6, 0, 0, 0, -60,
-                          0, 0.6, 0, 0, -60,
-                          0, 0, 0.6, 0, -60,
-                          0, 0, 0, 1, 0,
+                          0.6,
+                          0,
+                          0,
+                          0,
+                          -60,
+                          0,
+                          0.6,
+                          0,
+                          0,
+                          -60,
+                          0,
+                          0,
+                          0.6,
+                          0,
+                          -60,
+                          0,
+                          0,
+                          0,
+                          1,
+                          0,
                         ]),
                         child: tileWidget,
                       );
@@ -134,7 +174,7 @@ class _AdminSecurityHubState extends State<AdminSecurityHub> {
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.2),
                         blurRadius: 10,
-                      )
+                      ),
                     ],
                   ),
                   child: Center(
@@ -154,11 +194,16 @@ class _AdminSecurityHubState extends State<AdminSecurityHub> {
   }
 
   void _showBookingDetails(String id, Map<String, dynamic> data) {
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final customerName =
+        (data['customerName'] ?? data['userName'] ?? 'Customer').toString();
     showModalBottomSheet(
       context: context,
-      builder: (context) {
+      builder: (sheetContext) {
         final security = data['security'];
-        final isImmobilized = security != null && security['isImmobilized'] == true;
+        final isImmobilized =
+            security is Map && security['isImmobilized'] == true;
 
         return Container(
           padding: const EdgeInsets.all(20),
@@ -166,10 +211,13 @@ class _AdminSecurityHubState extends State<AdminSecurityHub> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                data['carName'] ?? data['car_name'] ?? 'Car',
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                (data['carName'] ?? data['car_name'] ?? 'Car').toString(),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              Text('Customer: ${data['customerName'] ?? data['userName']}'),
+              Text('Customer: $customerName'),
               const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -177,20 +225,25 @@ class _AdminSecurityHubState extends State<AdminSecurityHub> {
                   if ((data['phone'] ?? '').toString().isNotEmpty)
                     IconButton(
                       tooltip: 'WhatsApp Customer',
-                      icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFF25D366)),
+                      icon: const Icon(
+                        Icons.chat_bubble_outline,
+                        color: Color(0xFF25D366),
+                      ),
                       onPressed: () => WhatsAppService.messageCustomer(
                         phone: data['phone'].toString(),
-                        customerName: data['customerName'] ?? data['userName'] ?? 'Customer',
+                        customerName: customerName,
                         bookingId: id,
                       ),
                     ),
                   ElevatedButton.icon(
                     onPressed: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
+                      navigator.pop();
+                      navigator.push(
                         MaterialPageRoute(
-                          builder: (_) => EditBookingScreen(bookingId: id, bookingData: data),
+                          builder: (_) => EditBookingScreen(
+                            bookingId: id,
+                            bookingData: data,
+                          ),
                         ),
                       );
                     },
@@ -199,18 +252,31 @@ class _AdminSecurityHubState extends State<AdminSecurityHub> {
                   ),
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isImmobilized ? Colors.green : Colors.red,
+                      backgroundColor: isImmobilized
+                          ? Colors.green
+                          : Colors.red,
                       foregroundColor: Colors.white,
                     ),
                     onPressed: () async {
-                      await BookingService.toggleImmobilization(
-                        bookingId: id,
-                        immobilized: !isImmobilized,
-                      );
-                      if (mounted) Navigator.pop(context);
+                      try {
+                        await BookingService.toggleImmobilization(
+                          bookingId: id,
+                          immobilized: !isImmobilized,
+                        );
+                      } catch (e) {
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text('$e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                      if (sheetContext.mounted) Navigator.pop(sheetContext);
                     },
                     icon: Icon(isImmobilized ? Icons.lock_open : Icons.lock),
-                    label: Text(isImmobilized ? 'Restore Engine' : 'Engine Kill Switch'),
+                    label: Text(
+                      isImmobilized ? 'Restore Engine' : 'Engine Kill Switch',
+                    ),
                   ),
                 ],
               ),

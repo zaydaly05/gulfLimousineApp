@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -26,7 +27,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   File? _profileImage;
   String? _profileImageUrl;
-  
+
   File? _nationalIdImage;
   String? _nationalIdImageUrl;
   File? _licenseIdImage;
@@ -48,11 +49,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadUserData();
   }
 
+  @override
+  void dispose() {
+    nameController.dispose();
+    emailController.dispose();
+    phoneController.dispose();
+    nationalIdController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadUserData() async {
     final user = _auth.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
 
-    final doc = await _firestore.collection('users').doc(user.uid).get();
+    final DocumentSnapshot<Map<String, dynamic>> doc;
+    try {
+      doc = await _firestore.collection('users').doc(user.uid).get();
+    } catch (e) {
+      debugPrint('Could not load profile: $e');
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
 
     if (doc.exists) {
       final data = doc.data()!;
@@ -69,41 +89,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _pickImage() async {
-    showModalBottomSheet(
+    final source = await showModalBottomSheet<ImageSource>(
       context: context,
-      builder: (_) {
+      builder: (sheetContext) {
         return SafeArea(
           child: Wrap(
             children: [
               ListTile(
                 leading: const Icon(Icons.camera_alt),
                 title: Text(context.t('takePhoto')),
-                onTap: () async {
-                  final XFile? image =
-                      await _picker.pickImage(source: ImageSource.camera);
-                  if (image != null) {
-                    setState(() => _profileImage = File(image.path));
-                  }
-                  if (mounted) Navigator.pop(context);
-                },
+                onTap: () => Navigator.pop(sheetContext, ImageSource.camera),
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library),
                 title: Text(context.t('chooseGallery')),
-                onTap: () async {
-                  final XFile? image =
-                      await _picker.pickImage(source: ImageSource.gallery);
-                  if (image != null) {
-                    setState(() => _profileImage = File(image.path));
-                  }
-                  if (mounted) Navigator.pop(context);
-                },
+                onTap: () => Navigator.pop(sheetContext, ImageSource.gallery),
               ),
             ],
           ),
         );
       },
     );
+    // Close the sheet first, then open the picker: popping afterwards could
+    // close the wrong route if the sheet was dismissed meanwhile.
+    if (source == null) return;
+    final XFile? image = await _picker.pickImage(source: source);
+    if (image != null && mounted) {
+      setState(() => _profileImage = File(image.path));
+    }
   }
 
   Future<void> _saveProfile() async {
@@ -188,9 +201,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     ImageProvider? avatar;
@@ -237,7 +248,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _input(context.t('email'), emailController, enabled: false),
               _input(context.t('phone'), phoneController),
               _input('National ID', nationalIdController),
-              
+
               const SizedBox(height: 24),
               _sectionHeader(Icons.security, 'Security & Privacy'),
               const SizedBox(height: 12),
@@ -255,7 +266,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const Divider(height: 1),
                     ListTile(
-                      leading: const Icon(Icons.lock_reset, color: Colors.orange),
+                      leading: const Icon(
+                        Icons.lock_reset,
+                        color: Colors.orange,
+                      ),
                       title: const Text('Change Password'),
                       subtitle: const Text('Send reset link to your email'),
                       trailing: const Icon(Icons.chevron_right),
@@ -315,7 +329,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _pickImageForField(bool isNationalId) async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
+    if (image != null && mounted) {
       setState(() {
         if (isNationalId) {
           _nationalIdImage = File(image.path);
@@ -391,19 +405,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Image.file(localFile, fit: BoxFit.cover),
                   )
                 : (remoteUrl != null && remoteUrl.isNotEmpty)
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: CachedNetworkImage(
-                          imageUrl: remoteUrl,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => const Center(
-                            child: CircularProgressIndicator(),
-                          ),
-                        ),
-                      )
-                    : const Center(
-                        child: Icon(Icons.add_a_photo, color: Colors.grey),
-                      ),
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: CachedNetworkImage(
+                      imageUrl: remoteUrl,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) =>
+                          const Center(child: CircularProgressIndicator()),
+                    ),
+                  )
+                : const Center(
+                    child: Icon(Icons.add_a_photo, color: Colors.grey),
+                  ),
           ),
         ),
       ],

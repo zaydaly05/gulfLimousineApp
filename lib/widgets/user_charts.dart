@@ -31,12 +31,11 @@ class UserAnalyticsSection extends StatelessWidget {
 class _ChartCard extends StatelessWidget {
   final String title;
   final Widget child;
-  final double height;
+  static const double height = 180;
 
   const _ChartCard({
     required this.title,
     required this.child,
-    this.height = 180,
   });
 
   @override

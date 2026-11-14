@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+
 import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
 
@@ -19,14 +20,18 @@ class ViewPaymentsScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    context.t('paymentsTitle'),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
+                  // This screen has no AppBar, so provide the way back.
+                  if (Navigator.canPop(context))
+                    const BackButton(color: Colors.orange),
+                  Expanded(
+                    child: Text(
+                      context.t('paymentsTitle'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   const LanguageToggleButton(dark: true),
@@ -43,12 +48,10 @@ class ViewPaymentsScreen extends StatelessWidget {
                     .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                        child: CircularProgressIndicator());
+                    return const Center(child: CircularProgressIndicator());
                   }
 
-                  if (!snapshot.hasData ||
-                      snapshot.data!.docs.isEmpty) {
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                     return Center(
                       child: Text(
                         context.t('payments'),
@@ -62,17 +65,14 @@ class ViewPaymentsScreen extends StatelessWidget {
                     itemCount: snapshot.data!.docs.length,
                     itemBuilder: (context, index) {
                       final payment =
-                      snapshot.data!.docs[index].data()
-                      as Map<String, dynamic>;
+                          snapshot.data!.docs[index].data()
+                              as Map<String, dynamic>;
 
-                      String formattedDate = "";
-                      if (payment['payment_date'] != null) {
-                        Timestamp timestamp = payment['payment_date'];
-                        DateTime date = timestamp.toDate();
-                        formattedDate =
-                            DateFormat('dd MMM yyyy - hh:mm a')
-                                .format(date);
-                      }
+                      final paidAt = payment['payment_date'];
+                      final formattedDate = paidAt is Timestamp
+                          ? DateFormat('dd MMM yyyy - hh:mm a')
+                                .format(paidAt.toDate())
+                          : '';
 
                       Color statusColor = Colors.orange;
                       final st = (payment['status'] ?? '').toString();
@@ -87,45 +87,45 @@ class ViewPaymentsScreen extends StatelessWidget {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        margin:
-                        const EdgeInsets.only(bottom: 16),
+                        margin: const EdgeInsets.only(bottom: 16),
                         child: Padding(
                           padding: const EdgeInsets.all(16),
                           child: Column(
-                            crossAxisAlignment:
-                            CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
                                 mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
                                     "${payment['amount']} EGP",
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 18,
-                                      fontWeight:
-                                      FontWeight.bold,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                   Container(
-                                    padding: const EdgeInsets
-                                        .symmetric(
-                                        horizontal: 10,
-                                        vertical: 4),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: statusColor,
-                                      borderRadius:
-                                      BorderRadius.circular(
-                                          20),
+                                      borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Text(
-                                      context.t(st.isEmpty ? 'status' : st.toLowerCase()).toUpperCase(),
+                                      context
+                                          .t(
+                                            st.isEmpty
+                                                ? 'status'
+                                                : st.toLowerCase(),
+                                          )
+                                          .toUpperCase(),
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 12,
-                                        fontWeight:
-                                        FontWeight.bold,
+                                        fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                   ),
@@ -134,18 +134,15 @@ class ViewPaymentsScreen extends StatelessWidget {
                               const SizedBox(height: 10),
                               Text(
                                 "${context.t('email')}: ${payment['user_email']}",
-                                style: TextStyle(
-                                    color: Colors.grey.shade400),
+                                style: TextStyle(color: Colors.grey.shade400),
                               ),
                               Text(
                                 "${context.t('paymentMethod')}: ${payment['method']}",
-                                style: TextStyle(
-                                    color: Colors.grey.shade400),
+                                style: TextStyle(color: Colors.grey.shade400),
                               ),
                               Text(
                                 "Date: $formattedDate",
-                                style: TextStyle(
-                                    color: Colors.grey.shade500),
+                                style: TextStyle(color: Colors.grey.shade500),
                               ),
                             ],
                           ),

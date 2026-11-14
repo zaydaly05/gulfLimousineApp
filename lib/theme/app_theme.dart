@@ -13,7 +13,8 @@ class AppTheme {
       seedColor: accent,
       primary: primary,
       secondary: accent,
-      background: background,
+      // `background` is deprecated and no widget reads it; the page colour
+      // comes from scaffoldBackgroundColor above.
     ),
 
     appBarTheme: const AppBarTheme(

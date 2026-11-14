@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import '../utils/rental_dates.dart';
 
 class NewBookingScreen extends StatefulWidget {
   const NewBookingScreen({super.key});
@@ -43,7 +44,7 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
 
   int get _days {
     if (pickupDate == null || returnDate == null) return 0;
-    final diff = returnDate!.difference(pickupDate!).inDays;
+    final diff = RentalDates.calendarDaysBetween(pickupDate!, returnDate!);
     return diff <= 0 ? 1 : diff;
   }
 
