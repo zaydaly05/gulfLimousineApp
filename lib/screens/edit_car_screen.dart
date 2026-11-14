@@ -49,19 +49,27 @@ class _EditCarScreenState extends State<EditCarScreen> {
 
   Future<void> replaceImage() async {
     final imageData = await cloudinary.uploadImage();
-    if (imageData == null) return;
-
-    // delete old image if exists
-    if (publicId != null && publicId!.isNotEmpty) {
-      await cloudinary.deleteImage(publicId!);
-    }
-    if (!mounted) return;
+    if (imageData == null || !mounted) return;
+    // The old image is deleted only after the car is saved (updateCar), so
+    // cancelling or a failed save never leaves the car with a missing image.
 
     setState(() {
       // uploadBytes returns 'secure_url'; reading 'url' wiped the image.
       imageUrl = imageData['secure_url']?.toString();
       publicId = imageData['public_id']?.toString();
     });
+  }
+
+  /// Removes the previous image from Cloudinary once the car points at the
+  /// new one. Best effort: the car is already saved.
+  Future<void> _deleteReplacedImage() async {
+    final oldId = widget.carData['public_id']?.toString();
+    if (oldId == null || oldId.isEmpty || oldId == publicId) return;
+    try {
+      await cloudinary.deleteImage(oldId);
+    } catch (e) {
+      debugPrint('Old car image delete failed: $e');
+    }
   }
 
   Future<void> updateCar() async {
@@ -86,6 +94,7 @@ class _EditCarScreenState extends State<EditCarScreen> {
             'public_id': publicId,
           });
 
+      await _deleteReplacedImage();
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;

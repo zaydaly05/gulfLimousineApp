@@ -21,6 +21,7 @@ dependencies:
   firebase_auth: ^6.6.1
   firebase_messaging: ^16.6.0
   firebase_data_connect: ^0.3.2
+  cloud_functions: ^6.5.1
 
   # Utilities
   intl: ^0.20.3
