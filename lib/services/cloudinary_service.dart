@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
@@ -81,19 +82,22 @@ class CloudinaryService {
     );
   }
 
-  /// Delete asset from Cloudinary using public_id and resource_type
+  /// Deletes an asset from Cloudinary.
+  ///
+  /// Cloudinary only accepts signed deletes, and the API secret must not ship
+  /// in the app, so this calls the `deleteCloudinaryAsset` Cloud Function
+  /// (functions/index.js), which checks the caller is an admin.
+  /// Throws [FirebaseFunctionsException] if the delete is refused or fails.
   Future<void> deleteAsset(
     String publicId, {
     String resourceType = 'image',
   }) async {
-    var url = Uri.parse(
-      'https://api.cloudinary.com/v1_1/$cloudName/$resourceType/destroy',
-    );
-
-    await http.post(
-      url,
-      body: {"public_id": publicId, "upload_preset": uploadPreset},
-    );
+    await FirebaseFunctions.instance
+        .httpsCallable('deleteCloudinaryAsset')
+        .call<Map<String, dynamic>>({
+          'publicId': publicId,
+          'resourceType': resourceType,
+        });
   }
 
   /// Alias for deleteAsset for backward compatibility

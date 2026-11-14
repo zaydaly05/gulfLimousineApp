@@ -47,16 +47,37 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
               style: const TextStyle(color: Colors.red),
             ),
             onPressed: () async {
-              if (publicId != null && publicId.isNotEmpty) {
-                await cloudinary.deleteImage(publicId);
+              final messenger = ScaffoldMessenger.of(context);
+              try {
+                // Remove the car first so it never points at a deleted image.
+                await FirebaseFirestore.instance
+                    .collection('cars')
+                    .doc(id)
+                    .delete();
+              } catch (e) {
+                messenger.showSnackBar(
+                  SnackBar(content: Text('$e'), backgroundColor: Colors.red),
+                );
+                if (dialogContext.mounted) Navigator.pop(dialogContext);
+                return;
               }
-
-              await FirebaseFirestore.instance
-                  .collection('cars')
-                  .doc(id)
-                  .delete();
-
               if (dialogContext.mounted) Navigator.pop(dialogContext);
+
+              if (publicId != null && publicId.isNotEmpty) {
+                try {
+                  await cloudinary.deleteImage(publicId);
+                } catch (e) {
+                  // The car is gone; only the stored file is left behind.
+                  debugPrint('Car image delete failed: $e');
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Car deleted, but its image file was not removed.',
+                      ),
+                    ),
+                  );
+                }
+              }
             },
           ),
         ],

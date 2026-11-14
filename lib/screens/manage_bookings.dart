@@ -7,7 +7,6 @@ import '../widgets/traffic_violations_admin_panel.dart';
 import '../services/traffic_violation_service.dart';
 import 'video_viewer_screen.dart';
 import 'admin_security_hub.dart';
-import '../services/booking_service.dart';
 import '../services/whatsapp_service.dart';
 import 'edit_booking_screen.dart';
 import 'new_booking_screen.dart';
@@ -25,28 +24,6 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
   final _bookingsStream = FirebaseFirestore.instance
       .collection('bookings')
       .snapshots();
-
-  /// Bookings already checked for expired videos during this visit.
-  final _videoCleanupChecked = <String>{};
-
-  /// Runs the video retention cleanup once per booking, after the frame,
-  /// using the data already in the snapshot (no extra reads per row/rebuild).
-  void _scheduleVideoCleanup(List<QueryDocumentSnapshot> docs) {
-    final pending = docs.where((d) => _videoCleanupChecked.add(d.id)).toList();
-    if (pending.isEmpty) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      for (final doc in pending) {
-        try {
-          await BookingService.deleteExpiredVideos(
-            doc.id,
-            doc.data() as Map<String, dynamic>,
-          );
-        } catch (e) {
-          debugPrint('Video cleanup failed for ${doc.id}: $e');
-        }
-      }
-    });
-  }
 
   Future<void> _deleteBooking(BuildContext context, String id) async {
     showDialog(
@@ -170,7 +147,6 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
             }
 
             final docs = _sortedDocs(snapshot.data?.docs ?? []);
-            _scheduleVideoCleanup(docs);
             if (docs.isEmpty) {
               return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),

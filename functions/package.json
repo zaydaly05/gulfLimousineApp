@@ -1,0 +1,18 @@
+{
+  "name": "gulf-limousine-functions",
+  "description": "Server-side Cloudinary deletes for Gulf Limousine (needs the API secret, which must not ship in the app).",
+  "private": true,
+  "main": "index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "test": "node --test",
+    "deploy": "firebase deploy --only functions"
+  },
+  "dependencies": {
+    "cloudinary": "^2.11.0",
+    "firebase-admin": "^14.5.1",
+    "firebase-functions": "^7.4.0"
+  }
+}

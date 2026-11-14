@@ -6,7 +6,6 @@ import 'package:flutter/foundation.dart';
 
 import '../models/geo_location.dart';
 import 'km_billing_service.dart';
-import 'cloudinary_service.dart';
 
 class RentalDetails {
   final String carId;
@@ -640,36 +639,8 @@ class BookingService {
     } catch (_) {}
   }
 
-  /// Removes condition videos 3 days after the return date.
-  ///
-  /// Takes the booking [data] the caller already has, so scanning a list of
-  /// bookings costs no extra reads.
-  static Future<void> deleteExpiredVideos(
-    String bookingId,
-    Map<String, dynamic> data,
-  ) async {
-    if (data['pickupVideo'] == null && data['returnVideo'] == null) return;
-    final returnDate = data['returnDate'];
-    if (returnDate is! Timestamp) return;
-
-    final expiryDate = returnDate.toDate().add(const Duration(days: 3));
-    if (DateTime.now().isAfter(expiryDate)) {
-      final cloudinary = CloudinaryService();
-
-      for (final field in ['pickupVideo', 'returnVideo']) {
-        final video = data[field];
-        final publicId = video is Map ? video['publicId']?.toString() : null;
-        if (publicId != null && publicId.isNotEmpty) {
-          await cloudinary.deleteAsset(publicId, resourceType: 'video');
-        }
-      }
-
-      await _firestore.collection('bookings').doc(bookingId).update({
-        'pickupVideo': FieldValue.delete(),
-        'returnVideo': FieldValue.delete(),
-      });
-    }
-  }
+  // Condition videos are deleted 3 days after the return date by the
+  // `cleanupExpiredConditionVideos` scheduled Cloud Function (functions/).
 
   static Future<void> _requireAdmin() async {
     final user = _auth.currentUser;
