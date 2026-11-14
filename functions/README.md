@@ -30,6 +30,17 @@ cd functions && npm install && cd ..
 firebase deploy --only functions
 ```
 
+## Turn deletes on in the app
+
+The app skips deletes until you opt in, because without the deployed functions
+every delete would fail. After the deploy succeeds, build the app with:
+
+```bash
+flutter build apk --dart-define=CLOUDINARY_SERVER_DELETES=true
+```
+
+(Use the same `--dart-define` with `flutter run` or any other build target.)
+
 ## Test
 
 ```bash
