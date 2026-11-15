@@ -134,29 +134,50 @@ class BookingService {
     });
     await batch.commit();
 
-    // In-app notifications (never fail the payment if rules block a write)
-    try {
-      await _notifyUser(
-        userId: user.uid,
-        title: status == 'confirmed' ? 'Booking confirmed' : 'Booking received',
-        body:
-            'Your ${rental.carName} rental is $status. Open My Bookings for details.',
-        type: 'booking_$status',
-        bookingId: bookingRef.id,
-      );
-    } catch (_) {}
-
-    try {
-      await _notifyAdmins(
-        title: 'New booking',
-        body: '$userName booked ${rental.carName}',
-        type: 'new_booking',
-        bookingId: bookingRef.id,
-      );
-    } catch (_) {}
+    // In-app notifications (never fail the payment if rules block a write).
+    // Customer and admin notifications are independent: send both at once.
+    await Future.wait([
+      _bestEffort(
+        _notifyUser(
+          userId: user.uid,
+          title: status == 'confirmed'
+              ? 'Booking confirmed'
+              : 'Booking received',
+          body:
+              'Your ${rental.carName} rental is $status. Open My Bookings for details.',
+          type: 'booking_$status',
+          bookingId: bookingRef.id,
+        ),
+      ),
+      _bestEffort(
+        _notifyAdmins(
+          title: 'New booking',
+          body: '$userName booked ${rental.carName}',
+          type: 'new_booking',
+          bookingId: bookingRef.id,
+        ),
+      ),
+    ]);
 
     return bookingRef.id;
   }
+
+  // Admin writes. Firestore rules restrict these to admins; the screens
+  // build the field maps (aliases such as carName/car_name included).
+
+  /// Creates a booking entered by an admin.
+  static Future<void> adminCreateBooking(Map<String, dynamic> fields) =>
+      _firestore.collection('bookings').add(fields);
+
+  /// Updates the given booking fields as an admin.
+  static Future<void> adminUpdateBooking(
+    String bookingId,
+    Map<String, dynamic> fields,
+  ) => _firestore.collection('bookings').doc(bookingId).update(fields);
+
+  /// Deletes a booking (admins only; customers cancel instead).
+  static Future<void> deleteBooking(String bookingId) =>
+      _firestore.collection('bookings').doc(bookingId).delete();
 
   /// Loads a booking the signed-in customer owns (by uid or email), or
   /// throws the same errors every customer action reports.
@@ -355,6 +376,14 @@ class BookingService {
     debugPrint('Sending rental agreement copy to ${user.email}...');
   }
 
+  /// Runs a side write (e.g. a notification) without letting its failure
+  /// fail the main action, for example if rules block the write.
+  static Future<void> _bestEffort(Future<void> write) async {
+    try {
+      await write;
+    } catch (_) {}
+  }
+
   static Future<void> _notifyUser({
     required String userId,
     required String title,
@@ -547,29 +576,31 @@ class BookingService {
       });
     }
 
-    try {
-      await _notifyUser(
-        userId: user.uid,
-        title: 'Rental completed',
-        body: billing.extraKm > 0
-            ? '$carName returned. Extra ${billing.extraKm} km: '
-                  'EGP ${billing.extraKmChargeEgp.toStringAsFixed(0)} due.'
-            : '$carName returned. No extra km charges.',
-        type: 'rental_completed',
-        bookingId: bookingId,
-      );
-    } catch (_) {}
-
-    try {
-      await _notifyAdmins(
-        title: 'Return km recorded',
-        body:
-            '$carName returned at $km km. '
-            'Extra: ${billing.extraKm} km (EGP ${billing.extraKmChargeEgp.toStringAsFixed(0)})',
-        type: 'odometer_end',
-        bookingId: bookingId,
-      );
-    } catch (_) {}
+    // Customer and admin notifications are independent: send both at once.
+    await Future.wait([
+      _bestEffort(
+        _notifyUser(
+          userId: user.uid,
+          title: 'Rental completed',
+          body: billing.extraKm > 0
+              ? '$carName returned. Extra ${billing.extraKm} km: '
+                    'EGP ${billing.extraKmChargeEgp.toStringAsFixed(0)} due.'
+              : '$carName returned. No extra km charges.',
+          type: 'rental_completed',
+          bookingId: bookingId,
+        ),
+      ),
+      _bestEffort(
+        _notifyAdmins(
+          title: 'Return km recorded',
+          body:
+              '$carName returned at $km km. '
+              'Extra: ${billing.extraKm} km (EGP ${billing.extraKmChargeEgp.toStringAsFixed(0)})',
+          type: 'odometer_end',
+          bookingId: bookingId,
+        ),
+      ),
+    ]);
   }
 
   static Future<void> recordConditionVideo({
@@ -650,15 +681,15 @@ class BookingService {
         .where('booking_id', isEqualTo: bookingId)
         .get();
 
-    for (final payment in payments.docs) {
-      final method = (payment.data()['method'] ?? '').toString();
-      if (method != 'extra_km') continue;
-      await payment.reference.update({
-        'status': status,
-        if (paid) 'paid_at': FieldValue.serverTimestamp(),
-        if (!paid) 'paid_at': FieldValue.delete(),
-      });
-    }
+    await Future.wait([
+      for (final payment in payments.docs)
+        if ((payment.data()['method'] ?? '').toString() == 'extra_km')
+          payment.reference.update({
+            'status': status,
+            if (paid) 'paid_at': FieldValue.serverTimestamp(),
+            if (!paid) 'paid_at': FieldValue.delete(),
+          }),
+    ]);
 
     final userId = data['userId']?.toString();
     if (userId != null && userId.isNotEmpty) {

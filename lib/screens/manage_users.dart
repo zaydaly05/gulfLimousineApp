@@ -9,9 +9,22 @@ import 'package:intl/intl.dart';
 import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
 import '../utils/live_refresh.dart';
+import '../services/user_profile_service.dart';
 
-class ManageUsersScreen extends StatelessWidget {
+class ManageUsersScreen extends StatefulWidget {
   const ManageUsersScreen({super.key});
+
+  @override
+  State<ManageUsersScreen> createState() => _ManageUsersScreenState();
+}
+
+class _ManageUsersScreenState extends State<ManageUsersScreen> {
+  // Streams are created once (late = on first use), not in build():
+  // a rebuild (e.g. language change) would otherwise reopen the
+  // Firestore listener and flash the loading spinner.
+  final _usersStream = FirebaseFirestore.instance
+      .collection('users')
+      .snapshots();
 
   static String _resolveName(Map<String, dynamic> user) {
     final name = user['name']?.toString().trim();
@@ -74,10 +87,7 @@ class ManageUsersScreen extends StatelessWidget {
           ),
           TextButton(
             onPressed: () async {
-              await FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(id)
-                  .delete();
+              await UserProfileService.delete(id);
               if (dialogContext.mounted) Navigator.pop(dialogContext);
             },
             child: Text(
@@ -112,7 +122,7 @@ class ManageUsersScreen extends StatelessWidget {
       body: RefreshIndicator(
         onRefresh: liveDataRefresh,
         child: StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance.collection('users').snapshots(),
+          stream: _usersStream,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());

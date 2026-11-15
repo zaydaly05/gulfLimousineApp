@@ -5,8 +5,20 @@ import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
 import '../utils/live_refresh.dart';
 
-class ManageChauffeursScreen extends StatelessWidget {
+class ManageChauffeursScreen extends StatefulWidget {
   const ManageChauffeursScreen({super.key});
+
+  @override
+  State<ManageChauffeursScreen> createState() => _ManageChauffeursScreenState();
+}
+
+class _ManageChauffeursScreenState extends State<ManageChauffeursScreen> {
+  // Streams are created once (late = on first use), not in build():
+  // a rebuild (e.g. language change) would otherwise reopen the
+  // Firestore listener and flash the loading spinner.
+  final _chauffeursStream = FirebaseFirestore.instance
+      .collection('chauffeurs')
+      .snapshots();
 
   Future<void> _delete(BuildContext context, String id) async {
     final ok = await showDialog<bool>(
@@ -150,9 +162,7 @@ class ManageChauffeursScreen extends StatelessWidget {
       body: RefreshIndicator(
         onRefresh: liveDataRefresh,
         child: StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('chauffeurs')
-              .snapshots(),
+          stream: _chauffeursStream,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());

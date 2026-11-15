@@ -8,6 +8,7 @@ import '../widgets/traffic_violations_admin_panel.dart';
 import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
 import '../utils/live_refresh.dart';
+import '../widgets/status_pill.dart';
 
 class TrafficViolationsScreen extends StatefulWidget {
   const TrafficViolationsScreen({super.key});
@@ -265,24 +266,9 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
                                 ),
                               ),
                             ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: violationStatusColor(status)
-                                    .withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                status.toUpperCase(),
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: violationStatusColor(status),
-                                ),
-                              ),
+                            StatusPill(
+                              label: status.toUpperCase(),
+                              color: violationStatusColor(status),
                             ),
                           ],
                         ),

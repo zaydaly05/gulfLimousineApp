@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'dashboard_screen.dart';
@@ -10,6 +9,7 @@ import '../services/biometric_service.dart';
 import '../services/auth_navigation.dart';
 import '../widgets/language_picker.dart';
 import '../l10n/locale_service.dart';
+import '../services/user_profile_service.dart';
 
 class LoginScreen extends StatefulWidget {
   /// False when the user just chose "Use password instead", so the screen
@@ -123,7 +123,7 @@ class _LoginScreenState extends State<LoginScreen> {
           .signInWithCredential(credential)
           .timeout(const Duration(seconds: 15));
 
-      await _createUserIfNotExists(userCredential.user!);
+      await UserProfileService.ensureGoogleUser(userCredential.user!);
       await _handleUserNavigation(userCredential.user!);
     } catch (e) {
       debugPrint("GOOGLE ERROR: $e");
@@ -140,52 +140,6 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
       }
-    }
-  }
-
-  /// 📦 Create Firestore user if first login
-  Future<void> _createUserIfNotExists(User user) async {
-    final userRef = FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid);
-
-    final userDoc = await userRef.get();
-
-    if (!userDoc.exists) {
-      await userRef.set({
-        'name': user.displayName ?? user.email?.split('@').first ?? 'User',
-        'email': user.email,
-        'phone': '',
-        'phone_number': '',
-        'role': 'user',
-        'auth_provider': 'google',
-        'profile_completed': false,
-        'created_at': FieldValue.serverTimestamp(),
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-
-      return;
-    }
-
-    final data = userDoc.data() ?? {};
-    final updates = <String, dynamic>{};
-
-    if ((data['name'] == null || data['name'].toString().isEmpty) &&
-        user.displayName != null &&
-        user.displayName!.isNotEmpty) {
-      updates['name'] = user.displayName;
-    }
-
-    if (data['auth_provider'] == null) {
-      updates['auth_provider'] = 'google';
-    }
-
-    if (data['created_at'] == null && data['createdAt'] != null) {
-      updates['created_at'] = data['createdAt'];
-    }
-
-    if (updates.isNotEmpty) {
-      await userRef.update(updates);
     }
   }
 

@@ -5,8 +5,25 @@ import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
 import '../utils/live_refresh.dart';
 
-class ManageReviewsScreen extends StatelessWidget {
+class ManageReviewsScreen extends StatefulWidget {
   const ManageReviewsScreen({super.key});
+
+  @override
+  State<ManageReviewsScreen> createState() => _ManageReviewsScreenState();
+}
+
+class _ManageReviewsScreenState extends State<ManageReviewsScreen> {
+  // Streams are created once (late = on first use), not in build():
+  // a rebuild (e.g. language change) would otherwise reopen the
+  // Firestore listener and flash the loading spinner.
+  final _reviewsStream = FirebaseFirestore.instance
+      .collection('reviews')
+      .orderBy('createdAt', descending: true)
+      .snapshots();
+  // Unordered fallback, used only if the ordered query fails.
+  late final _unorderedReviewsStream = FirebaseFirestore.instance
+      .collection('reviews')
+      .snapshots();
 
   @override
   Widget build(BuildContext context) {
@@ -20,19 +37,14 @@ class ManageReviewsScreen extends StatelessWidget {
       body: RefreshIndicator(
         onRefresh: liveDataRefresh,
         child: StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('reviews')
-              .orderBy('createdAt', descending: true)
-              .snapshots(),
+          stream: _reviewsStream,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
             if (snapshot.hasError) {
               return StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('reviews')
-                    .snapshots(),
+                stream: _unorderedReviewsStream,
                 builder: (context, snap2) {
                   final docs = snap2.data?.docs ?? [];
                   if (docs.isEmpty) {

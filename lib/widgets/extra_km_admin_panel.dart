@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/booking_service.dart';
 import '../services/km_billing_service.dart';
 import 'admin_charts.dart';
+import 'status_pill.dart';
 
 class ExtraKmAdminPanel extends StatefulWidget {
   final String bookingId;
@@ -161,24 +162,9 @@ class _ExtraKmAdminPanelState extends State<ExtraKmAdminPanel> {
                   'Payment: ',
                   style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: extraKmPaymentStatusColor(_booking)
-                        .withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    extraKmPaymentStatusLabel(_booking).toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: extraKmPaymentStatusColor(_booking),
-                    ),
-                  ),
+                StatusPill(
+                  label: extraKmPaymentStatusLabel(_booking).toUpperCase(),
+                  color: extraKmPaymentStatusColor(_booking),
                 ),
               ],
             ),

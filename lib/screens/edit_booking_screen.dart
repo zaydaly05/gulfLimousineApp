@@ -185,37 +185,33 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
       final previousChauffeur = (widget.bookingData['chauffeurId'] ?? '')
           .toString();
 
-      await FirebaseFirestore.instance
-          .collection('bookings')
-          .doc(widget.bookingId)
-          .update({
-            'customerName': nameController.text.trim(),
-            'userName': nameController.text.trim(),
-            'user_email': emailController.text.trim(),
-            'phone': phoneController.text.trim(),
-            if (selectedCarId != null) 'car_id': selectedCarId,
-            'car_name': selectedCarName,
-            'carName': selectedCarName,
-            'brand': selectedBrand,
-            'pickupDate': Timestamp.fromDate(pickupDate!),
-            'returnDate': Timestamp.fromDate(returnDate!),
-            'startDate': Timestamp.fromDate(pickupDate!),
-            'days': _days,
-            'price_per_day': pricePerDay,
-            'total_amount': _total,
-            'status': status,
-            'tripStatus': tripStatus,
-            // Delete the id when unassigned, otherwise the customer still sees
-            // a chauffeur (and the Track button) after the admin removed them.
-            'chauffeurId': chauffeurId ?? FieldValue.delete(),
-            'chauffeurName': chauffeurName,
-            'chauffeurPhone': chauffeurPhone,
-            if (pickupLocation != null)
-              'pickupLocation': pickupLocation!.toMap(),
-            if (dropoffLocation != null)
-              'dropoffLocation': dropoffLocation!.toMap(),
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
+      await BookingService.adminUpdateBooking(widget.bookingId, {
+        'customerName': nameController.text.trim(),
+        'userName': nameController.text.trim(),
+        'user_email': emailController.text.trim(),
+        'phone': phoneController.text.trim(),
+        if (selectedCarId != null) 'car_id': selectedCarId,
+        'car_name': selectedCarName,
+        'carName': selectedCarName,
+        'brand': selectedBrand,
+        'pickupDate': Timestamp.fromDate(pickupDate!),
+        'returnDate': Timestamp.fromDate(returnDate!),
+        'startDate': Timestamp.fromDate(pickupDate!),
+        'days': _days,
+        'price_per_day': pricePerDay,
+        'total_amount': _total,
+        'status': status,
+        'tripStatus': tripStatus,
+        // Delete the id when unassigned, otherwise the customer still sees
+        // a chauffeur (and the Track button) after the admin removed them.
+        'chauffeurId': chauffeurId ?? FieldValue.delete(),
+        'chauffeurName': chauffeurName,
+        'chauffeurPhone': chauffeurPhone,
+        if (pickupLocation != null) 'pickupLocation': pickupLocation!.toMap(),
+        if (dropoffLocation != null)
+          'dropoffLocation': dropoffLocation!.toMap(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
 
       final userId = widget.bookingData['userId']?.toString();
       if (userId != null && userId.isNotEmpty) {

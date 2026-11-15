@@ -5,8 +5,21 @@ import 'package:intl/intl.dart';
 import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
 
-class ViewPaymentsScreen extends StatelessWidget {
+class ViewPaymentsScreen extends StatefulWidget {
   const ViewPaymentsScreen({super.key});
+
+  @override
+  State<ViewPaymentsScreen> createState() => _ViewPaymentsScreenState();
+}
+
+class _ViewPaymentsScreenState extends State<ViewPaymentsScreen> {
+  // Streams are created once (late = on first use), not in build():
+  // a rebuild (e.g. language change) would otherwise reopen the
+  // Firestore listener and flash the loading spinner.
+  final _paymentsStream = FirebaseFirestore.instance
+      .collection('payments')
+      .orderBy('payment_date', descending: true)
+      .snapshots();
 
   @override
   Widget build(BuildContext context) {
@@ -42,10 +55,7 @@ class ViewPaymentsScreen extends StatelessWidget {
             // 🔹 PAYMENTS LIST
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('payments')
-                    .orderBy('payment_date', descending: true)
-                    .snapshots(),
+                stream: _paymentsStream,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());

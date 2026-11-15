@@ -16,9 +16,20 @@ import '../l10n/locale_service.dart';
 import '../utils/live_refresh.dart';
 import '../widgets/condition_video_chips.dart';
 import '../theme/app_theme.dart';
+import '../widgets/status_pill.dart';
 
-class MyBookingsScreen extends StatelessWidget {
+class MyBookingsScreen extends StatefulWidget {
   const MyBookingsScreen({super.key});
+
+  @override
+  State<MyBookingsScreen> createState() => _MyBookingsScreenState();
+}
+
+class _MyBookingsScreenState extends State<MyBookingsScreen> {
+  // Streams are created once (late = on first use), not in build():
+  // a rebuild (e.g. language change) would otherwise reopen the
+  // Firestore listener and flash the loading spinner.
+  final _bookingsStream = BookingService.userBookingsStream();
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +38,7 @@ class MyBookingsScreen extends StatelessWidget {
       body: RefreshIndicator(
         onRefresh: liveDataRefresh,
         child: StreamBuilder<QuerySnapshot>(
-          stream: BookingService.userBookingsStream(),
+          stream: _bookingsStream,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -105,13 +116,24 @@ class _EmptyBookings extends StatelessWidget {
   }
 }
 
-class _BookingsFallbackByEmail extends StatelessWidget {
+class _BookingsFallbackByEmail extends StatefulWidget {
   const _BookingsFallbackByEmail();
+
+  @override
+  State<_BookingsFallbackByEmail> createState() =>
+      _BookingsFallbackByEmailState();
+}
+
+class _BookingsFallbackByEmailState extends State<_BookingsFallbackByEmail> {
+  // Streams are created once (late = on first use), not in build():
+  // a rebuild (e.g. language change) would otherwise reopen the
+  // Firestore listener and flash the loading spinner.
+  final _bookingsStream = BookingService.userBookingsStreamByEmail();
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
-      stream: BookingService.userBookingsStreamByEmail(),
+      stream: _bookingsStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -265,23 +287,10 @@ class _BookingCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: bookingStatusColor(status).withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    statusTranslated.toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: bookingStatusColor(status),
-                    ),
-                  ),
+                StatusPill(
+                  label: statusTranslated.toUpperCase(),
+                  color: bookingStatusColor(status),
+                  alpha: 0.15,
                 ),
               ],
             ),

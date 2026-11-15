@@ -214,18 +214,4 @@ class BiometricService {
       );
     }
   }
-
-  /// Clears all stored biometric credentials and metadata.
-  /// Should be called on logout or when security is compromised.
-  static Future<void> clearAllStoredCredentials() async {
-    final prefs = await SharedPreferences.getInstance();
-    final keys = prefs.getKeys();
-    for (final key in keys) {
-      if (key.startsWith(_enabledPrefix)) {
-        await prefs.remove(key);
-      }
-    }
-    await prefs.remove(_lastUidKey);
-    await _secure.deleteAll();
-  }
 }

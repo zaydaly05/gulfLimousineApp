@@ -71,8 +71,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     setState(() {
-      _userName = doc.data()?['name'] ?? user.displayName ?? context.t('guest');
-      _profileImageUrl = doc.data()?['profile_image_url'] as String?;
+      _userName = data?['name'] ?? user.displayName ?? context.t('guest');
+      _profileImageUrl = data?['profile_image_url'] as String?;
     });
   }
 
@@ -272,60 +272,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
             context.t('home'),
             () => Navigator.pop(context),
           ),
-          _drawerTile(Icons.directions_car, context.t('browseCars'), () {
-            Navigator.pop(context);
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const CarsScreen()),
-            );
-          }),
-          _drawerTile(Icons.calendar_today, context.t('myBookings'), () {
-            Navigator.pop(context);
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const MyBookingsScreen()),
-            );
-          }),
-          _drawerTile(Icons.gavel, context.t('trafficTickets'), () {
-            Navigator.pop(context);
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const MyTrafficViolationsScreen(),
-              ),
-            );
-          }),
-          _drawerTile(Icons.favorite, context.t('favorites'), () {
-            Navigator.pop(context);
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const FavoritesScreen()),
-            );
-          }),
-          _drawerTile(
+          _drawerNavTile(
+            Icons.directions_car,
+            context.t('browseCars'),
+            const CarsScreen(),
+          ),
+          _drawerNavTile(
+            Icons.calendar_today,
+            context.t('myBookings'),
+            const MyBookingsScreen(),
+          ),
+          _drawerNavTile(
+            Icons.gavel,
+            context.t('trafficTickets'),
+            const MyTrafficViolationsScreen(),
+          ),
+          _drawerNavTile(
+            Icons.favorite,
+            context.t('favorites'),
+            const FavoritesScreen(),
+          ),
+          _drawerNavTile(
             Icons.notifications_outlined,
             context.t('notifications'),
-            () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const NotificationsInboxScreen(),
-                ),
-              );
-            },
+            const NotificationsInboxScreen(),
           ),
           _drawerTile(Icons.person, context.t('profile'), () {
             Navigator.pop(context);
             _openProfile();
           }),
-          _drawerTile(Icons.phone, context.t('contact'), () {
-            Navigator.pop(context);
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ContactScreen()),
-            );
-          }),
+          _drawerNavTile(
+            Icons.phone,
+            context.t('contact'),
+            const ContactScreen(),
+          ),
           _drawerTile(Icons.smart_toy_outlined, context.t('aiAssistant'), () {
             Navigator.pop(context);
             _openChatbot();
@@ -342,6 +322,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
     );
+  }
+
+  /// Drawer entry that closes the drawer and opens [page].
+  ListTile _drawerNavTile(IconData icon, String title, Widget page) {
+    return _drawerTile(icon, title, () {
+      Navigator.pop(context);
+      Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+    });
   }
 
   ListTile _drawerTile(IconData icon, String title, VoidCallback onTap) {
@@ -463,64 +451,52 @@ class _UserStatsSectionState extends State<_UserStatsSection> {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _bookingsStream,
-      builder: (context, bookingsSnapshot) {
-        final bookingsCount = bookingsSnapshot.data?.docs.length ?? 0;
-
-        return StreamBuilder<Set<String>>(
-          stream: _favoritesStream,
-          builder: (context, favsSnapshot) {
-            final favoritesCount = favsSnapshot.data?.length ?? 0;
-
-            return StreamBuilder<QuerySnapshot>(
-              stream: _availableCarsStream,
-              builder: (context, carsSnapshot) {
-                final availableCarsCount = carsSnapshot.data?.docs.length ?? 0;
-
-                return Row(
-                  children: [
-                    Expanded(
-                      child: _UserStatCard(
-                        title: context.t('bookings'),
-                        icon: Icons.calendar_today_outlined,
-                        accent: AppTheme.accent,
-                        value: '$bookingsCount',
-                        onTap: widget.onBookingsTap,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _UserStatCard(
-                        title: context.t('favorites'),
-                        icon: Icons.favorite_outline,
-                        accent: Colors.black,
-                        value: '$favoritesCount',
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const FavoritesScreen(),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _UserStatCard(
-                        title: context.t('cars'),
-                        icon: Icons.directions_car_outlined,
-                        accent: AppTheme.accent,
-                        value: '$availableCarsCount',
-                        onTap: widget.onCarsTap,
-                      ),
-                    ),
-                  ],
-                );
-              },
-            );
-          },
-        );
-      },
+    // Each card listens only to its own stream, so one count changing
+    // doesn't rebuild the other two.
+    return Row(
+      children: [
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: _bookingsStream,
+            builder: (context, snapshot) => _UserStatCard(
+              title: context.t('bookings'),
+              icon: Icons.calendar_today_outlined,
+              accent: AppTheme.accent,
+              value: '${snapshot.data?.docs.length ?? 0}',
+              onTap: widget.onBookingsTap,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: StreamBuilder<Set<String>>(
+            stream: _favoritesStream,
+            builder: (context, snapshot) => _UserStatCard(
+              title: context.t('favorites'),
+              icon: Icons.favorite_outline,
+              accent: Colors.black,
+              value: '${snapshot.data?.length ?? 0}',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const FavoritesScreen()),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: _availableCarsStream,
+            builder: (context, snapshot) => _UserStatCard(
+              title: context.t('cars'),
+              icon: Icons.directions_car_outlined,
+              accent: AppTheme.accent,
+              value: '${snapshot.data?.docs.length ?? 0}',
+              onTap: widget.onCarsTap,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

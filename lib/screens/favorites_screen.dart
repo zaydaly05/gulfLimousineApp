@@ -6,8 +6,18 @@ import '../widgets/rent_bottom_sheet.dart';
 import '../l10n/locale_service.dart';
 import '../utils/live_refresh.dart';
 
-class FavoritesScreen extends StatelessWidget {
+class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
+
+  @override
+  State<FavoritesScreen> createState() => _FavoritesScreenState();
+}
+
+class _FavoritesScreenState extends State<FavoritesScreen> {
+  // Streams are created once (late = on first use), not in build():
+  // a rebuild (e.g. language change) would otherwise reopen the
+  // Firestore listener and flash the loading spinner.
+  final _favoritesStream = FavoritesService.watchFavorites();
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +26,7 @@ class FavoritesScreen extends StatelessWidget {
       body: RefreshIndicator(
         onRefresh: liveDataRefresh,
         child: StreamBuilder<QuerySnapshot>(
-          stream: FavoritesService.watchFavorites(),
+          stream: _favoritesStream,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());

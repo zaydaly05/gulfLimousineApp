@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../l10n/locale_service.dart';
+import '../services/user_profile_service.dart';
 
 class SignUpDialog extends StatefulWidget {
   const SignUpDialog({super.key});
@@ -45,15 +45,11 @@ class _SignUpDialogState extends State<SignUpDialog> {
 
       String uid = userCredential.user!.uid;
 
-      await FirebaseFirestore.instance.collection('users').doc(uid).set({
-        'name': nameController.text.trim(),
-        'email': emailController.text.trim(),
-        'phone': '',
-        'role': 'user',
-        'auth_provider': 'email',
-        'profile_completed': false,
-        'created_at': FieldValue.serverTimestamp(),
-      });
+      await UserProfileService.createEmailUser(
+        uid: uid,
+        name: nameController.text.trim(),
+        email: emailController.text.trim(),
+      );
 
       if (!mounted) return;
 

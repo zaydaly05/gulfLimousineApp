@@ -13,6 +13,8 @@ import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
 import '../utils/live_refresh.dart';
 import '../widgets/condition_video_chips.dart';
+import '../widgets/status_pill.dart';
+import '../services/booking_service.dart';
 
 class ManageBookingsScreen extends StatefulWidget {
   const ManageBookingsScreen({super.key});
@@ -47,10 +49,7 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
           TextButton(
             onPressed: () async {
               try {
-                await FirebaseFirestore.instance
-                    .collection('bookings')
-                    .doc(id)
-                    .delete();
+                await BookingService.deleteBooking(id);
               } catch (e) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -186,24 +185,9 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                                 ),
                               ),
                             ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: bookingStatusColor(status)
-                                    .withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                statusTranslated.toUpperCase(),
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: bookingStatusColor(status),
-                                ),
-                              ),
+                            StatusPill(
+                              label: statusTranslated.toUpperCase(),
+                              color: bookingStatusColor(status),
                             ),
                           ],
                         ),
