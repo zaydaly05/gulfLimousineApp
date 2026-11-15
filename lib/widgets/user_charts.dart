@@ -7,6 +7,9 @@ import '../l10n/locale_service.dart';
 import '../utils/booking_fields.dart';
 import '../theme/app_theme.dart';
 
+/// Month labels for the charts' x axes ("Jan", "Feb", ...).
+final _monthFormat = DateFormat('MMM');
+
 class UserAnalyticsSection extends StatelessWidget {
   final String userId;
 
@@ -62,18 +65,26 @@ class _ChartCard extends StatelessWidget {
   }
 }
 
-class UserBookingStatusChart extends StatelessWidget {
+class UserBookingStatusChart extends StatefulWidget {
   final String userId;
 
   const UserBookingStatusChart({super.key, required this.userId});
 
   @override
+  State<UserBookingStatusChart> createState() => _UserBookingStatusChartState();
+}
+
+class _UserBookingStatusChartState extends State<UserBookingStatusChart> {
+  // Created once so dashboard rebuilds don't reopen the listener.
+  late final Stream<QuerySnapshot> _stream = FirebaseFirestore.instance
+      .collection('bookings')
+      .where('userId', isEqualTo: widget.userId)
+      .snapshots();
+
+  @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('bookings')
-          .where('userId', isEqualTo: userId)
-          .snapshots(),
+      stream: _stream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const _ChartCard(
@@ -136,18 +147,27 @@ class UserBookingStatusChart extends StatelessWidget {
   }
 }
 
-class UserMonthlyBookingsChart extends StatelessWidget {
+class UserMonthlyBookingsChart extends StatefulWidget {
   final String userId;
 
   const UserMonthlyBookingsChart({super.key, required this.userId});
 
   @override
+  State<UserMonthlyBookingsChart> createState() =>
+      _UserMonthlyBookingsChartState();
+}
+
+class _UserMonthlyBookingsChartState extends State<UserMonthlyBookingsChart> {
+  // Created once so dashboard rebuilds don't reopen the listener.
+  late final Stream<QuerySnapshot> _stream = FirebaseFirestore.instance
+      .collection('bookings')
+      .where('userId', isEqualTo: widget.userId)
+      .snapshots();
+
+  @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('bookings')
-          .where('userId', isEqualTo: userId)
-          .snapshots(),
+      stream: _stream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const _ChartCard(
@@ -233,7 +253,7 @@ class UserMonthlyBookingsChart extends StatelessWidget {
     final months = <String, int>{};
     for (var i = 3; i >= 0; i--) {
       final d = DateTime(now.year, now.month - i, 1);
-      months[DateFormat('MMM').format(d)] = 0;
+      months[_monthFormat.format(d)] = 0;
     }
 
     for (final doc in docs) {
@@ -244,7 +264,7 @@ class UserMonthlyBookingsChart extends StatelessWidget {
           parseFirestoreDate(data['startDate']);
       if (date == null) continue;
 
-      final key = DateFormat('MMM').format(DateTime(date.year, date.month, 1));
+      final key = _monthFormat.format(DateTime(date.year, date.month, 1));
       if (months.containsKey(key)) {
         months[key] = months[key]! + 1;
       }

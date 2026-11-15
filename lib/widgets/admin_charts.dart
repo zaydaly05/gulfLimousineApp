@@ -9,6 +9,9 @@ import '../theme/app_theme.dart';
 export '../utils/booking_fields.dart';
 export 'status_colors.dart';
 
+/// Month labels for the charts' x axes ("Jan", "Feb", ...).
+final _monthFormat = DateFormat('MMM');
+
 class AdminAnalyticsSection extends StatelessWidget {
   final FirebaseFirestore firestore;
 
@@ -214,7 +217,7 @@ class RevenueTrendChart extends StatelessWidget {
     final months = <String, double>{};
     for (var i = 5; i >= 0; i--) {
       final d = DateTime(now.year, now.month - i, 1);
-      months[DateFormat('MMM').format(d)] = 0;
+      months[_monthFormat.format(d)] = 0;
     }
 
     for (final doc in docs) {
@@ -222,7 +225,7 @@ class RevenueTrendChart extends StatelessWidget {
       final date = parseFirestoreDate(data['payment_date']);
       if (date == null) continue;
 
-      final key = DateFormat('MMM').format(DateTime(date.year, date.month, 1));
+      final key = _monthFormat.format(DateTime(date.year, date.month, 1));
       if (months.containsKey(key)) {
         months[key] = months[key]! + (data['amount'] ?? 0).toDouble();
       }
@@ -517,7 +520,7 @@ class MonthlyBookingsChart extends StatelessWidget {
     final months = <String, int>{};
     for (var i = 5; i >= 0; i--) {
       final d = DateTime(now.year, now.month - i, 1);
-      months[DateFormat('MMM').format(d)] = 0;
+      months[_monthFormat.format(d)] = 0;
     }
 
     for (final doc in docs) {
@@ -528,7 +531,7 @@ class MonthlyBookingsChart extends StatelessWidget {
           parseFirestoreDate(data['startDate']);
       if (date == null) continue;
 
-      final key = DateFormat('MMM').format(DateTime(date.year, date.month, 1));
+      final key = _monthFormat.format(DateTime(date.year, date.month, 1));
       if (months.containsKey(key)) {
         months[key] = months[key]! + 1;
       }

@@ -23,6 +23,11 @@ class ComplimentaryRentalsScreen extends StatefulWidget {
 
 class _ComplimentaryRentalsScreenState
     extends State<ComplimentaryRentalsScreen> {
+  // Created once, not in build(): rebuilding it on every setState would
+  // reopen the Firestore listener and flash the loading spinner.
+  final _giftsStream = FirebaseFirestore.instance
+      .collection('complimentary_rentals')
+      .snapshots();
   String? _selectedPersonKey;
   String _period = 'all';
 
@@ -214,9 +219,7 @@ class _ComplimentaryRentalsScreenState
       body: RefreshIndicator(
         onRefresh: liveDataRefresh,
         child: StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('complimentary_rentals')
-              .snapshots(),
+          stream: _giftsStream,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -518,6 +521,9 @@ class AddComplimentaryRentalScreen extends StatefulWidget {
 class _AddComplimentaryRentalScreenState
     extends State<AddComplimentaryRentalScreen> {
   final _formKey = GlobalKey<FormState>();
+  // Created once, not in build(): rebuilding it on every setState would
+  // reopen the Firestore listener and flash the loading spinner.
+  final _carsStream = FirebaseFirestore.instance.collection('cars').snapshots();
   final name = TextEditingController();
   final phone = TextEditingController();
   final email = TextEditingController();
@@ -727,7 +733,7 @@ class _AddComplimentaryRentalScreenState
             ),
             const SizedBox(height: 12),
             StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('cars').snapshots(),
+              stream: _carsStream,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Padding(

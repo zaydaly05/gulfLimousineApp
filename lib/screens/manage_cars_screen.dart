@@ -17,6 +17,9 @@ class ManageCarsScreen extends StatefulWidget {
 
 class _ManageCarsScreenState extends State<ManageCarsScreen> {
   final CloudinaryService cloudinary = CloudinaryService();
+  // Created once, not in build(): rebuilding it on every setState would
+  // reopen the Firestore listener and flash the loading spinner.
+  final _carsStream = FirebaseFirestore.instance.collection('cars').snapshots();
   bool isUploading = false;
 
   /// Delete car confirmation + delete image from Cloudinary
@@ -136,7 +139,7 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
           RefreshIndicator(
             onRefresh: liveDataRefresh,
             child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('cars').snapshots(),
+              stream: _carsStream,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());

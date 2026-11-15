@@ -31,6 +31,14 @@ class EditBookingScreen extends StatefulWidget {
 class _EditBookingScreenState extends State<EditBookingScreen> {
   final _formKey = GlobalKey<FormState>();
 
+  // Created once, not in build(): rebuilding it on every setState would
+  // reopen the Firestore listener and flash the loading spinner.
+  final _carsStream = FirebaseFirestore.instance.collection('cars').snapshots();
+  final _chauffeursStream = FirebaseFirestore.instance
+      .collection('chauffeurs')
+      .where('active', isEqualTo: true)
+      .snapshots();
+
   late final TextEditingController nameController;
   late final TextEditingController emailController;
   late final TextEditingController phoneController;
@@ -306,7 +314,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
             ),
             const SizedBox(height: 8),
             StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('cars').snapshots(),
+              stream: _carsStream,
               builder: (context, snapshot) {
                 final cars = snapshot.data?.docs ?? [];
                 return DropdownButtonFormField<String>(
@@ -385,10 +393,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
             ),
             const SizedBox(height: 16),
             StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('chauffeurs')
-                  .where('active', isEqualTo: true)
-                  .snapshots(),
+              stream: _chauffeursStream,
               builder: (context, snapshot) {
                 final chauffeurs = snapshot.data?.docs ?? [];
                 return DropdownButtonFormField<String>(

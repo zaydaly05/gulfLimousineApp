@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import '../services/traffic_violation_service.dart';
 import '../widgets/admin_charts.dart';
@@ -19,6 +18,9 @@ class TrafficViolationsScreen extends StatefulWidget {
 }
 
 class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
+  // Created once, not in build(): rebuilding it on every setState would
+  // reopen the Firestore listener and flash the loading spinner.
+  final _violationsStream = TrafficViolationService.watchAll();
   String _status = 'all';
   String _source = 'all';
   String _personQuery = '';
@@ -62,7 +64,7 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
       body: RefreshIndicator(
         onRefresh: liveDataRefresh,
         child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-          stream: TrafficViolationService.watchAll(),
+          stream: _violationsStream,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -226,10 +228,9 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
                 final doc = visible[index - 1];
                 final data = doc.data();
                 final status = (data['status'] ?? 'pending').toString();
-                final date = data['violationDate'];
-                final dateLabel = date is Timestamp
-                    ? DateFormat('dd MMM yyyy').format(date.toDate())
-                    : '';
+                final dateLabel = TrafficViolationService.violationDateLabel(
+                  data,
+                );
                 final isGift =
                     (data['sourceType'] ?? '') ==
                     TrafficViolationService.sourceGift;
@@ -432,6 +433,18 @@ class _PickRentalSheetState extends State<_PickRentalSheet> {
   String? rentalId;
   Map<String, dynamic>? rentalData;
 
+  // Re-created only when the rental type changes, not when a rental is picked.
+  late Stream<QuerySnapshot> _rentalsStream = _rentalsFor(sourceType);
+
+  static Stream<QuerySnapshot> _rentalsFor(String sourceType) =>
+      FirebaseFirestore.instance
+          .collection(
+            sourceType == TrafficViolationService.sourceGift
+                ? 'complimentary_rentals'
+                : 'bookings',
+          )
+          .snapshots();
+
   @override
   Widget build(BuildContext context) {
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
@@ -472,6 +485,7 @@ class _PickRentalSheetState extends State<_PickRentalSheet> {
               if (v == null) return;
               setState(() {
                 sourceType = v;
+                _rentalsStream = _rentalsFor(v);
                 rentalId = null;
                 rentalData = null;
               });
@@ -479,13 +493,7 @@ class _PickRentalSheetState extends State<_PickRentalSheet> {
           ),
           const SizedBox(height: 12),
           StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection(
-                  sourceType == TrafficViolationService.sourceGift
-                      ? 'complimentary_rentals'
-                      : 'bookings',
-                )
-                .snapshots(),
+            stream: _rentalsStream,
             builder: (context, snapshot) {
               final docs = List<QueryDocumentSnapshot>.from(
                 snapshot.data?.docs ?? [],

@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import '../services/traffic_violation_service.dart';
 import 'card_payment.dart';
@@ -34,20 +33,32 @@ class MyTrafficViolationsScreen extends StatelessWidget {
   }
 }
 
-class _UserViolationsList extends StatelessWidget {
+class _UserViolationsList extends StatefulWidget {
   final User user;
 
   const _UserViolationsList({required this.user});
 
   @override
+  State<_UserViolationsList> createState() => _UserViolationsListState();
+}
+
+class _UserViolationsListState extends State<_UserViolationsList> {
+  // Both listeners are created once. Building the inner one inside the outer
+  // builder reopened it on every update of the outer stream.
+  late final _byIdStream = TrafficViolationService.watchForUserId(
+    widget.user.uid,
+  );
+  late final _byEmailStream = (widget.user.email ?? '').isEmpty
+      ? Stream<QuerySnapshot<Map<String, dynamic>>>.empty()
+      : TrafficViolationService.watchForEmail(widget.user.email!);
+
+  @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: TrafficViolationService.watchForUserId(user.uid),
+      stream: _byIdStream,
       builder: (context, byId) {
         return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-          stream: (user.email ?? '').isEmpty
-              ? Stream<QuerySnapshot<Map<String, dynamic>>>.empty()
-              : TrafficViolationService.watchForEmail(user.email!),
+          stream: _byEmailStream,
           builder: (context, byEmail) {
             final merged =
                 <String, QueryDocumentSnapshot<Map<String, dynamic>>>{};
@@ -99,10 +110,9 @@ class _UserViolationsList extends StatelessWidget {
                 final pending = status == 'pending';
                 final awaitingCash =
                     pending && (data['payment_method'] ?? '') == 'cash';
-                final date = data['violationDate'];
-                final dateLabel = date is Timestamp
-                    ? DateFormat('dd MMM yyyy').format(date.toDate())
-                    : '';
+                final dateLabel = TrafficViolationService.violationDateLabel(
+                  data,
+                );
                 final amount = TrafficViolationService.amountOf(data);
 
                 return Card(
@@ -270,10 +280,7 @@ class _ViolationPaymentScreenState extends State<ViolationPaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final date = widget.data['violationDate'];
-    final dateLabel = date is Timestamp
-        ? DateFormat('dd MMM yyyy').format(date.toDate())
-        : '';
+    final dateLabel = TrafficViolationService.violationDateLabel(widget.data);
 
     return Scaffold(
       appBar: AppBar(title: Text(context.t('ticketSummary'))),

@@ -717,27 +717,38 @@ class _RecentBookingsState extends State<_RecentBookings> {
   }
 }
 
-class _UserTrafficTicketsBanner extends StatelessWidget {
+class _UserTrafficTicketsBanner extends StatefulWidget {
   final String? userId;
   final String email;
 
   const _UserTrafficTicketsBanner({required this.userId, required this.email});
 
   @override
+  State<_UserTrafficTicketsBanner> createState() =>
+      _UserTrafficTicketsBannerState();
+}
+
+class _UserTrafficTicketsBannerState extends State<_UserTrafficTicketsBanner> {
+  // Both listeners are created once. Building the inner one inside the outer
+  // builder reopened it on every update of the outer stream.
+  late final _byIdStream = widget.userId == null
+      ? Stream<QuerySnapshot<Map<String, dynamic>>>.empty()
+      : TrafficViolationService.watchForUserId(widget.userId!);
+  late final _byEmailStream = widget.email.isEmpty
+      ? Stream<QuerySnapshot<Map<String, dynamic>>>.empty()
+      : TrafficViolationService.watchForEmail(widget.email);
+
+  @override
   Widget build(BuildContext context) {
-    if (userId == null && email.isEmpty) {
+    if (widget.userId == null && widget.email.isEmpty) {
       return const SizedBox.shrink();
     }
 
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: userId == null
-          ? Stream<QuerySnapshot<Map<String, dynamic>>>.empty()
-          : TrafficViolationService.watchForUserId(userId!),
+      stream: _byIdStream,
       builder: (context, byId) {
         return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-          stream: email.isEmpty
-              ? Stream<QuerySnapshot<Map<String, dynamic>>>.empty()
-              : TrafficViolationService.watchForEmail(email),
+          stream: _byEmailStream,
           builder: (context, byEmail) {
             final merged = <String, Map<String, dynamic>>{};
             for (final doc in [...?byId.data?.docs, ...?byEmail.data?.docs]) {

@@ -14,6 +14,9 @@ class NewBookingScreen extends StatefulWidget {
 
 class _NewBookingScreenState extends State<NewBookingScreen> {
   final _formKey = GlobalKey<FormState>();
+  // Created once, not in build(): rebuilding it on every setState would
+  // reopen the Firestore listener and flash the loading spinner.
+  final _carsStream = FirebaseFirestore.instance.collection('cars').snapshots();
 
   final name = TextEditingController();
   final email = TextEditingController();
@@ -178,7 +181,7 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
             ),
             const SizedBox(height: 8),
             StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('cars').snapshots(),
+              stream: _carsStream,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Padding(
