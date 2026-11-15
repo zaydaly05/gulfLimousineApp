@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -20,8 +20,10 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   final _nationalIdController = TextEditingController();
   final _phoneController = TextEditingController();
 
-  File? _nationalIdImage;
-  File? _licenseIdImage;
+  // Picked images are kept as bytes (not dart:io File) so this screen also
+  // works in the web build.
+  Uint8List? _nationalIdImage;
+  Uint8List? _licenseIdImage;
   bool _isLoading = false;
 
   final _picker = ImagePicker();
@@ -39,15 +41,16 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       source: ImageSource.gallery,
       imageQuality: 80,
     );
-    if (image != null) {
-      setState(() {
-        if (isNationalId) {
-          _nationalIdImage = File(image.path);
-        } else {
-          _licenseIdImage = File(image.path);
-        }
-      });
-    }
+    if (image == null) return;
+    final bytes = await image.readAsBytes();
+    if (!mounted) return;
+    setState(() {
+      if (isNationalId) {
+        _nationalIdImage = bytes;
+      } else {
+        _licenseIdImage = bytes;
+      }
+    });
   }
 
   Future<void> _submit() async {
@@ -68,11 +71,11 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
 
       // Upload images to Cloudinary
       final nationalIdUpload = await _cloudinary.uploadBytes(
-        await _nationalIdImage!.readAsBytes(),
+        _nationalIdImage!,
         filename: 'national_id_${user.uid}.jpg',
       );
       final licenseIdUpload = await _cloudinary.uploadBytes(
-        await _licenseIdImage!.readAsBytes(),
+        _licenseIdImage!,
         filename: 'license_id_${user.uid}.jpg',
       );
 
@@ -204,7 +207,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
     );
   }
 
-  Widget _imagePickerTile(String label, File? image, VoidCallback onTap) {
+  Widget _imagePickerTile(String label, Uint8List? image, VoidCallback onTap) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -222,7 +225,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
             child: image != null
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.file(
+                    child: Image.memory(
                       image,
                       fit: BoxFit.cover,
                       width: double.infinity,

@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -25,12 +25,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final phoneController = TextEditingController();
   final nationalIdController = TextEditingController();
 
-  File? _profileImage;
+  // Picked images are kept as bytes (not dart:io File) so this screen also
+  // works in the web build.
+  Uint8List? _profileImage;
   String? _profileImageUrl;
 
-  File? _nationalIdImage;
+  Uint8List? _nationalIdImage;
   String? _nationalIdImageUrl;
-  File? _licenseIdImage;
+  Uint8List? _licenseIdImage;
   String? _licenseIdImageUrl;
 
   final ImagePicker _picker = ImagePicker();
@@ -114,9 +116,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // close the wrong route if the sheet was dismissed meanwhile.
     if (source == null) return;
     final XFile? image = await _picker.pickImage(source: source);
-    if (image != null && mounted) {
-      setState(() => _profileImage = File(image.path));
-    }
+    if (image == null) return;
+    final bytes = await image.readAsBytes();
+    if (mounted) setState(() => _profileImage = bytes);
   }
 
   Future<void> _saveProfile() async {
@@ -133,7 +135,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       };
 
       if (_profileImage != null) {
-        final bytes = await _profileImage!.readAsBytes();
+        final bytes = _profileImage!;
         final uploaded = await _cloudinary.uploadBytes(
           bytes,
           filename: 'profile_${user.uid}.jpg',
@@ -147,7 +149,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (_nationalIdImage != null) {
         final uploaded = await _cloudinary.uploadBytes(
-          await _nationalIdImage!.readAsBytes(),
+          _nationalIdImage!,
           filename: 'national_id_${user.uid}.jpg',
         );
         if (uploaded != null) {
@@ -158,7 +160,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (_licenseIdImage != null) {
         final uploaded = await _cloudinary.uploadBytes(
-          await _licenseIdImage!.readAsBytes(),
+          _licenseIdImage!,
           filename: 'license_id_${user.uid}.jpg',
         );
         if (uploaded != null) {
@@ -206,7 +208,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     ImageProvider? avatar;
     if (_profileImage != null) {
-      avatar = FileImage(_profileImage!);
+      avatar = MemoryImage(_profileImage!);
     } else if (_profileImageUrl != null && _profileImageUrl!.isNotEmpty) {
       avatar = CachedNetworkImageProvider(_profileImageUrl!);
     }
@@ -329,15 +331,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _pickImageForField(bool isNationalId) async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null && mounted) {
-      setState(() {
-        if (isNationalId) {
-          _nationalIdImage = File(image.path);
-        } else {
-          _licenseIdImage = File(image.path);
-        }
-      });
-    }
+    if (image == null) return;
+    final bytes = await image.readAsBytes();
+    if (!mounted) return;
+    setState(() {
+      if (isNationalId) {
+        _nationalIdImage = bytes;
+      } else {
+        _licenseIdImage = bytes;
+      }
+    });
   }
 
   Future<void> _sendPasswordReset() async {
@@ -380,7 +383,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _imagePreviewTile(
     String label,
-    File? localFile,
+    Uint8List? localFile,
     String? remoteUrl,
     VoidCallback onTap,
   ) {
@@ -402,7 +405,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: localFile != null
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.file(localFile, fit: BoxFit.cover),
+                    child: Image.memory(localFile, fit: BoxFit.cover),
                   )
                 : (remoteUrl != null && remoteUrl.isNotEmpty)
                 ? ClipRRect(
