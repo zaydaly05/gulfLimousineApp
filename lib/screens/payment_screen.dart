@@ -8,6 +8,7 @@ import 'instapay_screen.dart';
 import 'payment_success_screen.dart';
 import 'rental_agreement_screen.dart';
 import 'wallet_payment_screen.dart';
+import '../widgets/payment_method_tile.dart';
 
 class PaymentScreen extends StatefulWidget {
   final RentalDetails rental;
@@ -208,7 +209,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     opacity: _signatureUrl != null ? 1.0 : 0.5,
                     child: Column(
                       children: [
-                        _PaymentMethodTile(
+                        PaymentMethodTile(
                           icon: Icons.credit_card,
                           title: 'Credit / Debit Card',
                           onTap: () => _payWithMethod(
@@ -216,7 +217,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             CardPaymentScreen(amount: rental.totalAmount),
                           ),
                         ),
-                        _PaymentMethodTile(
+                        PaymentMethodTile(
                           icon: Icons.account_balance_wallet,
                           title: 'Mobile Wallet',
                           onTap: () => _payWithMethod(
@@ -224,7 +225,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             WalletPaymentScreen(amount: rental.totalAmount),
                           ),
                         ),
-                        _PaymentMethodTile(
+                        PaymentMethodTile(
                           icon: Icons.phone_android,
                           title: 'InstaPay',
                           onTap: () => _payWithMethod(
@@ -232,7 +233,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             InstaPayScreen(amount: rental.totalAmount),
                           ),
                         ),
-                        _PaymentMethodTile(
+                        PaymentMethodTile(
                           icon: Icons.money,
                           title: 'Cash on Pickup',
                           subtitle: 'Pay when you collect the car',
@@ -291,37 +292,6 @@ class _SummaryCard extends StatelessWidget {
         ],
       ),
       child: Column(children: children),
-    );
-  }
-}
-
-class _PaymentMethodTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String? subtitle;
-  final VoidCallback onTap;
-
-  const _PaymentMethodTile({
-    required this.icon,
-    required this.title,
-    this.subtitle,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: const Color(0xFFFF8C00).withValues(alpha: 0.15),
-          child: Icon(icon, color: const Color(0xFFFF8C00)),
-        ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: subtitle != null ? Text(subtitle!) : null,
-        trailing: const Icon(Icons.chevron_right),
-        onTap: onTap,
-      ),
     );
   }
 }

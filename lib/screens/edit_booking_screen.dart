@@ -8,10 +8,11 @@ import '../widgets/traffic_violations_admin_panel.dart';
 import '../services/traffic_violation_service.dart';
 import 'map_location_picker.dart';
 import 'update_trip_location_screen.dart';
-import 'video_viewer_screen.dart';
 import '../services/booking_service.dart';
 import '../utils/rental_dates.dart';
 import '../utils/booking_fields.dart';
+import '../widgets/condition_video_chips.dart';
+import '../widgets/dark_form_fields.dart';
 
 class EditBookingScreen extends StatefulWidget {
   final String bookingId;
@@ -290,14 +291,14 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
             24 + MediaQuery.viewPaddingOf(context).bottom,
           ),
           children: [
-            _field(nameController, 'Customer Name'),
-            _field(
+            DarkTextFormField(nameController, 'Customer Name'),
+            DarkTextFormField(
               emailController,
               'Email',
               type: TextInputType.emailAddress,
               required: false,
             ),
-            _field(
+            DarkTextFormField(
               phoneController,
               'Phone',
               type: TextInputType.phone,
@@ -316,7 +317,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                       : null,
                   dropdownColor: Colors.grey.shade900,
                   style: const TextStyle(color: Colors.white),
-                  decoration: _decoration('Car'),
+                  decoration: darkInputDecoration('Car'),
                   hint: Text(
                     selectedCarName.isNotEmpty ? selectedCarName : 'Select car',
                     style: const TextStyle(color: Colors.white70),
@@ -351,7 +352,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
               initialValue: status,
               dropdownColor: Colors.grey.shade900,
               style: const TextStyle(color: Colors.white),
-              decoration: _decoration('Status'),
+              decoration: darkInputDecoration('Status'),
               items: _statuses
                   .map(
                     (s) => DropdownMenuItem(
@@ -369,7 +370,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
               initialValue: tripStatus,
               dropdownColor: Colors.grey.shade900,
               style: const TextStyle(color: Colors.white),
-              decoration: _decoration('Trip Status'),
+              decoration: darkInputDecoration('Trip Status'),
               items: _tripStatuses
                   .map(
                     (s) => DropdownMenuItem(
@@ -398,7 +399,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                       : null,
                   dropdownColor: Colors.grey.shade900,
                   style: const TextStyle(color: Colors.white),
-                  decoration: _decoration('Chauffeur'),
+                  decoration: darkInputDecoration('Chauffeur'),
                   hint: Text(
                     chauffeurName.isNotEmpty
                         ? chauffeurName
@@ -476,44 +477,9 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                 ),
               ),
               const SizedBox(height: 4),
-              Row(
-                children: [
-                  if (widget.bookingData['pickupVideo'] != null)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: ActionChip(
-                        label: const Text('Pickup Video'),
-                        avatar: const Icon(Icons.play_circle_fill, size: 16),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => VideoViewerScreen(
-                                url: widget.bookingData['pickupVideo']['url'],
-                                title: 'Pickup Condition - $selectedCarName',
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  if (widget.bookingData['returnVideo'] != null)
-                    ActionChip(
-                      label: const Text('Return Video'),
-                      avatar: const Icon(Icons.play_circle_fill, size: 16),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => VideoViewerScreen(
-                              url: widget.bookingData['returnVideo']['url'],
-                              title: 'Return Condition - $selectedCarName',
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                ],
+              ConditionVideoChips(
+                booking: widget.bookingData,
+                carName: selectedCarName,
               ),
               const SizedBox(height: 8),
             ],
@@ -713,41 +679,6 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
           style: TextStyle(color: color, fontWeight: FontWeight.bold),
         ),
       ],
-    );
-  }
-
-  InputDecoration _decoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: const TextStyle(color: Colors.white70),
-      enabledBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: Colors.grey.shade700),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderSide: const BorderSide(color: Colors.orange),
-        borderRadius: BorderRadius.circular(10),
-      ),
-    );
-  }
-
-  Widget _field(
-    TextEditingController controller,
-    String label, {
-    TextInputType type = TextInputType.text,
-    bool required = true,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: TextFormField(
-        controller: controller,
-        keyboardType: type,
-        style: const TextStyle(color: Colors.white),
-        validator: required
-            ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null
-            : null,
-        decoration: _decoration(label),
-      ),
     );
   }
 

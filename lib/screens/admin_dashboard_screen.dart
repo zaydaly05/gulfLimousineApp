@@ -20,6 +20,7 @@ import '../widgets/biometric_settings_tile.dart';
 import '../services/traffic_violation_service.dart';
 import '../widgets/language_picker.dart';
 import '../l10n/locale_service.dart';
+import '../utils/live_refresh.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -209,9 +210,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
       /// 🧠 BODY
       body: RefreshIndicator(
-        // Data is live; the gesture only gives visual feedback.
-        onRefresh: () =>
-            Future<void>.delayed(const Duration(milliseconds: 600)),
+        onRefresh: liveDataRefresh,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: EdgeInsets.fromLTRB(

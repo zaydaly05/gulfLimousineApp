@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
+import '../utils/live_refresh.dart';
 
 class ManageReviewsScreen extends StatelessWidget {
   const ManageReviewsScreen({super.key});
@@ -17,9 +18,7 @@ class ManageReviewsScreen extends StatelessWidget {
         actions: const [LanguageToggleButton(dark: true), SizedBox(width: 8)],
       ),
       body: RefreshIndicator(
-        onRefresh: () async {
-          await Future<void>.delayed(const Duration(milliseconds: 600));
-        },
+        onRefresh: liveDataRefresh,
         child: StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
               .collection('reviews')

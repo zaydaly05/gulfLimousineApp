@@ -6,6 +6,7 @@ import 'edit_car_screen.dart';
 import '../services/cloudinary_service.dart';
 import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
+import '../utils/live_refresh.dart';
 
 class ManageCarsScreen extends StatefulWidget {
   const ManageCarsScreen({super.key});
@@ -133,10 +134,7 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
       body: Stack(
         children: [
           RefreshIndicator(
-            onRefresh: () async {
-              setState(() {});
-              await Future<void>.delayed(const Duration(milliseconds: 600));
-            },
+            onRefresh: liveDataRefresh,
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance.collection('cars').snapshots(),
               builder: (context, snapshot) {

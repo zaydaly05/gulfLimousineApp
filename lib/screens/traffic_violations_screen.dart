@@ -8,6 +8,7 @@ import '../widgets/traffic_violations_admin_panel.dart';
 
 import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
+import '../utils/live_refresh.dart';
 
 class TrafficViolationsScreen extends StatefulWidget {
   const TrafficViolationsScreen({super.key});
@@ -59,10 +60,7 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
         onPressed: _addFromPicker,
       ),
       body: RefreshIndicator(
-        onRefresh: () async {
-          setState(() {});
-          await Future<void>.delayed(const Duration(milliseconds: 600));
-        },
+        onRefresh: liveDataRefresh,
         child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
           stream: TrafficViolationService.watchAll(),
           builder: (context, snapshot) {

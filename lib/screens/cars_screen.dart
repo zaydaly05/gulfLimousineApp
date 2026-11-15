@@ -9,6 +9,7 @@ import 'favorites_screen.dart';
 import '../services/favorites_service.dart';
 import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
+import '../utils/live_refresh.dart';
 
 class CarsScreen extends StatefulWidget {
   const CarsScreen({super.key});
@@ -42,10 +43,6 @@ class _CarsScreenState extends State<CarsScreen> {
     super.dispose();
   }
 
-  // The list is live; the gesture only gives visual feedback.
-  Future<void> _refreshData() =>
-      Future<void>.delayed(const Duration(milliseconds: 600));
-
   static double _price(dynamic value) {
     if (value is num) return value.toDouble();
     return double.tryParse(value?.toString() ?? '') ?? 0;
@@ -70,7 +67,7 @@ class _CarsScreenState extends State<CarsScreen> {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: _refreshData,
+        onRefresh: liveDataRefresh,
         color: const Color(0xFFFF8C00),
         child: Padding(
           padding: const EdgeInsets.all(16),

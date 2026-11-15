@@ -10,6 +10,8 @@ import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
 import '../utils/rental_dates.dart';
 import '../utils/booking_fields.dart';
+import '../utils/live_refresh.dart';
+import '../widgets/dark_form_fields.dart';
 
 class ComplimentaryRentalsScreen extends StatefulWidget {
   const ComplimentaryRentalsScreen({super.key});
@@ -210,10 +212,7 @@ class _ComplimentaryRentalsScreenState
         },
       ),
       body: RefreshIndicator(
-        onRefresh: () async {
-          setState(() {});
-          await Future<void>.delayed(const Duration(milliseconds: 600));
-        },
+        onRefresh: liveDataRefresh,
         child: StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
               .collection('complimentary_rentals')
@@ -696,9 +695,14 @@ class _AddComplimentaryRentalScreenState
               style: TextStyle(color: Colors.white70),
             ),
             const SizedBox(height: 16),
-            _field(name, 'Recipient name'),
-            _field(phone, 'Phone', type: TextInputType.phone, required: false),
-            _field(
+            DarkTextFormField(name, 'Recipient name'),
+            DarkTextFormField(
+              phone,
+              'Phone',
+              type: TextInputType.phone,
+              required: false,
+            ),
+            DarkTextFormField(
               email,
               'Email',
               type: TextInputType.emailAddress,
@@ -708,7 +712,7 @@ class _AddComplimentaryRentalScreenState
               initialValue: reason,
               dropdownColor: Colors.grey.shade900,
               style: const TextStyle(color: Colors.white),
-              decoration: _decoration('Reason'),
+              decoration: darkInputDecoration('Reason'),
               items: _reasons
                   .map(
                     (r) => DropdownMenuItem(
@@ -747,7 +751,7 @@ class _AddComplimentaryRentalScreenState
                   initialValue: selectedCarId,
                   dropdownColor: Colors.grey.shade900,
                   style: const TextStyle(color: Colors.white),
-                  decoration: _decoration('Car'),
+                  decoration: darkInputDecoration('Car'),
                   hint: const Text(
                     'Select car',
                     style: TextStyle(color: Colors.white70),
@@ -819,7 +823,7 @@ class _AddComplimentaryRentalScreenState
                 style: const TextStyle(color: Colors.orange),
               ),
             const SizedBox(height: 12),
-            _field(notes, 'Internal note', required: false),
+            DarkTextFormField(notes, 'Internal note', required: false),
             const SizedBox(height: 12),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -854,41 +858,6 @@ class _AddComplimentaryRentalScreenState
       labelStyle: const TextStyle(color: Colors.white),
       side: const BorderSide(color: Colors.orange),
       onPressed: () => _applyDuration(days),
-    );
-  }
-
-  InputDecoration _decoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: const TextStyle(color: Colors.white70),
-      enabledBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: Colors.grey.shade700),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderSide: const BorderSide(color: Colors.orange),
-        borderRadius: BorderRadius.circular(10),
-      ),
-    );
-  }
-
-  Widget _field(
-    TextEditingController controller,
-    String label, {
-    TextInputType type = TextInputType.text,
-    bool required = true,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: TextFormField(
-        controller: controller,
-        keyboardType: type,
-        style: const TextStyle(color: Colors.white),
-        validator: required
-            ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null
-            : null,
-        decoration: _decoration(label),
-      ),
     );
   }
 

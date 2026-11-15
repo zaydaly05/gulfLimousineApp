@@ -5,13 +5,14 @@ import '../widgets/admin_charts.dart';
 import '../widgets/extra_km_admin_panel.dart';
 import '../widgets/traffic_violations_admin_panel.dart';
 import '../services/traffic_violation_service.dart';
-import 'video_viewer_screen.dart';
 import 'admin_security_hub.dart';
 import '../services/whatsapp_service.dart';
 import 'edit_booking_screen.dart';
 import 'new_booking_screen.dart';
 import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
+import '../utils/live_refresh.dart';
+import '../widgets/condition_video_chips.dart';
 
 class ManageBookingsScreen extends StatefulWidget {
   const ManageBookingsScreen({super.key});
@@ -91,9 +92,7 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
         },
       ),
       body: RefreshIndicator(
-        onRefresh: () async {
-          await Future<void>.delayed(const Duration(milliseconds: 600));
-        },
+        onRefresh: liveDataRefresh,
         child: StreamBuilder<QuerySnapshot>(
           stream: _bookingsStream,
           builder: (context, snapshot) {
@@ -320,51 +319,9 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              if (booking['pickupVideo'] != null)
-                                Padding(
-                                  padding: const EdgeInsets.only(right: 8.0),
-                                  child: ActionChip(
-                                    label: const Text('Pickup Video'),
-                                    avatar: const Icon(
-                                      Icons.play_circle_fill,
-                                      size: 16,
-                                    ),
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => VideoViewerScreen(
-                                            url: booking['pickupVideo']['url'],
-                                            title:
-                                                'Pickup Condition - $carName',
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              if (booking['returnVideo'] != null)
-                                ActionChip(
-                                  label: const Text('Return Video'),
-                                  avatar: const Icon(
-                                    Icons.play_circle_fill,
-                                    size: 16,
-                                  ),
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => VideoViewerScreen(
-                                          url: booking['returnVideo']['url'],
-                                          title: 'Return Condition - $carName',
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                            ],
+                          ConditionVideoChips(
+                            booking: booking,
+                            carName: carName,
                           ),
                           const SizedBox(height: 8),
                         ],

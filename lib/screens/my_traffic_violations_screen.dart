@@ -10,6 +10,8 @@ import 'payment_success_screen.dart';
 import 'wallet_payment_screen.dart';
 import '../l10n/locale_service.dart';
 import '../utils/booking_fields.dart';
+import '../utils/live_refresh.dart';
+import '../widgets/payment_method_tile.dart';
 
 class MyTrafficViolationsScreen extends StatelessWidget {
   const MyTrafficViolationsScreen({super.key});
@@ -24,9 +26,7 @@ class MyTrafficViolationsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text(context.t('trafficTickets'))),
       body: RefreshIndicator(
-        onRefresh: () async {
-          await Future<void>.delayed(const Duration(milliseconds: 600));
-        },
+        onRefresh: liveDataRefresh,
         child: _UserViolationsList(user: user),
       ),
     );
@@ -339,34 +339,34 @@ class _ViolationPaymentScreenState extends State<ViolationPaymentScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                _method(
-                  Icons.credit_card,
-                  context.t('card'),
-                  () => _payWithMethod(
+                PaymentMethodTile(
+                  icon: Icons.credit_card,
+                  title: context.t('card'),
+                  onTap: () => _payWithMethod(
                     'card',
                     CardPaymentScreen(amount: _amount),
                   ),
                 ),
-                _method(
-                  Icons.account_balance_wallet,
-                  context.t('wallet'),
-                  () => _payWithMethod(
+                PaymentMethodTile(
+                  icon: Icons.account_balance_wallet,
+                  title: context.t('wallet'),
+                  onTap: () => _payWithMethod(
                     'wallet',
                     WalletPaymentScreen(amount: _amount),
                   ),
                 ),
-                _method(
-                  Icons.phone_android,
-                  context.t('instapay'),
-                  () => _payWithMethod(
+                PaymentMethodTile(
+                  icon: Icons.phone_android,
+                  title: context.t('instapay'),
+                  onTap: () => _payWithMethod(
                     'instapay',
                     InstaPayScreen(amount: _amount),
                   ),
                 ),
-                _method(
-                  Icons.money,
-                  context.t('cashPickup'),
-                  () => _completePayment('cash', paid: false),
+                PaymentMethodTile(
+                  icon: Icons.money,
+                  title: context.t('cashPickup'),
+                  onTap: () => _completePayment('cash', paid: false),
                   subtitle: context.t('cashPickupHint'),
                 ),
               ],
@@ -393,27 +393,6 @@ class _ViolationPaymentScreenState extends State<ViolationPaymentScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _method(
-    IconData icon,
-    String title,
-    VoidCallback onTap, {
-    String? subtitle,
-  }) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: const Color(0xFFFF8C00).withValues(alpha: 0.15),
-          child: Icon(icon, color: const Color(0xFFFF8C00)),
-        ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: subtitle != null ? Text(subtitle) : null,
-        trailing: const Icon(Icons.chevron_right),
-        onTap: onTap,
       ),
     );
   }
