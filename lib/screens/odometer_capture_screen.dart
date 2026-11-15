@@ -1,5 +1,4 @@
-import 'dart:io';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -31,7 +30,8 @@ class _OdometerCaptureScreenState extends State<OdometerCaptureScreen> {
   final _picker = ImagePicker();
   final _cloudinary = CloudinaryService();
 
-  File? _imageFile;
+  // Bytes rather than dart:io File so the screen also works on the web.
+  Uint8List? _imageFile;
   String? _uploadedUrl;
   String? _uploadedPublicId;
   bool _processing = false;
@@ -75,15 +75,16 @@ class _OdometerCaptureScreenState extends State<OdometerCaptureScreen> {
       maxWidth: 1920,
     );
     if (image == null || !mounted) return;
+    final bytes = await image.readAsBytes();
+    if (!mounted) return;
 
     setState(() {
-      _imageFile = File(image.path);
+      _imageFile = bytes;
       _uploadedUrl = null;
       _uploadedPublicId = null;
       _ocrRunning = true;
     });
 
-    final bytes = await image.readAsBytes();
     final detected = await OdometerService.extractKmFromImage(bytes);
 
     if (!mounted) return;
@@ -164,7 +165,7 @@ class _OdometerCaptureScreenState extends State<OdometerCaptureScreen> {
       String photoPublicId = _uploadedPublicId ?? '';
 
       if (photoUrl.isEmpty) {
-        final bytes = await _imageFile!.readAsBytes();
+        final bytes = _imageFile!;
         final upload = await _cloudinary.uploadBytes(
           bytes,
           filename: 'odometer_${widget.bookingId}.jpg',
@@ -308,7 +309,7 @@ class _OdometerCaptureScreenState extends State<OdometerCaptureScreen> {
                     ? Stack(
                         fit: StackFit.expand,
                         children: [
-                          Image.file(_imageFile!, fit: BoxFit.cover),
+                          Image.memory(_imageFile!, fit: BoxFit.cover),
                           if (_ocrRunning)
                             Container(
                               color: Colors.black45,
