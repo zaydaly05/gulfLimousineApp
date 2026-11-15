@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+
+import '../services/user_profile_service.dart';
 
 class EditUserScreen extends StatefulWidget {
   final String userId;
@@ -51,17 +52,14 @@ class _EditUserScreenState extends State<EditUserScreen> {
     setState(() => _saving = true);
     try {
       final phone = phoneController.text.trim();
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.userId)
-          .update({
-            'name': nameController.text.trim(),
-            'email': emailController.text.trim(),
-            'role': _role,
-            // Both keys are read across the app.
-            'phone': phone,
-            'phone_number': phone,
-          });
+      await UserProfileService.update(widget.userId, {
+        'name': nameController.text.trim(),
+        'email': emailController.text.trim(),
+        'role': _role,
+        // Both keys are read across the app.
+        'phone': phone,
+        'phone_number': phone,
+      });
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;

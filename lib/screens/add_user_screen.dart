@@ -3,9 +3,9 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../firebase_options.dart';
+import '../services/user_profile_service.dart';
 
 class AddUserScreen extends StatefulWidget {
   const AddUserScreen({super.key});
@@ -67,14 +67,13 @@ class _AddUserScreenState extends State<AddUserScreen> {
 
       // Written by the signed-in admin: the rules only let admins assign a
       // role, so a new account can't make itself an admin.
-      await FirebaseFirestore.instance.collection('users').doc(uid).set({
-        'name': name.text.trim(),
-        'email': email.text.trim(),
-        'phone': phone.text.trim(),
-        'phone_number': phone.text.trim(),
-        'role': role,
-        'created_at': FieldValue.serverTimestamp(),
-      });
+      await UserProfileService.adminCreateUser(
+        uid: uid,
+        name: name.text.trim(),
+        email: email.text.trim(),
+        phone: phone.text.trim(),
+        role: role,
+      );
 
       if (!mounted) return;
 

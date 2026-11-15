@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
 import '../utils/live_refresh.dart';
+import '../services/user_profile_service.dart';
 
 class ManageUsersScreen extends StatefulWidget {
   const ManageUsersScreen({super.key});
@@ -86,10 +87,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
           ),
           TextButton(
             onPressed: () async {
-              await FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(id)
-                  .delete();
+              await UserProfileService.delete(id);
               if (dialogContext.mounted) Navigator.pop(dialogContext);
             },
             child: Text(

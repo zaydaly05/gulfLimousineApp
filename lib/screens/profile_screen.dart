@@ -11,6 +11,7 @@ import '../services/auth_navigation.dart';
 import '../widgets/biometric_settings_tile.dart';
 import '../widgets/language_picker.dart';
 import '../l10n/locale_service.dart';
+import '../services/user_profile_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -169,7 +170,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
       }
 
-      await _firestore.collection('users').doc(user.uid).update(updates);
+      await UserProfileService.update(user.uid, updates);
       final biometricOk = await _biometricKey.currentState?.commit() ?? true;
 
       if (!mounted) return;

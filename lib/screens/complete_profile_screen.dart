@@ -3,10 +3,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../services/cloudinary_service.dart';
 import '../services/auth_navigation.dart';
+import '../services/user_profile_service.dart';
 
 class CompleteProfileScreen extends StatefulWidget {
   const CompleteProfileScreen({super.key});
@@ -83,18 +83,13 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
         throw Exception('Failed to upload images');
       }
 
-      // Update Firestore
-      // merge: also works if the profile document was never created.
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-        'national_id': _nationalIdController.text.trim(),
-        'phone': _phoneController.text.trim(),
-        'phone_number': _phoneController.text.trim(),
-        'national_id_url': nationalIdUpload['secure_url'],
-        'national_id_public_id': nationalIdUpload['public_id'],
-        'license_id_url': licenseIdUpload['secure_url'],
-        'license_id_public_id': licenseIdUpload['public_id'],
-        'profile_completed': true,
-      }, SetOptions(merge: true));
+      await UserProfileService.completeProfile(
+        user.uid,
+        nationalId: _nationalIdController.text.trim(),
+        phone: _phoneController.text.trim(),
+        nationalIdUpload: nationalIdUpload,
+        licenseIdUpload: licenseIdUpload,
+      );
 
       if (!mounted) return;
       await AuthNavigation.goToRoleHome(context);
