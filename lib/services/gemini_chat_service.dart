@@ -145,15 +145,18 @@ class GeminiChatService {
   }
 
   Future<String> _buildAdminContext() async {
-    final cars = await _firestore.collection('cars').get();
-    final bookings = await _firestore.collection('bookings').get();
-    final users = await _firestore.collection('users').get();
-    final payments = await _firestore.collection('payments').get();
-    final alerts = await _firestore
-        .collection('admin_alerts')
-        .orderBy('createdAt', descending: true)
-        .limit(10)
-        .get();
+    // Independent reads: run them together instead of one after another.
+    final [cars, bookings, users, payments, alerts] = await Future.wait([
+      _firestore.collection('cars').get(),
+      _firestore.collection('bookings').get(),
+      _firestore.collection('users').get(),
+      _firestore.collection('payments').get(),
+      _firestore
+          .collection('admin_alerts')
+          .orderBy('createdAt', descending: true)
+          .limit(10)
+          .get(),
+    ]);
 
     double revenue = 0;
     for (final p in payments.docs) {

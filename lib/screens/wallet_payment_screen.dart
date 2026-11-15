@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
+
 class WalletPaymentScreen extends StatefulWidget {
   final double amount;
 
@@ -52,18 +54,18 @@ class _WalletPaymentScreenState extends State<WalletPaymentScreen> {
                   return Card(
                     margin: const EdgeInsets.only(bottom: 10),
                     color: selected
-                        ? const Color(0xFFFF8C00).withValues(alpha: 0.1)
+                        ? AppTheme.accent.withValues(alpha: 0.1)
                         : null,
                     child: ListTile(
                       leading: Icon(
                         Icons.account_balance_wallet,
-                        color: selected ? const Color(0xFFFF8C00) : Colors.grey,
+                        color: selected ? AppTheme.accent : Colors.grey,
                       ),
                       title: Text(wallet),
                       trailing: selected
                           ? const Icon(
                               Icons.check_circle,
-                              color: Color(0xFFFF8C00),
+                              color: AppTheme.accent,
                             )
                           : null,
                       onTap: () => setState(() => _selectedWallet = wallet),

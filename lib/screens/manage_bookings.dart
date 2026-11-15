@@ -5,13 +5,14 @@ import '../widgets/admin_charts.dart';
 import '../widgets/extra_km_admin_panel.dart';
 import '../widgets/traffic_violations_admin_panel.dart';
 import '../services/traffic_violation_service.dart';
-import 'video_viewer_screen.dart';
 import 'admin_security_hub.dart';
 import '../services/whatsapp_service.dart';
 import 'edit_booking_screen.dart';
 import 'new_booking_screen.dart';
 import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
+import '../utils/live_refresh.dart';
+import '../widgets/condition_video_chips.dart';
 
 class ManageBookingsScreen extends StatefulWidget {
   const ManageBookingsScreen({super.key});
@@ -69,34 +70,6 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
     );
   }
 
-  Color _statusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'confirmed':
-      case 'paid':
-      case 'completed':
-        return Colors.green;
-      case 'cancelled':
-        return Colors.red;
-      default:
-        return Colors.orange;
-    }
-  }
-
-  List<QueryDocumentSnapshot> _sortedDocs(List<QueryDocumentSnapshot> docs) {
-    final sorted = List<QueryDocumentSnapshot>.from(docs);
-    sorted.sort((a, b) {
-      final aData = a.data() as Map<String, dynamic>;
-      final bData = b.data() as Map<String, dynamic>;
-      final aDate = aData['createdAt'];
-      final bDate = bData['createdAt'];
-      if (aDate is Timestamp && bDate is Timestamp) {
-        return bDate.compareTo(aDate);
-      }
-      return 0;
-    });
-    return sorted;
-  }
-
   @override
   Widget build(BuildContext context) {
     final bottomPad = MediaQuery.viewPaddingOf(context).bottom;
@@ -119,9 +92,7 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
         },
       ),
       body: RefreshIndicator(
-        onRefresh: () async {
-          await Future<void>.delayed(const Duration(milliseconds: 600));
-        },
+        onRefresh: liveDataRefresh,
         child: StreamBuilder<QuerySnapshot>(
           stream: _bookingsStream,
           builder: (context, snapshot) {
@@ -146,7 +117,9 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
               );
             }
 
-            final docs = _sortedDocs(snapshot.data?.docs ?? []);
+            final docs = sortedByCreatedAtDesc(
+              snapshot.data?.docs ?? const <QueryDocumentSnapshot>[],
+            );
             if (docs.isEmpty) {
               return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -219,7 +192,7 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: _statusColor(status)
+                                color: bookingStatusColor(status)
                                     .withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(20),
                               ),
@@ -228,7 +201,7 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
-                                  color: _statusColor(status),
+                                  color: bookingStatusColor(status),
                                 ),
                               ),
                             ),
@@ -346,51 +319,9 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              if (booking['pickupVideo'] != null)
-                                Padding(
-                                  padding: const EdgeInsets.only(right: 8.0),
-                                  child: ActionChip(
-                                    label: const Text('Pickup Video'),
-                                    avatar: const Icon(
-                                      Icons.play_circle_fill,
-                                      size: 16,
-                                    ),
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => VideoViewerScreen(
-                                            url: booking['pickupVideo']['url'],
-                                            title:
-                                                'Pickup Condition - $carName',
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              if (booking['returnVideo'] != null)
-                                ActionChip(
-                                  label: const Text('Return Video'),
-                                  avatar: const Icon(
-                                    Icons.play_circle_fill,
-                                    size: 16,
-                                  ),
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => VideoViewerScreen(
-                                          url: booking['returnVideo']['url'],
-                                          title: 'Return Condition - $carName',
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                            ],
+                          ConditionVideoChips(
+                            booking: booking,
+                            carName: carName,
                           ),
                           const SizedBox(height: 8),
                         ],

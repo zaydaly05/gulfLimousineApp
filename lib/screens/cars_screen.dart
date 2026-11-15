@@ -9,6 +9,8 @@ import 'favorites_screen.dart';
 import '../services/favorites_service.dart';
 import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
+import '../utils/live_refresh.dart';
+import '../theme/app_theme.dart';
 
 class CarsScreen extends StatefulWidget {
   const CarsScreen({super.key});
@@ -42,10 +44,6 @@ class _CarsScreenState extends State<CarsScreen> {
     super.dispose();
   }
 
-  // The list is live; the gesture only gives visual feedback.
-  Future<void> _refreshData() =>
-      Future<void>.delayed(const Duration(milliseconds: 600));
-
   static double _price(dynamic value) {
     if (value is num) return value.toDouble();
     return double.tryParse(value?.toString() ?? '') ?? 0;
@@ -70,8 +68,8 @@ class _CarsScreenState extends State<CarsScreen> {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: _refreshData,
-        color: const Color(0xFFFF8C00),
+        onRefresh: liveDataRefresh,
+        color: AppTheme.accent,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -133,7 +131,7 @@ class _CarsScreenState extends State<CarsScreen> {
               label: Text(displayLabel),
               selected: selected,
               onSelected: (_) => setState(() => selectedBrand = brand),
-              selectedColor: const Color(0xFFFF8C00).withValues(alpha: 0.3),
+              selectedColor: AppTheme.accent.withValues(alpha: 0.3),
             ),
           );
         }).toList(),
@@ -292,7 +290,7 @@ class _CarsScreenState extends State<CarsScreen> {
                             Text(
                               '★ ${avg.toStringAsFixed(1)} ($count)',
                               style: const TextStyle(
-                                color: Color(0xFFFF8C00),
+                                color: AppTheme.accent,
                                 fontSize: 13,
                               ),
                             ),
@@ -301,7 +299,7 @@ class _CarsScreenState extends State<CarsScreen> {
                           Text(
                             car['price'] as String,
                             style: const TextStyle(
-                              color: Color(0xFFFF8C00),
+                              color: AppTheme.accent,
                               fontWeight: FontWeight.bold,
                             ),
                           ),

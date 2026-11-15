@@ -6,6 +6,8 @@ import 'package:latlong2/latlong.dart';
 import '../models/geo_location.dart';
 import '../services/booking_service.dart';
 import 'map_location_picker.dart';
+import '../widgets/app_map.dart';
+import '../theme/app_theme.dart';
 
 class UpdateTripLocationScreen extends StatelessWidget {
   final String bookingId;
@@ -38,8 +40,8 @@ class UpdateTripLocationScreen extends StatelessWidget {
     double lat;
     double lng;
     if (live.isValid) {
-      final targetLat = pickup?.lat ?? 30.0444;
-      final targetLng = pickup?.lng ?? 31.2357;
+      final targetLat = pickup?.lat ?? GeoLocation.cairoLat;
+      final targetLng = pickup?.lng ?? GeoLocation.cairoLng;
       lat = live.lat + (targetLat - live.lat) * 0.25;
       lng = live.lng + (targetLng - live.lng) * 0.25;
     } else if (pickup != null) {
@@ -66,7 +68,7 @@ class UpdateTripLocationScreen extends StatelessWidget {
     final pickup = GeoLocation.tryParse(bookingData['pickupLocation']);
     final initial = pickup != null
         ? LatLng(pickup.lat, pickup.lng)
-        : const LatLng(30.0444, 31.2357);
+        : kCairoLatLng;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -102,38 +104,7 @@ class UpdateTripLocationScreen extends StatelessWidget {
                     onTap: (_, point) => _setLocation(context, point),
                   ),
                   children: [
-                    TileLayer(
-                      urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.example.gulflimousine_travel',
-                      tileBuilder: (context, tileWidget, tile) {
-                        return ColorFiltered(
-                          colorFilter: const ColorFilter.matrix([
-                            0.6,
-                            0,
-                            0,
-                            0,
-                            -60,
-                            0,
-                            0.6,
-                            0,
-                            0,
-                            -60,
-                            0,
-                            0,
-                            0.6,
-                            0,
-                            -60,
-                            0,
-                            0,
-                            0,
-                            1,
-                            0,
-                          ]),
-                          child: tileWidget,
-                        );
-                      },
-                    ),
+                    appTileLayer(),
                     MarkerLayer(
                       markers: [
                         if (live.isValid)
@@ -154,7 +125,7 @@ class UpdateTripLocationScreen extends StatelessWidget {
                             height: 44,
                             child: const Icon(
                               Icons.place,
-                              color: Color(0xFFFF8C00),
+                              color: AppTheme.accent,
                               size: 40,
                             ),
                           ),

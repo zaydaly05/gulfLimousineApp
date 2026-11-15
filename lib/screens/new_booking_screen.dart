@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
 import '../utils/rental_dates.dart';
+import '../widgets/dark_form_fields.dart';
 
 class NewBookingScreen extends StatefulWidget {
   const NewBookingScreen({super.key});
@@ -13,6 +14,9 @@ class NewBookingScreen extends StatefulWidget {
 
 class _NewBookingScreenState extends State<NewBookingScreen> {
   final _formKey = GlobalKey<FormState>();
+  // Created once, not in build(): rebuilding it on every setState would
+  // reopen the Firestore listener and flash the loading spinner.
+  final _carsStream = FirebaseFirestore.instance.collection('cars').snapshots();
 
   final name = TextEditingController();
   final email = TextEditingController();
@@ -162,14 +166,14 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
             24 + MediaQuery.viewPaddingOf(context).bottom,
           ),
           children: [
-            _field(name, 'Customer Name'),
-            _field(
+            DarkTextFormField(name, 'Customer Name'),
+            DarkTextFormField(
               email,
               'Email',
               type: TextInputType.emailAddress,
               required: false,
             ),
-            _field(
+            DarkTextFormField(
               phone,
               'Phone Number',
               type: TextInputType.phone,
@@ -177,7 +181,7 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
             ),
             const SizedBox(height: 8),
             StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('cars').snapshots(),
+              stream: _carsStream,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Padding(
@@ -201,7 +205,7 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
                   initialValue: selectedCarId,
                   dropdownColor: Colors.grey.shade900,
                   style: const TextStyle(color: Colors.white),
-                  decoration: _decoration('Car'),
+                  decoration: darkInputDecoration('Car'),
                   hint: const Text(
                     'Select car',
                     style: TextStyle(color: Colors.white70),
@@ -241,7 +245,7 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
               initialValue: status,
               dropdownColor: Colors.grey.shade900,
               style: const TextStyle(color: Colors.white),
-              decoration: _decoration('Status'),
+              decoration: darkInputDecoration('Status'),
               items: _statuses
                   .map(
                     (s) => DropdownMenuItem(
@@ -295,41 +299,6 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  InputDecoration _decoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: const TextStyle(color: Colors.white70),
-      enabledBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: Colors.grey.shade700),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderSide: const BorderSide(color: Colors.orange),
-        borderRadius: BorderRadius.circular(10),
-      ),
-    );
-  }
-
-  Widget _field(
-    TextEditingController controller,
-    String label, {
-    TextInputType type = TextInputType.text,
-    bool required = true,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: TextFormField(
-        controller: controller,
-        keyboardType: type,
-        style: const TextStyle(color: Colors.white),
-        validator: required
-            ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null
-            : null,
-        decoration: _decoration(label),
       ),
     );
   }

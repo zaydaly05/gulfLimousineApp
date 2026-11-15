@@ -6,6 +6,7 @@ import 'edit_car_screen.dart';
 import '../services/cloudinary_service.dart';
 import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
+import '../utils/live_refresh.dart';
 
 class ManageCarsScreen extends StatefulWidget {
   const ManageCarsScreen({super.key});
@@ -16,6 +17,9 @@ class ManageCarsScreen extends StatefulWidget {
 
 class _ManageCarsScreenState extends State<ManageCarsScreen> {
   final CloudinaryService cloudinary = CloudinaryService();
+  // Created once, not in build(): rebuilding it on every setState would
+  // reopen the Firestore listener and flash the loading spinner.
+  final _carsStream = FirebaseFirestore.instance.collection('cars').snapshots();
   bool isUploading = false;
 
   /// Delete car confirmation + delete image from Cloudinary
@@ -65,7 +69,7 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
 
               if (publicId != null && publicId.isNotEmpty) {
                 try {
-                  await cloudinary.deleteImage(publicId);
+                  await cloudinary.deleteAsset(publicId);
                 } catch (e) {
                   // The car is gone; only the stored file is left behind.
                   debugPrint('Car image delete failed: $e');
@@ -133,12 +137,9 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
       body: Stack(
         children: [
           RefreshIndicator(
-            onRefresh: () async {
-              setState(() {});
-              await Future<void>.delayed(const Duration(milliseconds: 600));
-            },
+            onRefresh: liveDataRefresh,
             child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('cars').snapshots(),
+              stream: _carsStream,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());

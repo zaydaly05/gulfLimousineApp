@@ -20,6 +20,7 @@ import '../widgets/biometric_settings_tile.dart';
 import '../services/traffic_violation_service.dart';
 import '../widgets/language_picker.dart';
 import '../l10n/locale_service.dart';
+import '../utils/live_refresh.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -209,9 +210,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
       /// 🧠 BODY
       body: RefreshIndicator(
-        // Data is live; the gesture only gives visual feedback.
-        onRefresh: () =>
-            Future<void>.delayed(const Duration(milliseconds: 600)),
+        onRefresh: liveDataRefresh,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: EdgeInsets.fromLTRB(
@@ -493,12 +492,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  DateTime? _asDate(dynamic value) {
-    if (value is Timestamp) return value.toDate();
-    if (value is DateTime) return value;
-    return null;
-  }
-
   double _giftedValue(Map<String, dynamic> data) {
     final stored = data['gifted_value'] ?? data['total_amount'];
     if (stored is num) return stored.toDouble();
@@ -523,7 +516,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
           if (status == 'active') active.add(doc);
           if (status == 'cancelled') continue;
           final value = _giftedValue(data);
-          final date = _asDate(data['startDate']) ?? _asDate(data['createdAt']);
+          final date =
+              timestampDate(data['startDate']) ??
+              timestampDate(data['createdAt']);
           if (date == null || date.year != now.year) continue;
           yearTotal += value;
           if (date.month == now.month) monthTotal += value;

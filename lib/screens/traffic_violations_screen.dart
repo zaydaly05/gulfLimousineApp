@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import '../services/traffic_violation_service.dart';
 import '../widgets/admin_charts.dart';
@@ -8,6 +7,7 @@ import '../widgets/traffic_violations_admin_panel.dart';
 
 import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
+import '../utils/live_refresh.dart';
 
 class TrafficViolationsScreen extends StatefulWidget {
   const TrafficViolationsScreen({super.key});
@@ -18,20 +18,12 @@ class TrafficViolationsScreen extends StatefulWidget {
 }
 
 class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
+  // Created once, not in build(): rebuilding it on every setState would
+  // reopen the Firestore listener and flash the loading spinner.
+  final _violationsStream = TrafficViolationService.watchAll();
   String _status = 'all';
   String _source = 'all';
   String _personQuery = '';
-
-  Color _statusColor(String status) {
-    switch (status) {
-      case 'paid':
-        return Colors.green;
-      case 'waived':
-        return Colors.grey;
-      default:
-        return Colors.orange;
-    }
-  }
 
   Future<void> _addFromPicker() async {
     final picked = await showModalBottomSheet<_PickedRental>(
@@ -70,12 +62,9 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
         onPressed: _addFromPicker,
       ),
       body: RefreshIndicator(
-        onRefresh: () async {
-          setState(() {});
-          await Future<void>.delayed(const Duration(milliseconds: 600));
-        },
+        onRefresh: liveDataRefresh,
         child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-          stream: TrafficViolationService.watchAll(),
+          stream: _violationsStream,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -92,14 +81,7 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
             final docs = List<QueryDocumentSnapshot<Map<String, dynamic>>>.from(
               snapshot.data?.docs ?? [],
             );
-            docs.sort((a, b) {
-              final aDate = a.data()['createdAt'];
-              final bDate = b.data()['createdAt'];
-              if (aDate is Timestamp && bDate is Timestamp) {
-                return bDate.compareTo(aDate);
-              }
-              return 0;
-            });
+            docs.sort(compareCreatedAtDesc);
 
             final pendingTotal = TrafficViolationService.pendingTotal(docs);
             final paidTotal = docs.fold<double>(0, (total, doc) {
@@ -246,10 +228,9 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
                 final doc = visible[index - 1];
                 final data = doc.data();
                 final status = (data['status'] ?? 'pending').toString();
-                final date = data['violationDate'];
-                final dateLabel = date is Timestamp
-                    ? DateFormat('dd MMM yyyy').format(date.toDate())
-                    : '';
+                final dateLabel = TrafficViolationService.violationDateLabel(
+                  data,
+                );
                 final isGift =
                     (data['sourceType'] ?? '') ==
                     TrafficViolationService.sourceGift;
@@ -290,7 +271,7 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: _statusColor(status)
+                                color: violationStatusColor(status)
                                     .withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(20),
                               ),
@@ -299,7 +280,7 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
-                                  color: _statusColor(status),
+                                  color: violationStatusColor(status),
                                 ),
                               ),
                             ),
@@ -452,6 +433,18 @@ class _PickRentalSheetState extends State<_PickRentalSheet> {
   String? rentalId;
   Map<String, dynamic>? rentalData;
 
+  // Re-created only when the rental type changes, not when a rental is picked.
+  late Stream<QuerySnapshot> _rentalsStream = _rentalsFor(sourceType);
+
+  static Stream<QuerySnapshot> _rentalsFor(String sourceType) =>
+      FirebaseFirestore.instance
+          .collection(
+            sourceType == TrafficViolationService.sourceGift
+                ? 'complimentary_rentals'
+                : 'bookings',
+          )
+          .snapshots();
+
   @override
   Widget build(BuildContext context) {
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
@@ -492,6 +485,7 @@ class _PickRentalSheetState extends State<_PickRentalSheet> {
               if (v == null) return;
               setState(() {
                 sourceType = v;
+                _rentalsStream = _rentalsFor(v);
                 rentalId = null;
                 rentalData = null;
               });
@@ -499,25 +493,12 @@ class _PickRentalSheetState extends State<_PickRentalSheet> {
           ),
           const SizedBox(height: 12),
           StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection(
-                  sourceType == TrafficViolationService.sourceGift
-                      ? 'complimentary_rentals'
-                      : 'bookings',
-                )
-                .snapshots(),
+            stream: _rentalsStream,
             builder: (context, snapshot) {
               final docs = List<QueryDocumentSnapshot>.from(
                 snapshot.data?.docs ?? [],
               );
-              docs.sort((a, b) {
-                final aDate = (a.data() as Map)['createdAt'];
-                final bDate = (b.data() as Map)['createdAt'];
-                if (aDate is Timestamp && bDate is Timestamp) {
-                  return bDate.compareTo(aDate);
-                }
-                return 0;
-              });
+              docs.sort(compareCreatedAtDesc);
               final limited = docs.take(80).toList();
               if (limited.isEmpty) {
                 return const Text(

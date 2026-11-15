@@ -5,6 +5,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../models/geo_location.dart';
+import '../widgets/app_map.dart';
+import '../theme/app_theme.dart';
 
 class MapLocationPicker extends StatefulWidget {
   final String title;
@@ -25,7 +27,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
   final _mapController = MapController();
 
   static final _presets = <String, LatLng>{
-    'Cairo Downtown': const LatLng(30.0444, 31.2357),
+    'Cairo Downtown': kCairoLatLng,
     'Cairo Airport': const LatLng(30.1219, 31.4056),
     'Giza Pyramids': const LatLng(29.9792, 31.1342),
     'New Cairo': const LatLng(30.0300, 31.4700),
@@ -40,8 +42,8 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
       _pin = LatLng(initial.lat, initial.lng);
       _address = initial.address;
     } else {
-      _pin = const LatLng(30.0444, 31.2357);
-      _address = 'Cairo, Egypt';
+      _pin = kCairoLatLng;
+      _address = GeoLocation.cairo.address;
     }
   }
 
@@ -187,9 +189,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
                 IconButton.filled(
                   onPressed: _searchAddress,
                   icon: const Icon(Icons.search),
-                  style: IconButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF8C00),
-                  ),
+                  style: IconButton.styleFrom(backgroundColor: AppTheme.accent),
                 ),
               ],
             ),
@@ -224,38 +224,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
                     onTap: (_, point) => _reverseGeocode(point),
                   ),
                   children: [
-                    TileLayer(
-                      urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.example.gulflimousine_travel',
-                      tileBuilder: (context, tileWidget, tile) {
-                        return ColorFiltered(
-                          colorFilter: const ColorFilter.matrix([
-                            0.7,
-                            0,
-                            0,
-                            0,
-                            40,
-                            0,
-                            0.7,
-                            0,
-                            0,
-                            40,
-                            0,
-                            0,
-                            0.7,
-                            0,
-                            40,
-                            0,
-                            0,
-                            0,
-                            1,
-                            0,
-                          ]),
-                          child: tileWidget,
-                        );
-                      },
-                    ),
+                    appTileLayer(matrix: kLightMapMatrix),
                     MarkerLayer(
                       markers: [
                         Marker(
@@ -264,7 +233,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
                           height: 48,
                           child: const Icon(
                             Icons.location_on,
-                            color: Color(0xFFFF8C00),
+                            color: AppTheme.accent,
                             size: 48,
                           ),
                         ),

@@ -3,8 +3,14 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-const _accent = Color(0xFFFF8C00);
-const _primary = Color(0xFF000000);
+import '../utils/booking_fields.dart';
+import '../theme/app_theme.dart';
+
+export '../utils/booking_fields.dart';
+export 'status_colors.dart';
+
+/// Month labels for the charts' x axes ("Jan", "Feb", ...).
+final _monthFormat = DateFormat('MMM');
 
 class AdminAnalyticsSection extends StatelessWidget {
   final FirebaseFirestore firestore;
@@ -110,7 +116,9 @@ class RevenueTrendChart extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const _ChartCard(
             title: 'Revenue (Last 6 Months)',
-            child: Center(child: CircularProgressIndicator(color: _accent)),
+            child: Center(
+              child: CircularProgressIndicator(color: AppTheme.accent),
+            ),
           );
         }
 
@@ -188,12 +196,12 @@ class RevenueTrendChart extends StatelessWidget {
                             .map((e) => FlSpot(e.key.toDouble(), e.value))
                             .toList(),
                         isCurved: true,
-                        color: _accent,
+                        color: AppTheme.accent,
                         barWidth: 3,
                         dotData: const FlDotData(show: true),
                         belowBarData: BarAreaData(
                           show: true,
-                          color: _accent.withValues(alpha: 0.15),
+                          color: AppTheme.accent.withValues(alpha: 0.15),
                         ),
                       ),
                     ],
@@ -209,15 +217,15 @@ class RevenueTrendChart extends StatelessWidget {
     final months = <String, double>{};
     for (var i = 5; i >= 0; i--) {
       final d = DateTime(now.year, now.month - i, 1);
-      months[DateFormat('MMM').format(d)] = 0;
+      months[_monthFormat.format(d)] = 0;
     }
 
     for (final doc in docs) {
       final data = doc.data() as Map<String, dynamic>;
-      final date = _parseDate(data['payment_date']);
+      final date = parseFirestoreDate(data['payment_date']);
       if (date == null) continue;
 
-      final key = DateFormat('MMM').format(DateTime(date.year, date.month, 1));
+      final key = _monthFormat.format(DateTime(date.year, date.month, 1));
       if (months.containsKey(key)) {
         months[key] = months[key]! + (data['amount'] ?? 0).toDouble();
       }
@@ -232,7 +240,7 @@ class BookingStatusChart extends StatelessWidget {
   const BookingStatusChart({super.key, required this.firestore});
 
   static const _colors = [
-    _accent,
+    AppTheme.accent,
     Color(0xFF4CAF50),
     Color(0xFF2196F3),
     Color(0xFFE91E63),
@@ -249,7 +257,9 @@ class BookingStatusChart extends StatelessWidget {
           return const _ChartCard(
             title: 'Bookings by Status',
             height: 200,
-            child: Center(child: CircularProgressIndicator(color: _accent)),
+            child: Center(
+              child: CircularProgressIndicator(color: AppTheme.accent),
+            ),
           );
         }
 
@@ -336,7 +346,9 @@ class FleetAvailabilityChart extends StatelessWidget {
           return const _ChartCard(
             title: 'Fleet Availability',
             height: 200,
-            child: Center(child: CircularProgressIndicator(color: _accent)),
+            child: Center(
+              child: CircularProgressIndicator(color: AppTheme.accent),
+            ),
           );
         }
 
@@ -412,7 +424,9 @@ class MonthlyBookingsChart extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const _ChartCard(
             title: 'Bookings per Month',
-            child: Center(child: CircularProgressIndicator(color: _accent)),
+            child: Center(
+              child: CircularProgressIndicator(color: AppTheme.accent),
+            ),
           );
         }
 
@@ -483,7 +497,9 @@ class MonthlyBookingsChart extends StatelessWidget {
                         barRods: [
                           BarChartRodData(
                             toY: e.value.toDouble(),
-                            color: e.key.isEven ? _accent : _primary,
+                            color: e.key.isEven
+                                ? AppTheme.accent
+                                : AppTheme.primary,
                             width: 18,
                             borderRadius: const BorderRadius.vertical(
                               top: Radius.circular(6),
@@ -504,18 +520,18 @@ class MonthlyBookingsChart extends StatelessWidget {
     final months = <String, int>{};
     for (var i = 5; i >= 0; i--) {
       final d = DateTime(now.year, now.month - i, 1);
-      months[DateFormat('MMM').format(d)] = 0;
+      months[_monthFormat.format(d)] = 0;
     }
 
     for (final doc in docs) {
       final data = doc.data() as Map<String, dynamic>;
       final date =
-          _parseDate(data['createdAt']) ??
-          _parseDate(data['pickupDate']) ??
-          _parseDate(data['startDate']);
+          parseFirestoreDate(data['createdAt']) ??
+          parseFirestoreDate(data['pickupDate']) ??
+          parseFirestoreDate(data['startDate']);
       if (date == null) continue;
 
-      final key = DateFormat('MMM').format(DateTime(date.year, date.month, 1));
+      final key = _monthFormat.format(DateTime(date.year, date.month, 1));
       if (months.containsKey(key)) {
         months[key] = months[key]! + 1;
       }
@@ -578,124 +594,4 @@ class _EmptyChart extends StatelessWidget {
       ),
     );
   }
-}
-
-DateTime? _parseDate(dynamic value) {
-  if (value == null) return null;
-  if (value is Timestamp) return value.toDate();
-  if (value is DateTime) return value;
-  if (value is String) return DateTime.tryParse(value);
-  return null;
-}
-
-String formatBookingDate(dynamic value) {
-  final date = _parseDate(value);
-  if (date == null) {
-    if (value != null && value.toString().isNotEmpty) return value.toString();
-    return '';
-  }
-  return DateFormat('dd MMM yyyy').format(date);
-}
-
-String resolveBookingName(Map<String, dynamic> data) {
-  return data['userName'] ??
-      data['customerName'] ??
-      data['user_email'] ??
-      'Unknown';
-}
-
-String resolveBookingCar(Map<String, dynamic> data) {
-  return data['carName'] ?? data['car_name'] ?? 'Car';
-}
-
-String resolveBookingDateLabel(Map<String, dynamic> data) {
-  return formatBookingDate(
-    data['startDate'] ?? data['pickupDate'] ?? data['createdAt'],
-  );
-}
-
-Map<String, dynamic>? parseKmAllowance(Map<String, dynamic> booking) {
-  final km = booking['kmAllowance'];
-  if (km is Map) return Map<String, dynamic>.from(km);
-  return null;
-}
-
-Map<String, dynamic>? parseOdometer(Map<String, dynamic> booking) {
-  final odometer = booking['odometer'];
-  if (odometer is Map) return Map<String, dynamic>.from(odometer);
-  return null;
-}
-
-bool bookingHasExtraKmCharge(Map<String, dynamic> booking) {
-  final km = parseKmAllowance(booking);
-  final charge = (km?['extraKmChargeEgp'] as num?)?.toDouble() ?? 0;
-  return charge > 0;
-}
-
-String extraKmPaymentStatusLabel(Map<String, dynamic> booking) {
-  final status = (booking['extraKmPaymentStatus'] ?? '').toString();
-  switch (status) {
-    case 'paid':
-      return 'Paid';
-    case 'pending':
-      return 'Pending payment';
-    case 'not_applicable':
-      return 'No extra km';
-    default:
-      return status.isEmpty ? 'N/A' : status;
-  }
-}
-
-Color extraKmPaymentStatusColor(Map<String, dynamic> booking) {
-  final status = (booking['extraKmPaymentStatus'] ?? '').toString();
-  switch (status) {
-    case 'paid':
-      return Colors.green;
-    case 'pending':
-      return Colors.orange;
-    default:
-      return Colors.grey;
-  }
-}
-
-ExtraKmDashboardStats computeExtraKmStats(
-  List<QueryDocumentSnapshot> bookings,
-) {
-  var pendingCount = 0;
-  var pendingAmount = 0.0;
-  var paidAmount = 0.0;
-
-  for (final doc in bookings) {
-    final data = doc.data() as Map<String, dynamic>;
-    if (!bookingHasExtraKmCharge(data)) continue;
-
-    final km = parseKmAllowance(data)!;
-    final charge = (km['extraKmChargeEgp'] as num?)?.toDouble() ?? 0;
-    final status = (data['extraKmPaymentStatus'] ?? '').toString();
-
-    if (status == 'paid') {
-      paidAmount += charge;
-    } else if (status == 'pending') {
-      pendingCount++;
-      pendingAmount += charge;
-    }
-  }
-
-  return ExtraKmDashboardStats(
-    pendingCount: pendingCount,
-    pendingAmount: pendingAmount,
-    paidAmount: paidAmount,
-  );
-}
-
-class ExtraKmDashboardStats {
-  final int pendingCount;
-  final double pendingAmount;
-  final double paidAmount;
-
-  const ExtraKmDashboardStats({
-    required this.pendingCount,
-    required this.pendingAmount,
-    required this.paidAmount,
-  });
 }

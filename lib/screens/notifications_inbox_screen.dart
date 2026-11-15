@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../l10n/locale_service.dart';
+import '../utils/live_refresh.dart';
+import '../theme/app_theme.dart';
 
 class NotificationsInboxScreen extends StatelessWidget {
   const NotificationsInboxScreen({super.key});
@@ -17,9 +19,7 @@ class NotificationsInboxScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text(context.t('notificationsTitle'))),
       body: RefreshIndicator(
-        onRefresh: () async {
-          await Future<void>.delayed(const Duration(milliseconds: 600));
-        },
+        onRefresh: liveDataRefresh,
         child: StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
               .collection('users')
@@ -84,7 +84,7 @@ class NotificationsInboxScreen extends StatelessWidget {
         return ListTile(
           leading: Icon(
             Icons.notifications,
-            color: read ? Colors.grey : const Color(0xFFFF8C00),
+            color: read ? Colors.grey : AppTheme.accent,
           ),
           title: Text(
             data['title']?.toString() ?? '',

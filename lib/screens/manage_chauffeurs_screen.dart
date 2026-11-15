@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
+import '../utils/live_refresh.dart';
 
 class ManageChauffeursScreen extends StatelessWidget {
   const ManageChauffeursScreen({super.key});
@@ -147,9 +148,7 @@ class ManageChauffeursScreen extends StatelessWidget {
         onPressed: () => _openForm(context),
       ),
       body: RefreshIndicator(
-        onRefresh: () async {
-          await Future<void>.delayed(const Duration(milliseconds: 600));
-        },
+        onRefresh: liveDataRefresh,
         child: StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
               .collection('chauffeurs')

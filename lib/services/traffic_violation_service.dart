@@ -1,7 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
 
-import '../widgets/admin_charts.dart';
+import '../utils/booking_fields.dart';
 
 class TrafficViolationService {
   TrafficViolationService._();
@@ -18,10 +19,9 @@ class TrafficViolationService {
     return collection.snapshots();
   }
 
-  static Stream<QuerySnapshot<Map<String, dynamic>>> watchForRental({
-    required String sourceType,
-    required String rentalId,
-  }) {
+  static Stream<QuerySnapshot<Map<String, dynamic>>> watchForRental(
+    String rentalId,
+  ) {
     return collection.where('rentalId', isEqualTo: rentalId).snapshots();
   }
 
@@ -196,6 +196,14 @@ class TrafficViolationService {
   }
 
   static Future<void> delete(String id) => collection.doc(id).delete();
+
+  static final _dateFormat = DateFormat('dd MMM yyyy');
+
+  /// The ticket's violation date as "dd MMM yyyy", or '' if it has none.
+  static String violationDateLabel(Map<String, dynamic> data) {
+    final date = data['violationDate'];
+    return date is Timestamp ? _dateFormat.format(date.toDate()) : '';
+  }
 
   static double amountOf(Map<String, dynamic> data) {
     return (data['amount'] as num?)?.toDouble() ?? 0;

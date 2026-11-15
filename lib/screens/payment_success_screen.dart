@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'dashboard_screen.dart';
+import '../theme/app_theme.dart';
 
 class PaymentSuccessScreen extends StatelessWidget {
   final String title;
@@ -15,7 +16,7 @@ class PaymentSuccessScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFF8C00),
+      backgroundColor: AppTheme.accent,
       body: SafeArea(
         child: Center(
           child: Padding(
@@ -33,7 +34,7 @@ class PaymentSuccessScreen extends StatelessWidget {
                   child: const Icon(
                     Icons.check,
                     size: 70,
-                    color: Color(0xFFFF8C00),
+                    color: AppTheme.accent,
                   ),
                 ),
                 const SizedBox(height: 30),
@@ -57,7 +58,7 @@ class PaymentSuccessScreen extends StatelessWidget {
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFFFF8C00),
+                      foregroundColor: AppTheme.accent,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),

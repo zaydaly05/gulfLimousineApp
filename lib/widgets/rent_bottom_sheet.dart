@@ -8,6 +8,7 @@ import '../services/booking_service.dart';
 import 'expandable_address_row.dart';
 import '../l10n/locale_service.dart';
 import '../utils/rental_dates.dart';
+import '../theme/app_theme.dart';
 
 class RentBottomSheet extends StatefulWidget {
   final Map<String, dynamic> car;
@@ -210,7 +211,7 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFF8C00).withValues(alpha: 0.1),
+                  color: AppTheme.accent.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -224,7 +225,7 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
-                        color: Color(0xFFFF8C00),
+                        color: AppTheme.accent,
                       ),
                     ),
                   ],
@@ -270,11 +271,7 @@ class _DateRow extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(
-              Icons.calendar_today,
-              color: Color(0xFFFF8C00),
-              size: 20,
-            ),
+            const Icon(Icons.calendar_today, color: AppTheme.accent, size: 20),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -317,7 +314,7 @@ class _LocationRow extends StatelessWidget {
     required this.address,
     required this.onTap,
     this.icon = Icons.place,
-    this.iconColor = const Color(0xFFFF8C00),
+    this.iconColor = AppTheme.accent,
   });
 
   @override

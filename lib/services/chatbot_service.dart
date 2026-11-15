@@ -26,7 +26,7 @@ class ChatbotService {
     'Contact support',
   ];
 
-  CollectionReference<Map<String, dynamic>>? _messagesRef(String userId) {
+  CollectionReference<Map<String, dynamic>> _messagesRef(String userId) {
     return _firestore
         .collection('users')
         .doc(userId)
@@ -34,7 +34,7 @@ class ChatbotService {
   }
 
   Stream<List<ChatMessage>> watchMessages(String userId) {
-    return _messagesRef(userId)!
+    return _messagesRef(userId)
         .orderBy('createdAt', descending: false)
         .snapshots()
         .map(
@@ -45,11 +45,11 @@ class ChatbotService {
   }
 
   Future<void> saveMessage(String userId, ChatMessage message) async {
-    await _messagesRef(userId)!.doc(message.id).set(message.toMap());
+    await _messagesRef(userId).doc(message.id).set(message.toMap());
   }
 
   Future<void> clearHistory(String userId) async {
-    final snapshot = await _messagesRef(userId)!.get();
+    final snapshot = await _messagesRef(userId).get();
     final batch = _firestore.batch();
     for (final doc in snapshot.docs) {
       batch.delete(doc.reference);

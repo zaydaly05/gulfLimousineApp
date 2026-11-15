@@ -40,10 +40,4 @@ class FavoritesService {
       });
     }
   }
-
-  static Future<bool> isFavorite(String carId) async {
-    final ref = _ref;
-    if (ref == null) return false;
-    return (await ref.doc(carId).get()).exists;
-  }
 }

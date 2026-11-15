@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../l10n/locale_service.dart';
+import '../utils/booking_fields.dart';
+import '../theme/app_theme.dart';
 
-const _accent = Color(0xFFFF8C00);
-const _primary = Color(0xFF000000);
+/// Month labels for the charts' x axes ("Jan", "Feb", ...).
+final _monthFormat = DateFormat('MMM');
 
 class UserAnalyticsSection extends StatelessWidget {
   final String userId;
@@ -63,24 +65,35 @@ class _ChartCard extends StatelessWidget {
   }
 }
 
-class UserBookingStatusChart extends StatelessWidget {
+class UserBookingStatusChart extends StatefulWidget {
   final String userId;
 
   const UserBookingStatusChart({super.key, required this.userId});
 
   @override
+  State<UserBookingStatusChart> createState() => _UserBookingStatusChartState();
+}
+
+class _UserBookingStatusChartState extends State<UserBookingStatusChart> {
+  // Created once so dashboard rebuilds don't reopen the listener.
+  late final Stream<QuerySnapshot> _stream = FirebaseFirestore.instance
+      .collection('bookings')
+      .where('userId', isEqualTo: widget.userId)
+      .snapshots();
+
+  @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('bookings')
-          .where('userId', isEqualTo: userId)
-          .snapshots(),
+      stream: _stream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const _ChartCard(
             title: 'Booking Status',
             child: Center(
-              child: CircularProgressIndicator(color: _accent, strokeWidth: 2),
+              child: CircularProgressIndicator(
+                color: AppTheme.accent,
+                strokeWidth: 2,
+              ),
             ),
           );
         }
@@ -101,7 +114,7 @@ class UserBookingStatusChart extends StatelessWidget {
 
         final entries = counts.entries.toList();
         final colors = [
-          _accent,
+          AppTheme.accent,
           const Color(0xFF4CAF50),
           const Color(0xFF2196F3),
           const Color(0xFFE91E63),
@@ -134,24 +147,36 @@ class UserBookingStatusChart extends StatelessWidget {
   }
 }
 
-class UserMonthlyBookingsChart extends StatelessWidget {
+class UserMonthlyBookingsChart extends StatefulWidget {
   final String userId;
 
   const UserMonthlyBookingsChart({super.key, required this.userId});
 
   @override
+  State<UserMonthlyBookingsChart> createState() =>
+      _UserMonthlyBookingsChartState();
+}
+
+class _UserMonthlyBookingsChartState extends State<UserMonthlyBookingsChart> {
+  // Created once so dashboard rebuilds don't reopen the listener.
+  late final Stream<QuerySnapshot> _stream = FirebaseFirestore.instance
+      .collection('bookings')
+      .where('userId', isEqualTo: widget.userId)
+      .snapshots();
+
+  @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('bookings')
-          .where('userId', isEqualTo: userId)
-          .snapshots(),
+      stream: _stream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const _ChartCard(
             title: 'Monthly Activity',
             child: Center(
-              child: CircularProgressIndicator(color: _accent, strokeWidth: 2),
+              child: CircularProgressIndicator(
+                color: AppTheme.accent,
+                strokeWidth: 2,
+              ),
             ),
           );
         }
@@ -207,7 +232,7 @@ class UserMonthlyBookingsChart extends StatelessWidget {
                         barRods: [
                           BarChartRodData(
                             toY: e.value.toDouble(),
-                            color: _primary,
+                            color: AppTheme.primary,
                             width: 12,
                             borderRadius: const BorderRadius.vertical(
                               top: Radius.circular(4),
@@ -228,18 +253,18 @@ class UserMonthlyBookingsChart extends StatelessWidget {
     final months = <String, int>{};
     for (var i = 3; i >= 0; i--) {
       final d = DateTime(now.year, now.month - i, 1);
-      months[DateFormat('MMM').format(d)] = 0;
+      months[_monthFormat.format(d)] = 0;
     }
 
     for (final doc in docs) {
       final data = doc.data() as Map<String, dynamic>;
       final date =
-          _parseDate(data['createdAt']) ??
-          _parseDate(data['pickupDate']) ??
-          _parseDate(data['startDate']);
+          parseFirestoreDate(data['createdAt']) ??
+          parseFirestoreDate(data['pickupDate']) ??
+          parseFirestoreDate(data['startDate']);
       if (date == null) continue;
 
-      final key = DateFormat('MMM').format(DateTime(date.year, date.month, 1));
+      final key = _monthFormat.format(DateTime(date.year, date.month, 1));
       if (months.containsKey(key)) {
         months[key] = months[key]! + 1;
       }
@@ -262,12 +287,4 @@ class _EmptyChart extends StatelessWidget {
       ),
     );
   }
-}
-
-DateTime? _parseDate(dynamic value) {
-  if (value == null) return null;
-  if (value is Timestamp) return value.toDate();
-  if (value is DateTime) return value;
-  if (value is String) return DateTime.tryParse(value);
-  return null;
 }

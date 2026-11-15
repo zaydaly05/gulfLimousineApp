@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
+
 /// Multi-line address text with optional expand/collapse when it overflows.
 class ExpandableAddressText extends StatefulWidget {
   final String text;
@@ -12,7 +14,7 @@ class ExpandableAddressText extends StatefulWidget {
     required this.text,
     this.collapsedLines = 2,
     this.style = const TextStyle(fontWeight: FontWeight.w600, height: 1.35),
-    this.actionColor = const Color(0xFFFF8C00),
+    this.actionColor = AppTheme.accent,
   });
 
   @override
@@ -107,7 +109,7 @@ class ExpandableAddressRow extends StatelessWidget {
     required this.label,
     required this.address,
     this.icon = Icons.place,
-    this.iconColor = const Color(0xFFFF8C00),
+    this.iconColor = AppTheme.accent,
     this.collapsedLines = 2,
   });
 

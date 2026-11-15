@@ -20,14 +20,6 @@ class MapsLauncher {
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
-  static Future<void> openLocation(GeoLocation location) async {
-    if (!location.isValid) return;
-    final uri = Uri.parse(
-      'https://www.google.com/maps/search/?api=1&query=${location.lat},${location.lng}',
-    );
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
-  }
-
   static Future<void> callPhone(String phone) async {
     final cleaned = phone.replaceAll(RegExp(r'[^\d+]'), '');
     if (cleaned.isEmpty) return;

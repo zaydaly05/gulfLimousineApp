@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 
 import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
+import '../utils/live_refresh.dart';
 
 class ManageUsersScreen extends StatelessWidget {
   const ManageUsersScreen({super.key});
@@ -109,9 +110,7 @@ class ManageUsersScreen extends StatelessWidget {
         },
       ),
       body: RefreshIndicator(
-        onRefresh: () async {
-          await Future<void>.delayed(const Duration(milliseconds: 600));
-        },
+        onRefresh: liveDataRefresh,
         child: StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance.collection('users').snapshots(),
           builder: (context, snapshot) {

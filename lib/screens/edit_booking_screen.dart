@@ -8,9 +8,11 @@ import '../widgets/traffic_violations_admin_panel.dart';
 import '../services/traffic_violation_service.dart';
 import 'map_location_picker.dart';
 import 'update_trip_location_screen.dart';
-import 'video_viewer_screen.dart';
 import '../services/booking_service.dart';
 import '../utils/rental_dates.dart';
+import '../utils/booking_fields.dart';
+import '../widgets/condition_video_chips.dart';
+import '../widgets/dark_form_fields.dart';
 
 class EditBookingScreen extends StatefulWidget {
   final String bookingId;
@@ -28,6 +30,14 @@ class EditBookingScreen extends StatefulWidget {
 
 class _EditBookingScreenState extends State<EditBookingScreen> {
   final _formKey = GlobalKey<FormState>();
+
+  // Created once, not in build(): rebuilding it on every setState would
+  // reopen the Firestore listener and flash the loading spinner.
+  final _carsStream = FirebaseFirestore.instance.collection('cars').snapshots();
+  final _chauffeursStream = FirebaseFirestore.instance
+      .collection('chauffeurs')
+      .where('active', isEqualTo: true)
+      .snapshots();
 
   late final TextEditingController nameController;
   late final TextEditingController emailController;
@@ -99,8 +109,8 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
     pickupLocation = GeoLocation.tryParse(data['pickupLocation']);
     dropoffLocation = GeoLocation.tryParse(data['dropoffLocation']);
 
-    pickupDate = _parseDate(data['pickupDate'] ?? data['startDate']);
-    returnDate = _parseDate(data['returnDate']);
+    pickupDate = parseFirestoreDate(data['pickupDate'] ?? data['startDate']);
+    returnDate = parseFirestoreDate(data['returnDate']);
 
     final security = data['security'];
     _isImmobilized = security is Map && security['isImmobilized'] == true;
@@ -112,14 +122,6 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
     emailController.dispose();
     phoneController.dispose();
     super.dispose();
-  }
-
-  DateTime? _parseDate(dynamic value) {
-    if (value == null) return null;
-    if (value is Timestamp) return value.toDate();
-    if (value is DateTime) return value;
-    if (value is String) return DateTime.tryParse(value);
-    return null;
   }
 
   int get _days {
@@ -220,32 +222,17 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
         if (chauffeurId != null &&
             chauffeurId!.isNotEmpty &&
             chauffeurId != previousChauffeur) {
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(userId)
-              .collection('notifications')
-              .add({
-                'title': 'Chauffeur assigned',
-                'body':
-                    '$chauffeurName will drive your trip. Track from My Bookings.',
-                'type': 'chauffeur_assigned',
-                'bookingId': widget.bookingId,
-                'read': false,
-                'createdAt': FieldValue.serverTimestamp(),
-              });
+          await BookingService.notifyChauffeurAssigned(
+            userId: userId,
+            bookingId: widget.bookingId,
+            chauffeurName: chauffeurName,
+          );
         } else if (tripStatus != previousTrip) {
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(userId)
-              .collection('notifications')
-              .add({
-                'title': 'Trip update',
-                'body': 'Your trip is now ${tripStatus.replaceAll('_', ' ')}.',
-                'type': 'trip_$tripStatus',
-                'bookingId': widget.bookingId,
-                'read': false,
-                'createdAt': FieldValue.serverTimestamp(),
-              });
+          await BookingService.notifyTripStatusChanged(
+            userId: userId,
+            bookingId: widget.bookingId,
+            tripStatus: tripStatus,
+          );
         }
       }
 
@@ -312,14 +299,14 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
             24 + MediaQuery.viewPaddingOf(context).bottom,
           ),
           children: [
-            _field(nameController, 'Customer Name'),
-            _field(
+            DarkTextFormField(nameController, 'Customer Name'),
+            DarkTextFormField(
               emailController,
               'Email',
               type: TextInputType.emailAddress,
               required: false,
             ),
-            _field(
+            DarkTextFormField(
               phoneController,
               'Phone',
               type: TextInputType.phone,
@@ -327,7 +314,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
             ),
             const SizedBox(height: 8),
             StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('cars').snapshots(),
+              stream: _carsStream,
               builder: (context, snapshot) {
                 final cars = snapshot.data?.docs ?? [];
                 return DropdownButtonFormField<String>(
@@ -338,7 +325,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                       : null,
                   dropdownColor: Colors.grey.shade900,
                   style: const TextStyle(color: Colors.white),
-                  decoration: _decoration('Car'),
+                  decoration: darkInputDecoration('Car'),
                   hint: Text(
                     selectedCarName.isNotEmpty ? selectedCarName : 'Select car',
                     style: const TextStyle(color: Colors.white70),
@@ -373,7 +360,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
               initialValue: status,
               dropdownColor: Colors.grey.shade900,
               style: const TextStyle(color: Colors.white),
-              decoration: _decoration('Status'),
+              decoration: darkInputDecoration('Status'),
               items: _statuses
                   .map(
                     (s) => DropdownMenuItem(
@@ -391,7 +378,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
               initialValue: tripStatus,
               dropdownColor: Colors.grey.shade900,
               style: const TextStyle(color: Colors.white),
-              decoration: _decoration('Trip Status'),
+              decoration: darkInputDecoration('Trip Status'),
               items: _tripStatuses
                   .map(
                     (s) => DropdownMenuItem(
@@ -406,10 +393,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
             ),
             const SizedBox(height: 16),
             StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('chauffeurs')
-                  .where('active', isEqualTo: true)
-                  .snapshots(),
+              stream: _chauffeursStream,
               builder: (context, snapshot) {
                 final chauffeurs = snapshot.data?.docs ?? [];
                 return DropdownButtonFormField<String>(
@@ -420,7 +404,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                       : null,
                   dropdownColor: Colors.grey.shade900,
                   style: const TextStyle(color: Colors.white),
-                  decoration: _decoration('Chauffeur'),
+                  decoration: darkInputDecoration('Chauffeur'),
                   hint: Text(
                     chauffeurName.isNotEmpty
                         ? chauffeurName
@@ -498,44 +482,9 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                 ),
               ),
               const SizedBox(height: 4),
-              Row(
-                children: [
-                  if (widget.bookingData['pickupVideo'] != null)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: ActionChip(
-                        label: const Text('Pickup Video'),
-                        avatar: const Icon(Icons.play_circle_fill, size: 16),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => VideoViewerScreen(
-                                url: widget.bookingData['pickupVideo']['url'],
-                                title: 'Pickup Condition - $selectedCarName',
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  if (widget.bookingData['returnVideo'] != null)
-                    ActionChip(
-                      label: const Text('Return Video'),
-                      avatar: const Icon(Icons.play_circle_fill, size: 16),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => VideoViewerScreen(
-                              url: widget.bookingData['returnVideo']['url'],
-                              title: 'Return Condition - $selectedCarName',
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                ],
+              ConditionVideoChips(
+                booking: widget.bookingData,
+                carName: selectedCarName,
               ),
               const SizedBox(height: 8),
             ],
@@ -735,41 +684,6 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
           style: TextStyle(color: color, fontWeight: FontWeight.bold),
         ),
       ],
-    );
-  }
-
-  InputDecoration _decoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: const TextStyle(color: Colors.white70),
-      enabledBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: Colors.grey.shade700),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderSide: const BorderSide(color: Colors.orange),
-        borderRadius: BorderRadius.circular(10),
-      ),
-    );
-  }
-
-  Widget _field(
-    TextEditingController controller,
-    String label, {
-    TextInputType type = TextInputType.text,
-    bool required = true,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: TextFormField(
-        controller: controller,
-        keyboardType: type,
-        style: const TextStyle(color: Colors.white),
-        validator: required
-            ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null
-            : null,
-        decoration: _decoration(label),
-      ),
     );
   }
 

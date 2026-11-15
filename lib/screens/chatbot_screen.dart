@@ -7,6 +7,7 @@ import '../services/chatbot_service.dart';
 import '../services/gemini_chat_service.dart';
 import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
+import '../theme/app_theme.dart';
 
 class ChatbotScreen extends StatefulWidget {
   final String? userName;
@@ -260,7 +261,7 @@ class _MessageBubble extends StatelessWidget {
               if (!isUser) ...[
                 const CircleAvatar(
                   radius: 16,
-                  backgroundColor: Color(0xFFFF8C00),
+                  backgroundColor: AppTheme.accent,
                   child: Icon(
                     Icons.smart_toy_outlined,
                     color: Colors.white,
@@ -276,7 +277,7 @@ class _MessageBubble extends StatelessWidget {
                     vertical: 12,
                   ),
                   decoration: BoxDecoration(
-                    color: isUser ? const Color(0xFFFF8C00) : Colors.white,
+                    color: isUser ? AppTheme.accent : Colors.white,
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(18),
                       topRight: const Radius.circular(18),
@@ -324,10 +325,11 @@ class _MessageBubble extends StatelessWidget {
                       (suggestion) => ActionChip(
                         label: Text(suggestion),
                         onPressed: () => onSuggestionTap(suggestion),
-                        backgroundColor: const Color(0xFFFF8C00)
-                            .withValues(alpha: 0.12),
+                        backgroundColor: AppTheme.accent.withValues(
+                          alpha: 0.12,
+                        ),
                         labelStyle: const TextStyle(
-                          color: Color(0xFFFF8C00),
+                          color: AppTheme.accent,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -352,7 +354,7 @@ class _TypingBubble extends StatelessWidget {
         children: [
           const CircleAvatar(
             radius: 16,
-            backgroundColor: Color(0xFFFF8C00),
+            backgroundColor: AppTheme.accent,
             child: Icon(
               Icons.smart_toy_outlined,
               color: Colors.white,
@@ -465,7 +467,7 @@ class _ChatInput extends StatelessWidget {
                 const SizedBox(width: 8),
                 CircleAvatar(
                   radius: 24,
-                  backgroundColor: const Color(0xFFFF8C00),
+                  backgroundColor: AppTheme.accent,
                   child: IconButton(
                     onPressed: enabled ? onSend : null,
                     icon: const Icon(Icons.send, color: Colors.white),

@@ -158,7 +158,16 @@ class BookingService {
     return bookingRef.id;
   }
 
-  static Future<void> cancelBooking(String bookingId) async {
+  /// Loads a booking the signed-in customer owns (by uid or email), or
+  /// throws the same errors every customer action reports.
+  static Future<
+    ({
+      User user,
+      DocumentReference<Map<String, dynamic>> ref,
+      Map<String, dynamic> data,
+    })
+  >
+  _loadOwnedBooking(String bookingId) async {
     final user = _auth.currentUser;
     if (user == null) throw Exception('Not signed in');
 
@@ -170,6 +179,21 @@ class BookingService {
     if (data['userId'] != user.uid && data['user_email'] != user.email) {
       throw Exception('Not allowed');
     }
+    return (user: user, ref: ref, data: data);
+  }
+
+  /// Best effort: keeps the car's current odometer in step with bookings.
+  static Future<void> _updateCarOdometer(String? carId, int km) async {
+    if (carId == null || carId.isEmpty) return;
+    try {
+      await _firestore.collection('cars').doc(carId).update({
+        'current_odometer': km,
+      });
+    } catch (_) {}
+  }
+
+  static Future<void> cancelBooking(String bookingId) async {
+    final (:user, :ref, :data) = await _loadOwnedBooking(bookingId);
 
     final status = (data['status'] ?? '').toString().toLowerCase();
     if (status != 'pending' && status != 'confirmed') {
@@ -199,66 +223,31 @@ class BookingService {
     } catch (_) {}
   }
 
-  static Future<void> assignChauffeur({
+  /// Tells the customer a chauffeur was assigned to their booking.
+  static Future<void> notifyChauffeurAssigned({
+    required String userId,
     required String bookingId,
-    required String chauffeurId,
     required String chauffeurName,
-    required String chauffeurPhone,
-  }) async {
-    final bookingRef = _firestore.collection('bookings').doc(bookingId);
-    final doc = await bookingRef.get();
-    final userId = doc.data()?['userId']?.toString();
+  }) => _notifyUser(
+    userId: userId,
+    title: 'Chauffeur assigned',
+    body: '$chauffeurName will drive your trip. Track from My Bookings.',
+    type: 'chauffeur_assigned',
+    bookingId: bookingId,
+  );
 
-    final currentTrip = (doc.data()?['tripStatus'] ?? 'pending').toString();
-    await bookingRef.update({
-      'chauffeurId': chauffeurId,
-      'chauffeurName': chauffeurName,
-      'chauffeurPhone': chauffeurPhone,
-      if (currentTrip == 'pending' || currentTrip.isEmpty)
-        'tripStatus': 'assigned',
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-
-    if (userId != null && userId.isNotEmpty) {
-      await _notifyUser(
-        userId: userId,
-        title: 'Chauffeur assigned',
-        body: '$chauffeurName will drive your trip. Track from My Bookings.',
-        type: 'chauffeur_assigned',
-        bookingId: bookingId,
-      );
-    }
-  }
-
-  static Future<void> updateTripStatus({
+  /// Tells the customer their trip moved to [tripStatus].
+  static Future<void> notifyTripStatusChanged({
+    required String userId,
     required String bookingId,
     required String tripStatus,
-  }) async {
-    final bookingRef = _firestore.collection('bookings').doc(bookingId);
-    final doc = await bookingRef.get();
-    final userId = doc.data()?['userId']?.toString();
-
-    final updates = <String, dynamic>{
-      'tripStatus': tripStatus,
-      'updatedAt': FieldValue.serverTimestamp(),
-    };
-    if (tripStatus == 'completed') {
-      updates['status'] = 'completed';
-    }
-
-    await bookingRef.update(updates);
-
-    if (userId != null && userId.isNotEmpty) {
-      final label = tripStatus.replaceAll('_', ' ');
-      await _notifyUser(
-        userId: userId,
-        title: 'Trip update',
-        body: 'Your trip is now $label.',
-        type: 'trip_$tripStatus',
-        bookingId: bookingId,
-      );
-    }
-  }
+  }) => _notifyUser(
+    userId: userId,
+    title: 'Trip update',
+    body: 'Your trip is now ${tripStatus.replaceAll('_', ' ')}.',
+    type: 'trip_$tripStatus',
+    bookingId: bookingId,
+  );
 
   static Future<void> updateLiveLocation({
     required String bookingId,
@@ -267,13 +256,14 @@ class BookingService {
   }) async {
     final bookingRef = _firestore.collection('bookings').doc(bookingId);
 
-    // Simple Geofence Check (e.g., Cairo Center)
-    const centerLat = 30.0444;
-    const centerLng = 31.2357;
-    const maxRadiusKm = 100.0; // 100km radius
-
     final outside =
-        _calculateDistance(lat, lng, centerLat, centerLng) > maxRadiusKm;
+        _calculateDistance(
+          lat,
+          lng,
+          GeoLocation.cairoLat,
+          GeoLocation.cairoLng,
+        ) >
+        GeoLocation.geofenceRadiusKm;
     // Alert only when the car crosses out of the zone, not on every update
     // while it stays outside; `outsideGeofence` remembers the last state.
     final wasOutside =
@@ -436,17 +426,7 @@ class BookingService {
     required String photoUrl,
     required String photoPublicId,
   }) async {
-    final user = _auth.currentUser;
-    if (user == null) throw Exception('Not signed in');
-
-    final ref = _firestore.collection('bookings').doc(bookingId);
-    final doc = await ref.get();
-    if (!doc.exists) throw Exception('Booking not found');
-
-    final data = doc.data()!;
-    if (data['userId'] != user.uid && data['user_email'] != user.email) {
-      throw Exception('Not allowed');
-    }
+    final (:user, :ref, :data) = await _loadOwnedBooking(bookingId);
 
     final status = (data['status'] ?? '').toString().toLowerCase();
     if (status == 'cancelled' || status == 'completed') {
@@ -472,13 +452,7 @@ class BookingService {
       'updatedAt': FieldValue.serverTimestamp(),
     });
 
-    if (carId != null && carId.isNotEmpty) {
-      try {
-        await _firestore.collection('cars').doc(carId).update({
-          'current_odometer': km,
-        });
-      } catch (_) {}
-    }
+    await _updateCarOdometer(carId, km);
 
     try {
       await _notifyAdmins(
@@ -497,17 +471,7 @@ class BookingService {
     required String photoUrl,
     required String photoPublicId,
   }) async {
-    final user = _auth.currentUser;
-    if (user == null) throw Exception('Not signed in');
-
-    final ref = _firestore.collection('bookings').doc(bookingId);
-    final doc = await ref.get();
-    if (!doc.exists) throw Exception('Booking not found');
-
-    final data = doc.data()!;
-    if (data['userId'] != user.uid && data['user_email'] != user.email) {
-      throw Exception('Not allowed');
-    }
+    final (:user, :ref, :data) = await _loadOwnedBooking(bookingId);
 
     final odometer = data['odometer'];
     if (odometer is! Map) {
@@ -565,13 +529,7 @@ class BookingService {
       'updatedAt': FieldValue.serverTimestamp(),
     });
 
-    if (carId != null && carId.isNotEmpty) {
-      try {
-        await _firestore.collection('cars').doc(carId).update({
-          'current_odometer': km,
-        });
-      } catch (_) {}
-    }
+    await _updateCarOdometer(carId, km);
 
     if (billing.extraKmChargeEgp > 0) {
       await _firestore.collection('payments').add({

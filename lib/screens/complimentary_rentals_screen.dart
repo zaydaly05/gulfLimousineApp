@@ -9,6 +9,9 @@ import '../services/traffic_violation_service.dart';
 import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
 import '../utils/rental_dates.dart';
+import '../utils/booking_fields.dart';
+import '../utils/live_refresh.dart';
+import '../widgets/dark_form_fields.dart';
 
 class ComplimentaryRentalsScreen extends StatefulWidget {
   const ComplimentaryRentalsScreen({super.key});
@@ -20,6 +23,11 @@ class ComplimentaryRentalsScreen extends StatefulWidget {
 
 class _ComplimentaryRentalsScreenState
     extends State<ComplimentaryRentalsScreen> {
+  // Created once, not in build(): rebuilding it on every setState would
+  // reopen the Firestore listener and flash the loading spinner.
+  final _giftsStream = FirebaseFirestore.instance
+      .collection('complimentary_rentals')
+      .snapshots();
   String? _selectedPersonKey;
   String _period = 'all';
 
@@ -46,7 +54,7 @@ class _ComplimentaryRentalsScreenState
 
   bool _isOverdue(Map<String, dynamic> data) {
     if ((data['status'] ?? '') != 'active') return false;
-    final end = _asDate(data['endDate']);
+    final end = timestampDate(data['endDate']);
     if (end == null) return false;
     final today = DateTime.now();
     final endDay = DateTime(end.year, end.month, end.day);
@@ -54,20 +62,14 @@ class _ComplimentaryRentalsScreenState
     return endDay.isBefore(todayDay);
   }
 
-  DateTime? _asDate(dynamic value) {
-    if (value is Timestamp) return value.toDate();
-    if (value is DateTime) return value;
-    return null;
-  }
-
   String _fmt(dynamic value) {
-    final date = _asDate(value);
+    final date = timestampDate(value);
     if (date == null) return '';
     return DateFormat('dd MMM yyyy').format(date);
   }
 
   DateTime? _giftDate(Map<String, dynamic> data) {
-    return _asDate(data['startDate']) ?? _asDate(data['createdAt']);
+    return timestampDate(data['startDate']) ?? timestampDate(data['createdAt']);
   }
 
   double _giftedValue(Map<String, dynamic> data) {
@@ -215,14 +217,9 @@ class _ComplimentaryRentalsScreenState
         },
       ),
       body: RefreshIndicator(
-        onRefresh: () async {
-          setState(() {});
-          await Future<void>.delayed(const Duration(milliseconds: 600));
-        },
+        onRefresh: liveDataRefresh,
         child: StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('complimentary_rentals')
-              .snapshots(),
+          stream: _giftsStream,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -239,16 +236,7 @@ class _ComplimentaryRentalsScreenState
             final docs = List<QueryDocumentSnapshot>.from(
               snapshot.data?.docs ?? [],
             );
-            docs.sort((a, b) {
-              final aData = a.data() as Map<String, dynamic>;
-              final bData = b.data() as Map<String, dynamic>;
-              final aDate = aData['createdAt'];
-              final bDate = bData['createdAt'];
-              if (aDate is Timestamp && bDate is Timestamp) {
-                return bDate.compareTo(aDate);
-              }
-              return 0;
-            });
+            docs.sort(compareCreatedAtDesc);
 
             if (docs.isEmpty) {
               return const Center(
@@ -533,6 +521,9 @@ class AddComplimentaryRentalScreen extends StatefulWidget {
 class _AddComplimentaryRentalScreenState
     extends State<AddComplimentaryRentalScreen> {
   final _formKey = GlobalKey<FormState>();
+  // Created once, not in build(): rebuilding it on every setState would
+  // reopen the Firestore listener and flash the loading spinner.
+  final _carsStream = FirebaseFirestore.instance.collection('cars').snapshots();
   final name = TextEditingController();
   final phone = TextEditingController();
   final email = TextEditingController();
@@ -710,9 +701,14 @@ class _AddComplimentaryRentalScreenState
               style: TextStyle(color: Colors.white70),
             ),
             const SizedBox(height: 16),
-            _field(name, 'Recipient name'),
-            _field(phone, 'Phone', type: TextInputType.phone, required: false),
-            _field(
+            DarkTextFormField(name, 'Recipient name'),
+            DarkTextFormField(
+              phone,
+              'Phone',
+              type: TextInputType.phone,
+              required: false,
+            ),
+            DarkTextFormField(
               email,
               'Email',
               type: TextInputType.emailAddress,
@@ -722,7 +718,7 @@ class _AddComplimentaryRentalScreenState
               initialValue: reason,
               dropdownColor: Colors.grey.shade900,
               style: const TextStyle(color: Colors.white),
-              decoration: _decoration('Reason'),
+              decoration: darkInputDecoration('Reason'),
               items: _reasons
                   .map(
                     (r) => DropdownMenuItem(
@@ -737,7 +733,7 @@ class _AddComplimentaryRentalScreenState
             ),
             const SizedBox(height: 12),
             StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('cars').snapshots(),
+              stream: _carsStream,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Padding(
@@ -761,7 +757,7 @@ class _AddComplimentaryRentalScreenState
                   initialValue: selectedCarId,
                   dropdownColor: Colors.grey.shade900,
                   style: const TextStyle(color: Colors.white),
-                  decoration: _decoration('Car'),
+                  decoration: darkInputDecoration('Car'),
                   hint: const Text(
                     'Select car',
                     style: TextStyle(color: Colors.white70),
@@ -833,7 +829,7 @@ class _AddComplimentaryRentalScreenState
                 style: const TextStyle(color: Colors.orange),
               ),
             const SizedBox(height: 12),
-            _field(notes, 'Internal note', required: false),
+            DarkTextFormField(notes, 'Internal note', required: false),
             const SizedBox(height: 12),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -868,41 +864,6 @@ class _AddComplimentaryRentalScreenState
       labelStyle: const TextStyle(color: Colors.white),
       side: const BorderSide(color: Colors.orange),
       onPressed: () => _applyDuration(days),
-    );
-  }
-
-  InputDecoration _decoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: const TextStyle(color: Colors.white70),
-      enabledBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: Colors.grey.shade700),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderSide: const BorderSide(color: Colors.orange),
-        borderRadius: BorderRadius.circular(10),
-      ),
-    );
-  }
-
-  Widget _field(
-    TextEditingController controller,
-    String label, {
-    TextInputType type = TextInputType.text,
-    bool required = true,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: TextFormField(
-        controller: controller,
-        keyboardType: type,
-        style: const TextStyle(color: Colors.white),
-        validator: required
-            ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null
-            : null,
-        decoration: _decoration(label),
-      ),
     );
   }
 

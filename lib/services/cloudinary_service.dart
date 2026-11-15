@@ -114,8 +114,4 @@ class CloudinaryService {
           'resourceType': resourceType,
         });
   }
-
-  /// Alias for deleteAsset for backward compatibility
-  Future<void> deleteImage(String publicId) =>
-      deleteAsset(publicId, resourceType: 'image');
 }

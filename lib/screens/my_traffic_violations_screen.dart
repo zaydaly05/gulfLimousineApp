@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import '../services/traffic_violation_service.dart';
 import 'card_payment.dart';
@@ -9,6 +8,10 @@ import 'instapay_screen.dart';
 import 'payment_success_screen.dart';
 import 'wallet_payment_screen.dart';
 import '../l10n/locale_service.dart';
+import '../utils/booking_fields.dart';
+import '../utils/live_refresh.dart';
+import '../widgets/payment_method_tile.dart';
+import '../theme/app_theme.dart';
 
 class MyTrafficViolationsScreen extends StatelessWidget {
   const MyTrafficViolationsScreen({super.key});
@@ -23,46 +26,48 @@ class MyTrafficViolationsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text(context.t('trafficTickets'))),
       body: RefreshIndicator(
-        onRefresh: () async {
-          await Future<void>.delayed(const Duration(milliseconds: 600));
-        },
+        onRefresh: liveDataRefresh,
         child: _UserViolationsList(user: user),
       ),
     );
   }
 }
 
-class _UserViolationsList extends StatelessWidget {
+class _UserViolationsList extends StatefulWidget {
   final User user;
 
   const _UserViolationsList({required this.user});
 
   @override
+  State<_UserViolationsList> createState() => _UserViolationsListState();
+}
+
+class _UserViolationsListState extends State<_UserViolationsList> {
+  // Both listeners are created once. Building the inner one inside the outer
+  // builder reopened it on every update of the outer stream.
+  late final _byIdStream = TrafficViolationService.watchForUserId(
+    widget.user.uid,
+  );
+  late final _byEmailStream = (widget.user.email ?? '').isEmpty
+      ? Stream<QuerySnapshot<Map<String, dynamic>>>.empty()
+      : TrafficViolationService.watchForEmail(widget.user.email!);
+
+  @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: TrafficViolationService.watchForUserId(user.uid),
+      stream: _byIdStream,
       builder: (context, byId) {
         return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-          stream: (user.email ?? '').isEmpty
-              ? Stream<QuerySnapshot<Map<String, dynamic>>>.empty()
-              : TrafficViolationService.watchForEmail(user.email!),
+          stream: _byEmailStream,
           builder: (context, byEmail) {
             final merged =
                 <String, QueryDocumentSnapshot<Map<String, dynamic>>>{};
             for (final doc in [...?byId.data?.docs, ...?byEmail.data?.docs]) {
               merged[doc.id] = doc;
             }
-            final docs =
-                merged.values.where((doc) {
-                  return (doc.data()['status'] ?? '') != 'waived';
-                }).toList()..sort((a, b) {
-                  final aDate = a.data()['createdAt'];
-                  final bDate = b.data()['createdAt'];
-                  if (aDate is Timestamp && bDate is Timestamp) {
-                    return bDate.compareTo(aDate);
-                  }
-                  return 0;
-                });
+            final docs = merged.values.where((doc) {
+              return (doc.data()['status'] ?? '') != 'waived';
+            }).toList()..sort(compareCreatedAtDesc);
 
             if (byId.connectionState == ConnectionState.waiting &&
                 docs.isEmpty) {
@@ -105,10 +110,9 @@ class _UserViolationsList extends StatelessWidget {
                 final pending = status == 'pending';
                 final awaitingCash =
                     pending && (data['payment_method'] ?? '') == 'cash';
-                final date = data['violationDate'];
-                final dateLabel = date is Timestamp
-                    ? DateFormat('dd MMM yyyy').format(date.toDate())
-                    : '';
+                final dateLabel = TrafficViolationService.violationDateLabel(
+                  data,
+                );
                 final amount = TrafficViolationService.amountOf(data);
 
                 return Card(
@@ -120,7 +124,7 @@ class _UserViolationsList extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.gavel, color: Color(0xFFFF8C00)),
+                            const Icon(Icons.gavel, color: AppTheme.accent),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -154,7 +158,7 @@ class _UserViolationsList extends StatelessWidget {
                           '${dateLabel.isEmpty ? '' : ' · $dateLabel'}',
                           style: const TextStyle(
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFFFF8C00),
+                            color: AppTheme.accent,
                           ),
                         ),
                         if ((data['ticketNumber'] ?? '').toString().isNotEmpty)
@@ -175,7 +179,7 @@ class _UserViolationsList extends StatelessWidget {
                             width: double.infinity,
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFFF8C00),
+                                backgroundColor: AppTheme.accent,
                               ),
                               onPressed: () {
                                 Navigator.push(
@@ -276,10 +280,7 @@ class _ViolationPaymentScreenState extends State<ViolationPaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final date = widget.data['violationDate'];
-    final dateLabel = date is Timestamp
-        ? DateFormat('dd MMM yyyy').format(date.toDate())
-        : '';
+    final dateLabel = TrafficViolationService.violationDateLabel(widget.data);
 
     return Scaffold(
       appBar: AppBar(title: Text(context.t('ticketSummary'))),
@@ -346,34 +347,34 @@ class _ViolationPaymentScreenState extends State<ViolationPaymentScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                _method(
-                  Icons.credit_card,
-                  context.t('card'),
-                  () => _payWithMethod(
+                PaymentMethodTile(
+                  icon: Icons.credit_card,
+                  title: context.t('card'),
+                  onTap: () => _payWithMethod(
                     'card',
                     CardPaymentScreen(amount: _amount),
                   ),
                 ),
-                _method(
-                  Icons.account_balance_wallet,
-                  context.t('wallet'),
-                  () => _payWithMethod(
+                PaymentMethodTile(
+                  icon: Icons.account_balance_wallet,
+                  title: context.t('wallet'),
+                  onTap: () => _payWithMethod(
                     'wallet',
                     WalletPaymentScreen(amount: _amount),
                   ),
                 ),
-                _method(
-                  Icons.phone_android,
-                  context.t('instapay'),
-                  () => _payWithMethod(
+                PaymentMethodTile(
+                  icon: Icons.phone_android,
+                  title: context.t('instapay'),
+                  onTap: () => _payWithMethod(
                     'instapay',
                     InstaPayScreen(amount: _amount),
                   ),
                 ),
-                _method(
-                  Icons.money,
-                  context.t('cashPickup'),
-                  () => _completePayment('cash', paid: false),
+                PaymentMethodTile(
+                  icon: Icons.money,
+                  title: context.t('cashPickup'),
+                  onTap: () => _completePayment('cash', paid: false),
                   subtitle: context.t('cashPickupHint'),
                 ),
               ],
@@ -395,32 +396,11 @@ class _ViolationPaymentScreenState extends State<ViolationPaymentScreen> {
               style: TextStyle(
                 fontWeight: bold ? FontWeight.bold : FontWeight.w500,
                 fontSize: bold ? 18 : 14,
-                color: bold ? const Color(0xFFFF8C00) : null,
+                color: bold ? AppTheme.accent : null,
               ),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _method(
-    IconData icon,
-    String title,
-    VoidCallback onTap, {
-    String? subtitle,
-  }) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: const Color(0xFFFF8C00).withValues(alpha: 0.15),
-          child: Icon(icon, color: const Color(0xFFFF8C00)),
-        ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: subtitle != null ? Text(subtitle) : null,
-        trailing: const Icon(Icons.chevron_right),
-        onTap: onTap,
       ),
     );
   }

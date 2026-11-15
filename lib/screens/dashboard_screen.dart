@@ -20,6 +20,7 @@ import '../services/traffic_violation_service.dart';
 import '../widgets/language_picker.dart';
 import '../widgets/user_charts.dart';
 import '../l10n/locale_service.dart';
+import '../theme/app_theme.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -143,7 +144,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       drawer: _buildDrawer(context),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openChatbot,
-        backgroundColor: const Color(0xFFFF8C00),
+        backgroundColor: AppTheme.accent,
         icon: const Icon(Icons.smart_toy_outlined),
         label: Text(context.t('askAi')),
       ),
@@ -247,7 +248,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               currentAccountPicture: Container(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFFF8C00), width: 2),
+                  border: Border.all(color: AppTheme.accent, width: 2),
                 ),
                 child: CircleAvatar(
                   backgroundColor: const Color(0xFF333333),
@@ -345,7 +346,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   ListTile _drawerTile(IconData icon, String title, VoidCallback onTap) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFFFF8C00)),
+      leading: Icon(icon, color: AppTheme.accent),
       title: Text(title),
       onTap: onTap,
     );
@@ -403,7 +404,7 @@ class _WelcomeBanner extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             context.t('luxuryTagline'),
-            style: const TextStyle(color: Color(0xFFFF8C00), fontSize: 13),
+            style: const TextStyle(color: AppTheme.accent, fontSize: 13),
           ),
         ],
       ),
@@ -483,7 +484,7 @@ class _UserStatsSectionState extends State<_UserStatsSection> {
                       child: _UserStatCard(
                         title: context.t('bookings'),
                         icon: Icons.calendar_today_outlined,
-                        accent: const Color(0xFFFF8C00),
+                        accent: AppTheme.accent,
                         value: '$bookingsCount',
                         onTap: widget.onBookingsTap,
                       ),
@@ -508,7 +509,7 @@ class _UserStatsSectionState extends State<_UserStatsSection> {
                       child: _UserStatCard(
                         title: context.t('cars'),
                         icon: Icons.directions_car_outlined,
-                        accent: const Color(0xFFFF8C00),
+                        accent: AppTheme.accent,
                         value: '$availableCarsCount',
                         onTap: widget.onCarsTap,
                       ),
@@ -692,11 +693,10 @@ class _RecentBookingsState extends State<_RecentBookings> {
               margin: const EdgeInsets.only(bottom: 8),
               child: ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: const Color(0xFFFF8C00)
-                      .withValues(alpha: 0.2),
+                  backgroundColor: AppTheme.accent.withValues(alpha: 0.2),
                   child: const Icon(
                     Icons.directions_car,
-                    color: Color(0xFFFF8C00),
+                    color: AppTheme.accent,
                   ),
                 ),
                 title: Text(resolveBookingCar(data)),
@@ -717,27 +717,38 @@ class _RecentBookingsState extends State<_RecentBookings> {
   }
 }
 
-class _UserTrafficTicketsBanner extends StatelessWidget {
+class _UserTrafficTicketsBanner extends StatefulWidget {
   final String? userId;
   final String email;
 
   const _UserTrafficTicketsBanner({required this.userId, required this.email});
 
   @override
+  State<_UserTrafficTicketsBanner> createState() =>
+      _UserTrafficTicketsBannerState();
+}
+
+class _UserTrafficTicketsBannerState extends State<_UserTrafficTicketsBanner> {
+  // Both listeners are created once. Building the inner one inside the outer
+  // builder reopened it on every update of the outer stream.
+  late final _byIdStream = widget.userId == null
+      ? Stream<QuerySnapshot<Map<String, dynamic>>>.empty()
+      : TrafficViolationService.watchForUserId(widget.userId!);
+  late final _byEmailStream = widget.email.isEmpty
+      ? Stream<QuerySnapshot<Map<String, dynamic>>>.empty()
+      : TrafficViolationService.watchForEmail(widget.email);
+
+  @override
   Widget build(BuildContext context) {
-    if (userId == null && email.isEmpty) {
+    if (widget.userId == null && widget.email.isEmpty) {
       return const SizedBox.shrink();
     }
 
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: userId == null
-          ? Stream<QuerySnapshot<Map<String, dynamic>>>.empty()
-          : TrafficViolationService.watchForUserId(userId!),
+      stream: _byIdStream,
       builder: (context, byId) {
         return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-          stream: email.isEmpty
-              ? Stream<QuerySnapshot<Map<String, dynamic>>>.empty()
-              : TrafficViolationService.watchForEmail(email),
+          stream: _byEmailStream,
           builder: (context, byEmail) {
             final merged = <String, Map<String, dynamic>>{};
             for (final doc in [...?byId.data?.docs, ...?byEmail.data?.docs]) {
@@ -770,7 +781,7 @@ class _UserTrafficTicketsBanner extends StatelessWidget {
                   padding: const EdgeInsets.all(16),
                   child: Row(
                     children: [
-                      const Icon(Icons.gavel, color: Color(0xFFFF8C00)),
+                      const Icon(Icons.gavel, color: AppTheme.accent),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -798,11 +809,11 @@ class _UserTrafficTicketsBanner extends StatelessWidget {
                       Text(
                         context.t('pay'),
                         style: const TextStyle(
-                          color: Color(0xFFFF8C00),
+                          color: AppTheme.accent,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const Icon(Icons.chevron_right, color: Color(0xFFFF8C00)),
+                      const Icon(Icons.chevron_right, color: AppTheme.accent),
                     ],
                   ),
                 ),

@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../services/traffic_violation_service.dart';
+import '../utils/booking_fields.dart';
+import 'status_colors.dart';
 
-class TrafficViolationsAdminPanel extends StatelessWidget {
+class TrafficViolationsAdminPanel extends StatefulWidget {
   final String sourceType;
   final String rentalId;
   final Map<String, dynamic> rentalData;
@@ -34,39 +36,41 @@ class TrafficViolationsAdminPanel extends StatelessWidget {
     );
   }
 
-  Color _statusColor(String status) {
-    switch (status) {
-      case 'paid':
-        return Colors.green;
-      case 'waived':
-        return Colors.grey;
-      default:
-        return Colors.orange;
+  @override
+  State<TrafficViolationsAdminPanel> createState() =>
+      _TrafficViolationsAdminPanelState();
+}
+
+class _TrafficViolationsAdminPanelState
+    extends State<TrafficViolationsAdminPanel> {
+  // One listener per panel, kept across rebuilds of the list it sits in;
+  // re-created only if the panel is reused for another rental.
+  late Stream<QuerySnapshot<Map<String, dynamic>>> _stream =
+      TrafficViolationService.watchForRental(widget.rentalId);
+
+  @override
+  void didUpdateWidget(TrafficViolationsAdminPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.rentalId != widget.rentalId) {
+      _stream = TrafficViolationService.watchForRental(widget.rentalId);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: TrafficViolationService.watchForRental(
-        sourceType: sourceType,
-        rentalId: rentalId,
-      ),
+      stream: _stream,
       builder: (context, snapshot) {
         final docs =
             List<QueryDocumentSnapshot<Map<String, dynamic>>>.from(
                   snapshot.data?.docs ?? [],
                 )
-                .where((doc) => (doc.data()['sourceType'] ?? '') == sourceType)
+                .where(
+                  (doc) =>
+                      (doc.data()['sourceType'] ?? '') == widget.sourceType,
+                )
                 .toList();
-        docs.sort((a, b) {
-          final aDate = a.data()['createdAt'];
-          final bDate = b.data()['createdAt'];
-          if (aDate is Timestamp && bDate is Timestamp) {
-            return bDate.compareTo(aDate);
-          }
-          return 0;
-        });
+        docs.sort(compareCreatedAtDesc);
         final pending = TrafficViolationService.pendingTotal(docs);
 
         return Container(
@@ -94,11 +98,11 @@ class TrafficViolationsAdminPanel extends StatelessWidget {
                     ),
                   ),
                   TextButton.icon(
-                    onPressed: () => openAddDialog(
+                    onPressed: () => TrafficViolationsAdminPanel.openAddDialog(
                       context: context,
-                      sourceType: sourceType,
-                      rentalId: rentalId,
-                      rentalData: rentalData,
+                      sourceType: widget.sourceType,
+                      rentalId: widget.rentalId,
+                      rentalData: widget.rentalData,
                     ),
                     icon: const Icon(Icons.add, size: 18),
                     label: const Text('Add'),
@@ -117,15 +121,13 @@ class TrafficViolationsAdminPanel extends StatelessWidget {
                       : '${docs.length} recorded · none pending',
                   style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
                 ),
-                if (!compact) ...[
+                if (!widget.compact) ...[
                   const SizedBox(height: 8),
                   ...docs.map((doc) {
                     final data = doc.data();
                     final status = (data['status'] ?? 'pending').toString();
-                    final date = data['violationDate'];
-                    final dateLabel = date is Timestamp
-                        ? DateFormat('dd MMM yyyy').format(date.toDate())
-                        : '';
+                    final dateLabel =
+                        TrafficViolationService.violationDateLabel(data);
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: Row(
@@ -149,7 +151,7 @@ class TrafficViolationsAdminPanel extends StatelessWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: _statusColor(status)
+                              color: violationStatusColor(status)
                                   .withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -158,7 +160,7 @@ class TrafficViolationsAdminPanel extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
-                                color: _statusColor(status),
+                                color: violationStatusColor(status),
                               ),
                             ),
                           ),

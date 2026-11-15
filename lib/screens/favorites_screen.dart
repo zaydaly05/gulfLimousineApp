@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../services/favorites_service.dart';
 import '../widgets/rent_bottom_sheet.dart';
 import '../l10n/locale_service.dart';
+import '../utils/live_refresh.dart';
 
 class FavoritesScreen extends StatelessWidget {
   const FavoritesScreen({super.key});
@@ -13,9 +14,7 @@ class FavoritesScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text(context.t('favoritesTitle'))),
       body: RefreshIndicator(
-        onRefresh: () async {
-          await Future<void>.delayed(const Duration(milliseconds: 600));
-        },
+        onRefresh: liveDataRefresh,
         child: StreamBuilder<QuerySnapshot>(
           stream: FavoritesService.watchFavorites(),
           builder: (context, snapshot) {
