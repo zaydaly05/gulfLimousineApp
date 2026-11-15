@@ -4,12 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../utils/booking_fields.dart';
+import '../theme/app_theme.dart';
 
 export '../utils/booking_fields.dart';
 export 'status_colors.dart';
-
-const _accent = Color(0xFFFF8C00);
-const _primary = Color(0xFF000000);
 
 class AdminAnalyticsSection extends StatelessWidget {
   final FirebaseFirestore firestore;
@@ -115,7 +113,9 @@ class RevenueTrendChart extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const _ChartCard(
             title: 'Revenue (Last 6 Months)',
-            child: Center(child: CircularProgressIndicator(color: _accent)),
+            child: Center(
+              child: CircularProgressIndicator(color: AppTheme.accent),
+            ),
           );
         }
 
@@ -193,12 +193,12 @@ class RevenueTrendChart extends StatelessWidget {
                             .map((e) => FlSpot(e.key.toDouble(), e.value))
                             .toList(),
                         isCurved: true,
-                        color: _accent,
+                        color: AppTheme.accent,
                         barWidth: 3,
                         dotData: const FlDotData(show: true),
                         belowBarData: BarAreaData(
                           show: true,
-                          color: _accent.withValues(alpha: 0.15),
+                          color: AppTheme.accent.withValues(alpha: 0.15),
                         ),
                       ),
                     ],
@@ -237,7 +237,7 @@ class BookingStatusChart extends StatelessWidget {
   const BookingStatusChart({super.key, required this.firestore});
 
   static const _colors = [
-    _accent,
+    AppTheme.accent,
     Color(0xFF4CAF50),
     Color(0xFF2196F3),
     Color(0xFFE91E63),
@@ -254,7 +254,9 @@ class BookingStatusChart extends StatelessWidget {
           return const _ChartCard(
             title: 'Bookings by Status',
             height: 200,
-            child: Center(child: CircularProgressIndicator(color: _accent)),
+            child: Center(
+              child: CircularProgressIndicator(color: AppTheme.accent),
+            ),
           );
         }
 
@@ -341,7 +343,9 @@ class FleetAvailabilityChart extends StatelessWidget {
           return const _ChartCard(
             title: 'Fleet Availability',
             height: 200,
-            child: Center(child: CircularProgressIndicator(color: _accent)),
+            child: Center(
+              child: CircularProgressIndicator(color: AppTheme.accent),
+            ),
           );
         }
 
@@ -417,7 +421,9 @@ class MonthlyBookingsChart extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const _ChartCard(
             title: 'Bookings per Month',
-            child: Center(child: CircularProgressIndicator(color: _accent)),
+            child: Center(
+              child: CircularProgressIndicator(color: AppTheme.accent),
+            ),
           );
         }
 
@@ -488,7 +494,9 @@ class MonthlyBookingsChart extends StatelessWidget {
                         barRods: [
                           BarChartRodData(
                             toY: e.value.toDouble(),
-                            color: e.key.isEven ? _accent : _primary,
+                            color: e.key.isEven
+                                ? AppTheme.accent
+                                : AppTheme.primary,
                             width: 18,
                             borderRadius: const BorderRadius.vertical(
                               top: Radius.circular(6),

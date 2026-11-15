@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/locale_service.dart';
+import '../theme/app_theme.dart';
 
 class LanguagePicker extends StatelessWidget {
   final bool compact;
@@ -91,7 +92,7 @@ class LanguageToggleButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final service = LocaleService.instance;
     final isAr = service.isArabic;
-    final color = dark ? Colors.orange : const Color(0xFFFF8C00);
+    final color = dark ? Colors.orange : AppTheme.accent;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),

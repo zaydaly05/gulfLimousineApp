@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 import '../models/geo_location.dart';
 import '../services/maps_launcher.dart';
 import '../widgets/app_map.dart';
+import '../theme/app_theme.dart';
 
 class TrackTripScreen extends StatelessWidget {
   final String bookingId;
@@ -59,16 +60,13 @@ class TrackTripScreen extends StatelessWidget {
                 height: 44,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFF8C00).withValues(alpha: 0.2),
+                    color: AppTheme.accent.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color(0xFFFF8C00),
-                      width: 2,
-                    ),
+                    border: Border.all(color: AppTheme.accent, width: 2),
                   ),
                   child: const Icon(
                     Icons.place,
-                    color: Color(0xFFFF8C00),
+                    color: AppTheme.accent,
                     size: 24,
                   ),
                 ),

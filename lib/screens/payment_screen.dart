@@ -9,6 +9,7 @@ import 'payment_success_screen.dart';
 import 'rental_agreement_screen.dart';
 import 'wallet_payment_screen.dart';
 import '../widgets/payment_method_tile.dart';
+import '../theme/app_theme.dart';
 
 class PaymentScreen extends StatefulWidget {
   final RentalDetails rental;
@@ -260,7 +261,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             style: TextStyle(
               fontWeight: bold ? FontWeight.bold : FontWeight.w500,
               fontSize: bold ? 18 : 14,
-              color: bold ? const Color(0xFFFF8C00) : null,
+              color: bold ? AppTheme.accent : null,
             ),
           ),
         ],

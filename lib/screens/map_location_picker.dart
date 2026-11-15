@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../models/geo_location.dart';
 import '../widgets/app_map.dart';
+import '../theme/app_theme.dart';
 
 class MapLocationPicker extends StatefulWidget {
   final String title;
@@ -188,9 +189,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
                 IconButton.filled(
                   onPressed: _searchAddress,
                   icon: const Icon(Icons.search),
-                  style: IconButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF8C00),
-                  ),
+                  style: IconButton.styleFrom(backgroundColor: AppTheme.accent),
                 ),
               ],
             ),
@@ -234,7 +233,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
                           height: 48,
                           child: const Icon(
                             Icons.location_on,
-                            color: Color(0xFFFF8C00),
+                            color: AppTheme.accent,
                             size: 48,
                           ),
                         ),

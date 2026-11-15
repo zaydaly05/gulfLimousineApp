@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
+
 /// A payment option row (icon, title, optional hint) used by every checkout.
 class PaymentMethodTile extends StatelessWidget {
   final IconData icon;
@@ -21,8 +23,8 @@ class PaymentMethodTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: const Color(0xFFFF8C00).withValues(alpha: 0.15),
-          child: Icon(icon, color: const Color(0xFFFF8C00)),
+          backgroundColor: AppTheme.accent.withValues(alpha: 0.15),
+          child: Icon(icon, color: AppTheme.accent),
         ),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: subtitle != null ? Text(subtitle!) : null,

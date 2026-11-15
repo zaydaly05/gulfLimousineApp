@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
+
 class ReviewBookingScreen extends StatefulWidget {
   final String bookingId;
   final Map<String, dynamic> bookingData;
@@ -120,7 +122,7 @@ class _ReviewBookingScreenState extends State<ReviewBookingScreen> {
                   onPressed: () => setState(() => _rating = star),
                   icon: Icon(
                     star <= _rating ? Icons.star : Icons.star_border,
-                    color: const Color(0xFFFF8C00),
+                    color: AppTheme.accent,
                     size: 36,
                   ),
                 );

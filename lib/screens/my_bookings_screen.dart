@@ -15,6 +15,7 @@ import 'track_trip_screen.dart';
 import '../l10n/locale_service.dart';
 import '../utils/live_refresh.dart';
 import '../widgets/condition_video_chips.dart';
+import '../theme/app_theme.dart';
 
 class MyBookingsScreen extends StatelessWidget {
   const MyBookingsScreen({super.key});
@@ -253,7 +254,7 @@ class _BookingCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.directions_car, color: Color(0xFFFF8C00)),
+                const Icon(Icons.directions_car, color: AppTheme.accent),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(

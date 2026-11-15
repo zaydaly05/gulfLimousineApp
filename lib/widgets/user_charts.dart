@@ -5,9 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../l10n/locale_service.dart';
 import '../utils/booking_fields.dart';
-
-const _accent = Color(0xFFFF8C00);
-const _primary = Color(0xFF000000);
+import '../theme/app_theme.dart';
 
 class UserAnalyticsSection extends StatelessWidget {
   final String userId;
@@ -81,7 +79,10 @@ class UserBookingStatusChart extends StatelessWidget {
           return const _ChartCard(
             title: 'Booking Status',
             child: Center(
-              child: CircularProgressIndicator(color: _accent, strokeWidth: 2),
+              child: CircularProgressIndicator(
+                color: AppTheme.accent,
+                strokeWidth: 2,
+              ),
             ),
           );
         }
@@ -102,7 +103,7 @@ class UserBookingStatusChart extends StatelessWidget {
 
         final entries = counts.entries.toList();
         final colors = [
-          _accent,
+          AppTheme.accent,
           const Color(0xFF4CAF50),
           const Color(0xFF2196F3),
           const Color(0xFFE91E63),
@@ -152,7 +153,10 @@ class UserMonthlyBookingsChart extends StatelessWidget {
           return const _ChartCard(
             title: 'Monthly Activity',
             child: Center(
-              child: CircularProgressIndicator(color: _accent, strokeWidth: 2),
+              child: CircularProgressIndicator(
+                color: AppTheme.accent,
+                strokeWidth: 2,
+              ),
             ),
           );
         }
@@ -208,7 +212,7 @@ class UserMonthlyBookingsChart extends StatelessWidget {
                         barRods: [
                           BarChartRodData(
                             toY: e.value.toDouble(),
-                            color: _primary,
+                            color: AppTheme.primary,
                             width: 12,
                             borderRadius: const BorderRadius.vertical(
                               top: Radius.circular(4),

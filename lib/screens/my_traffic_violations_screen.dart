@@ -12,6 +12,7 @@ import '../l10n/locale_service.dart';
 import '../utils/booking_fields.dart';
 import '../utils/live_refresh.dart';
 import '../widgets/payment_method_tile.dart';
+import '../theme/app_theme.dart';
 
 class MyTrafficViolationsScreen extends StatelessWidget {
   const MyTrafficViolationsScreen({super.key});
@@ -113,7 +114,7 @@ class _UserViolationsList extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.gavel, color: Color(0xFFFF8C00)),
+                            const Icon(Icons.gavel, color: AppTheme.accent),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -147,7 +148,7 @@ class _UserViolationsList extends StatelessWidget {
                           '${dateLabel.isEmpty ? '' : ' · $dateLabel'}',
                           style: const TextStyle(
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFFFF8C00),
+                            color: AppTheme.accent,
                           ),
                         ),
                         if ((data['ticketNumber'] ?? '').toString().isNotEmpty)
@@ -168,7 +169,7 @@ class _UserViolationsList extends StatelessWidget {
                             width: double.infinity,
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFFF8C00),
+                                backgroundColor: AppTheme.accent,
                               ),
                               onPressed: () {
                                 Navigator.push(
@@ -388,7 +389,7 @@ class _ViolationPaymentScreenState extends State<ViolationPaymentScreen> {
               style: TextStyle(
                 fontWeight: bold ? FontWeight.bold : FontWeight.w500,
                 fontSize: bold ? 18 : 14,
-                color: bold ? const Color(0xFFFF8C00) : null,
+                color: bold ? AppTheme.accent : null,
               ),
             ),
           ),

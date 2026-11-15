@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../theme/app_theme.dart';
+
 class CardPaymentScreen extends StatefulWidget {
   final double amount;
 
@@ -221,7 +223,7 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                         Text(
                           'EGP ${widget.amount.toStringAsFixed(0)}',
                           style: const TextStyle(
-                            color: Color(0xFFFF8C00),
+                            color: AppTheme.accent,
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),

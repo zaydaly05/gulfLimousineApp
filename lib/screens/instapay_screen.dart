@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../theme/app_theme.dart';
+
 class InstaPayScreen extends StatefulWidget {
   final double amount;
 
@@ -124,7 +126,7 @@ class _InstaPayScreenState extends State<InstaPayScreen> {
               style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w900,
-                color: Color(0xFFFF8C00),
+                color: AppTheme.accent,
               ),
             ),
             const SizedBox(height: 24),
@@ -209,7 +211,7 @@ class _InstaPayScreenState extends State<InstaPayScreen> {
               ElevatedButton(
                 onPressed: _verifyAndSubmit,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF8C00),
+                  backgroundColor: AppTheme.accent,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(

@@ -7,6 +7,7 @@ import '../models/geo_location.dart';
 import '../services/booking_service.dart';
 import 'map_location_picker.dart';
 import '../widgets/app_map.dart';
+import '../theme/app_theme.dart';
 
 class UpdateTripLocationScreen extends StatelessWidget {
   final String bookingId;
@@ -124,7 +125,7 @@ class UpdateTripLocationScreen extends StatelessWidget {
                             height: 44,
                             child: const Icon(
                               Icons.place,
-                              color: Color(0xFFFF8C00),
+                              color: AppTheme.accent,
                               size: 40,
                             ),
                           ),

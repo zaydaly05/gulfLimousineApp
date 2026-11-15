@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/locale_service.dart';
 import '../utils/live_refresh.dart';
+import '../theme/app_theme.dart';
 
 class NotificationsInboxScreen extends StatelessWidget {
   const NotificationsInboxScreen({super.key});
@@ -83,7 +84,7 @@ class NotificationsInboxScreen extends StatelessWidget {
         return ListTile(
           leading: Icon(
             Icons.notifications,
-            color: read ? Colors.grey : const Color(0xFFFF8C00),
+            color: read ? Colors.grey : AppTheme.accent,
           ),
           title: Text(
             data['title']?.toString() ?? '',
