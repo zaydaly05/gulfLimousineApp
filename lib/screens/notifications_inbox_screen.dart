@@ -6,13 +6,33 @@ import '../l10n/locale_service.dart';
 import '../utils/live_refresh.dart';
 import '../theme/app_theme.dart';
 
-class NotificationsInboxScreen extends StatelessWidget {
+class NotificationsInboxScreen extends StatefulWidget {
   const NotificationsInboxScreen({super.key});
 
   @override
+  State<NotificationsInboxScreen> createState() =>
+      _NotificationsInboxScreenState();
+}
+
+class _NotificationsInboxScreenState extends State<NotificationsInboxScreen> {
+  // Streams are created once (late = on first use), not in build():
+  // a rebuild (e.g. language change) would otherwise reopen the
+  // Firestore listener and flash the loading spinner.
+  final _uid = FirebaseAuth.instance.currentUser?.uid;
+  late final _inbox = FirebaseFirestore.instance
+      .collection('users')
+      .doc(_uid)
+      .collection('notifications');
+  late final _notificationsStream = _inbox
+      .orderBy('createdAt', descending: true)
+      .limit(50)
+      .snapshots();
+  // Unordered fallback, used only if the ordered query fails.
+  late final _unorderedNotificationsStream = _inbox.limit(50).snapshots();
+
+  @override
   Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) {
+    if (_uid == null) {
       return Scaffold(body: Center(child: Text(context.t('signInTickets'))));
     }
 
@@ -21,25 +41,14 @@ class NotificationsInboxScreen extends StatelessWidget {
       body: RefreshIndicator(
         onRefresh: liveDataRefresh,
         child: StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('users')
-              .doc(uid)
-              .collection('notifications')
-              .orderBy('createdAt', descending: true)
-              .limit(50)
-              .snapshots(),
+          stream: _notificationsStream,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
             if (snapshot.hasError) {
               return StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(uid)
-                    .collection('notifications')
-                    .limit(50)
-                    .snapshots(),
+                stream: _unorderedNotificationsStream,
                 builder: (context, snap2) {
                   final docs = snap2.data?.docs ?? [];
                   if (docs.isEmpty) {
