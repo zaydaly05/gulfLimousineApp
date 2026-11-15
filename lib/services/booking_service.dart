@@ -162,6 +162,23 @@ class BookingService {
     return bookingRef.id;
   }
 
+  // Admin writes. Firestore rules restrict these to admins; the screens
+  // build the field maps (aliases such as carName/car_name included).
+
+  /// Creates a booking entered by an admin.
+  static Future<void> adminCreateBooking(Map<String, dynamic> fields) =>
+      _firestore.collection('bookings').add(fields);
+
+  /// Updates the given booking fields as an admin.
+  static Future<void> adminUpdateBooking(
+    String bookingId,
+    Map<String, dynamic> fields,
+  ) => _firestore.collection('bookings').doc(bookingId).update(fields);
+
+  /// Deletes a booking (admins only; customers cancel instead).
+  static Future<void> deleteBooking(String bookingId) =>
+      _firestore.collection('bookings').doc(bookingId).delete();
+
   /// Loads a booking the signed-in customer owns (by uid or email), or
   /// throws the same errors every customer action reports.
   static Future<

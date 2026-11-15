@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../utils/rental_dates.dart';
 import '../widgets/dark_form_fields.dart';
+import '../services/booking_service.dart';
 
 class NewBookingScreen extends StatefulWidget {
   const NewBookingScreen({super.key});
@@ -85,7 +86,7 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
     try {
       setState(() => _isLoading = true);
 
-      await FirebaseFirestore.instance.collection('bookings').add({
+      await BookingService.adminCreateBooking({
         'customerName': name.text.trim(),
         'userName': name.text.trim(),
         'user_email': email.text.trim(),
