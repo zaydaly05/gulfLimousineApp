@@ -12,7 +12,11 @@ import '../widgets/language_picker.dart';
 import '../l10n/locale_service.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  /// False when the user just chose "Use password instead", so the screen
+  /// doesn't immediately reopen the fingerprint prompt they backed out of.
+  final bool autoPromptBiometrics;
+
+  const LoginScreen({super.key, this.autoPromptBiometrics = true});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -44,7 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
       _biometricHardwareAvailable = hardware;
       _biometricLabel = label;
     });
-    if (canDirect) {
+    if (canDirect && widget.autoPromptBiometrics) {
       await Future<void>.delayed(const Duration(milliseconds: 400));
       if (mounted) await _loginWithBiometrics();
     }
@@ -78,11 +82,17 @@ class _LoginScreenState extends State<LoginScreen> {
           .signInWithEmailAndPassword(email: email, password: password)
           .timeout(const Duration(seconds: 15));
 
-      // Keep the credentials so biometric login can be switched on, but let
-      // the user opt in: auto-enabling here meant the "Enable biometric
-      // login?" prompt in _handleUserNavigation could never appear.
-      await BiometricService.rememberEmailLogin(email, password);
-      await _handleUserNavigation(userCredential.user!);
+      // Credentials are only stored once biometric login is on: refreshed
+      // here if it already is (e.g. after a password change), otherwise
+      // saved by the opt-in prompt in _handleUserNavigation.
+      if (await BiometricService.isEnabledForUid(userCredential.user!.uid)) {
+        await BiometricService.rememberEmailLogin(email, password);
+      }
+      await _handleUserNavigation(
+        userCredential.user!,
+        email: email,
+        password: password,
+      );
     } on FirebaseAuthException catch (e) {
       _showError(e.message ?? "Login failed");
     } catch (e) {
@@ -236,11 +246,17 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleUserNavigation(
     User user, {
     bool offerBiometrics = true,
+    String? email,
+    String? password,
   }) async {
     try {
       if (!mounted) return;
       if (offerBiometrics) {
-        await BiometricService.maybeOfferEnable(context);
+        await BiometricService.maybeOfferEnable(
+          context,
+          email: email,
+          password: password,
+        );
         if (!mounted) return;
       }
       await AuthNavigation.goToRoleHome(context);

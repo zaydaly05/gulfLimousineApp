@@ -1,6 +1,12 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { retentionCutoff, conditionVideos, RETENTION_DAYS } = require('../video_retention');
+const {
+  retentionCutoff,
+  cleanupWindow,
+  conditionVideos,
+  RETENTION_DAYS,
+  LOOKBACK_DAYS,
+} = require('../video_retention');
 
 test('cutoff is the retention window before now', () => {
   const now = new Date('2026-05-10T12:00:00Z');
@@ -29,4 +35,11 @@ test('a video without a public id is still unlinked but not deleted', () => {
   assert.deepEqual(conditionVideos({ returnVideo: { url: 'u', publicId: '' } }), [
     { field: 'returnVideo', publicId: null },
   ]);
+});
+
+test('cleanup scans a bounded window ending at the cutoff', () => {
+  const now = new Date('2026-05-10T12:00:00Z');
+  const { from, to } = cleanupWindow(now);
+  assert.equal(to.getTime(), retentionCutoff(now).getTime());
+  assert.equal(to - from, LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
 });

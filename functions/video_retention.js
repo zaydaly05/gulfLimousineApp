@@ -6,9 +6,22 @@ const RETENTION_DAYS = 3;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const VIDEO_FIELDS = ['pickupVideo', 'returnVideo'];
 
+/**
+ * How far back past the cutoff each run looks. Older bookings were handled by
+ * earlier daily runs, so re-reading them every day would only add cost; the
+ * margin still covers runs missed for up to this many days.
+ */
+const LOOKBACK_DAYS = 30;
+
 /** Return dates before this moment are past the retention window. */
 function retentionCutoff(now) {
   return new Date(now.getTime() - RETENTION_DAYS * DAY_MS);
+}
+
+/** Return-date range [from, to) the daily cleanup scans. */
+function cleanupWindow(now) {
+  const to = retentionCutoff(now);
+  return { from: new Date(to.getTime() - LOOKBACK_DAYS * DAY_MS), to };
 }
 
 /**
@@ -26,4 +39,11 @@ function conditionVideos(booking) {
   });
 }
 
-module.exports = { RETENTION_DAYS, VIDEO_FIELDS, retentionCutoff, conditionVideos };
+module.exports = {
+  RETENTION_DAYS,
+  LOOKBACK_DAYS,
+  VIDEO_FIELDS,
+  retentionCutoff,
+  cleanupWindow,
+  conditionVideos,
+};

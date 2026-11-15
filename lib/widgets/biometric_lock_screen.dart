@@ -37,7 +37,8 @@ class _BiometricLockScreenState extends State<BiometricLockScreen> {
     });
   }
 
-  Future<void> _usePassword() => AuthNavigation.signOut(context);
+  Future<void> _usePassword() =>
+      AuthNavigation.signOut(context, autoPromptBiometrics: false);
 
   @override
   Widget build(BuildContext context) {

@@ -61,8 +61,16 @@ class AuthNavigation {
 
   /// Single sign-out path for every screen: stops per-user listeners,
   /// ends the Firebase (and Google) session and returns to the login screen.
-  static Future<void> signOut(BuildContext context) async {
+  ///
+  /// [autoPromptBiometrics] false keeps the login screen from opening the
+  /// fingerprint prompt straight away (used by "Use password instead").
+  static Future<void> signOut(
+    BuildContext context, {
+    bool autoPromptBiometrics = true,
+  }) async {
     final navigator = Navigator.of(context);
+    // Before Firebase sign-out: removing the token needs the user's auth.
+    await NotificationService.instance.unregisterDevice();
     await NotificationService.instance.stop();
     try {
       await GoogleSignIn.instance.signOut();
@@ -71,7 +79,9 @@ class AuthNavigation {
     }
     await FirebaseAuth.instance.signOut();
     navigator.pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      MaterialPageRoute(
+        builder: (_) => LoginScreen(autoPromptBiometrics: autoPromptBiometrics),
+      ),
       (route) => false,
     );
   }

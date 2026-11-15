@@ -267,21 +267,28 @@ class BookingService {
   }) async {
     final bookingRef = _firestore.collection('bookings').doc(bookingId);
 
+    // Simple Geofence Check (e.g., Cairo Center)
+    const centerLat = 30.0444;
+    const centerLng = 31.2357;
+    const maxRadiusKm = 100.0; // 100km radius
+
+    final outside =
+        _calculateDistance(lat, lng, centerLat, centerLng) > maxRadiusKm;
+    // Alert only when the car crosses out of the zone, not on every update
+    // while it stays outside; `outsideGeofence` remembers the last state.
+    final wasOutside =
+        (await bookingRef.get()).data()?['outsideGeofence'] == true;
+
     await bookingRef.update({
       'liveLocation': {
         'lat': lat,
         'lng': lng,
         'updatedAt': FieldValue.serverTimestamp(),
       },
+      'outsideGeofence': outside,
     });
 
-    // Simple Geofence Check (e.g., Cairo Center)
-    const centerLat = 30.0444;
-    const centerLng = 31.2357;
-    const maxRadiusKm = 100.0; // 100km radius
-
-    final distance = _calculateDistance(lat, lng, centerLat, centerLng);
-    if (distance > maxRadiusKm) {
+    if (outside && !wasOutside) {
       await _notifyAdmins(
         title: 'Geofence Breach!',
         body: 'Booking $bookingId has moved outside the 100km safe zone.',

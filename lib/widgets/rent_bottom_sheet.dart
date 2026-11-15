@@ -36,6 +36,7 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
 
   Future<void> _pickDate(bool isPickup) async {
     final now = DateTime.now();
+    final last = DateUtils.dateOnly(now.add(const Duration(days: 365)));
     final initial = isPickup
         ? (pickupDate ?? now)
         : (returnDate ??
@@ -44,11 +45,15 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
 
     // Return can't be before pickup, so start its calendar at the pickup date.
     final first = !isPickup && pickupDate != null ? pickupDate! : now;
+    // Keep the initial date inside [first, last]; e.g. a pickup on the last
+    // bookable day would otherwise put the return calendar past lastDate.
+    var start = initial.isBefore(first) ? first : initial;
+    if (start.isAfter(last)) start = last;
     final picked = await showDatePicker(
       context: context,
-      initialDate: initial.isBefore(first) ? first : initial,
+      initialDate: start,
       firstDate: first,
-      lastDate: now.add(const Duration(days: 365)),
+      lastDate: last,
     );
     if (picked == null || !mounted) return;
 
@@ -56,7 +61,8 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
       if (isPickup) {
         pickupDate = picked;
         if (returnDate != null && returnDate!.isBefore(picked)) {
-          returnDate = picked.add(const Duration(days: 1));
+          final next = picked.add(const Duration(days: 1));
+          returnDate = next.isAfter(last) ? picked : next;
         }
       } else {
         returnDate = picked;

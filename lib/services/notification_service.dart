@@ -49,6 +49,25 @@ class NotificationService {
     }
   }
 
+  /// Detaches this device from the signed-in user so their push messages stop
+  /// arriving here: removes the token from their profile and invalidates it.
+  /// Call while still signed in (the profile write needs auth). Best effort.
+  Future<void> unregisterDevice() async {
+    final user = _auth.currentUser;
+    try {
+      if (user != null) {
+        await _firestore
+            .collection('users')
+            .doc(user.uid)
+            .update({'fcmToken': FieldValue.delete()})
+            .timeout(const Duration(seconds: 5));
+      }
+      await _messaging.deleteToken().timeout(const Duration(seconds: 5));
+    } catch (e) {
+      debugPrint('FCM unregister failed: $e');
+    }
+  }
+
   /// Stops per-user listeners. Call on logout.
   Future<void> stop() async {
     await _inboxSub?.cancel();
