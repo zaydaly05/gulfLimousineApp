@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../models/geo_location.dart';
 import '../services/maps_launcher.dart';
+import '../widgets/app_map.dart';
 
 class TrackTripScreen extends StatelessWidget {
   final String bookingId;
@@ -47,7 +48,7 @@ class TrackTripScreen extends StatelessWidget {
           } else if (pickup != null) {
             center = LatLng(pickup.lat, pickup.lng);
           } else {
-            center = const LatLng(30.0444, 31.2357);
+            center = kCairoLatLng;
           }
 
           final markers = <Marker>[
@@ -127,38 +128,7 @@ class TrackTripScreen extends StatelessWidget {
                 child: FlutterMap(
                   options: MapOptions(initialCenter: center, initialZoom: 13),
                   children: [
-                    TileLayer(
-                      urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.example.gulflimousine_travel',
-                      tileBuilder: (context, tileWidget, tile) {
-                        return ColorFiltered(
-                          colorFilter: const ColorFilter.matrix([
-                            0.6,
-                            0,
-                            0,
-                            0,
-                            -60,
-                            0,
-                            0.6,
-                            0,
-                            0,
-                            -60,
-                            0,
-                            0,
-                            0.6,
-                            0,
-                            -60,
-                            0,
-                            0,
-                            0,
-                            1,
-                            0,
-                          ]),
-                          child: tileWidget,
-                        );
-                      },
-                    ),
+                    appTileLayer(),
                     MarkerLayer(markers: markers),
                   ],
                 ),

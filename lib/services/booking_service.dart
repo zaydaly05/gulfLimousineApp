@@ -267,13 +267,14 @@ class BookingService {
   }) async {
     final bookingRef = _firestore.collection('bookings').doc(bookingId);
 
-    // Simple Geofence Check (e.g., Cairo Center)
-    const centerLat = 30.0444;
-    const centerLng = 31.2357;
-    const maxRadiusKm = 100.0; // 100km radius
-
     final outside =
-        _calculateDistance(lat, lng, centerLat, centerLng) > maxRadiusKm;
+        _calculateDistance(
+          lat,
+          lng,
+          GeoLocation.cairoLat,
+          GeoLocation.cairoLng,
+        ) >
+        GeoLocation.geofenceRadiusKm;
     // Alert only when the car crosses out of the zone, not on every update
     // while it stays outside; `outsideGeofence` remembers the last state.
     final wasOutside =

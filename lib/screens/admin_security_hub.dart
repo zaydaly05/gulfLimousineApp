@@ -6,6 +6,8 @@ import 'package:latlong2/latlong.dart';
 import '../services/booking_service.dart';
 import '../services/whatsapp_service.dart';
 import 'edit_booking_screen.dart';
+import '../models/geo_location.dart';
+import '../widgets/app_map.dart';
 
 class AdminSecurityHub extends StatefulWidget {
   const AdminSecurityHub({super.key});
@@ -110,48 +112,17 @@ class _AdminSecurityHubState extends State<AdminSecurityHub> {
               FlutterMap(
                 mapController: _mapController,
                 options: const MapOptions(
-                  initialCenter: LatLng(30.0444, 31.2357), // Cairo
+                  initialCenter: kCairoLatLng,
                   initialZoom: 10,
                 ),
                 children: [
-                  TileLayer(
-                    urlTemplate:
-                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    userAgentPackageName: 'com.example.gulflimousine_travel',
-                    tileBuilder: (context, tileWidget, tile) {
-                      return ColorFiltered(
-                        colorFilter: const ColorFilter.matrix([
-                          0.6,
-                          0,
-                          0,
-                          0,
-                          -60,
-                          0,
-                          0.6,
-                          0,
-                          0,
-                          -60,
-                          0,
-                          0,
-                          0.6,
-                          0,
-                          -60,
-                          0,
-                          0,
-                          0,
-                          1,
-                          0,
-                        ]),
-                        child: tileWidget,
-                      );
-                    },
-                  ),
+                  appTileLayer(),
                   MarkerLayer(markers: markers),
                   CircleLayer(
                     circles: [
                       CircleMarker(
-                        point: const LatLng(30.0444, 31.2357),
-                        radius: 100000, // 100km
+                        point: kCairoLatLng,
+                        radius: GeoLocation.geofenceRadiusKm * 1000,
                         useRadiusInMeter: true,
                         color: Colors.blue.withValues(alpha: 0.1),
                         borderColor: Colors.blue,

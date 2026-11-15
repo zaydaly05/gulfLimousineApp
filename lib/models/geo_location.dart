@@ -38,12 +38,19 @@ class GeoLocation {
     return null;
   }
 
+  /// Cairo city centre: default map centre and the geofence centre.
+  static const cairoLat = 30.0444;
+  static const cairoLng = 31.2357;
+
   /// Cairo city center default.
   static const cairo = GeoLocation(
-    lat: 30.0444,
-    lng: 31.2357,
+    lat: cairoLat,
+    lng: cairoLng,
     address: 'Cairo, Egypt',
   );
+
+  /// Radius of the safe zone around Cairo; leaving it alerts admins.
+  static const geofenceRadiusKm = 100.0;
 }
 
 class LiveLocation {
