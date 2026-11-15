@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../services/traffic_violation_service.dart';
 import '../utils/booking_fields.dart';
 import 'status_colors.dart';
+import 'status_pill.dart';
 
 class TrafficViolationsAdminPanel extends StatefulWidget {
   final String sourceType;
@@ -145,24 +146,13 @@ class _TrafficViolationsAdminPanelState
                               style: const TextStyle(color: Colors.white70),
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: violationStatusColor(status)
-                                  .withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              status.toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: violationStatusColor(status),
-                              ),
-                            ),
+                          StatusPill(
+                            label: status.toUpperCase(),
+                            color: violationStatusColor(status),
+                            horizontalPadding: 8,
+                            verticalPadding: 2,
+                            radius: 12,
+                            fontSize: 10,
                           ),
                           if (status == 'pending')
                             IconButton(

@@ -13,6 +13,7 @@ import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
 import '../utils/live_refresh.dart';
 import '../widgets/condition_video_chips.dart';
+import '../widgets/status_pill.dart';
 
 class ManageBookingsScreen extends StatefulWidget {
   const ManageBookingsScreen({super.key});
@@ -186,24 +187,9 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                                 ),
                               ),
                             ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: bookingStatusColor(status)
-                                    .withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                statusTranslated.toUpperCase(),
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: bookingStatusColor(status),
-                                ),
-                              ),
+                            StatusPill(
+                              label: statusTranslated.toUpperCase(),
+                              color: bookingStatusColor(status),
                             ),
                           ],
                         ),

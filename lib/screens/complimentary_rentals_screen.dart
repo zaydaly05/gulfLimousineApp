@@ -12,6 +12,7 @@ import '../utils/rental_dates.dart';
 import '../utils/booking_fields.dart';
 import '../utils/live_refresh.dart';
 import '../widgets/dark_form_fields.dart';
+import '../widgets/status_pill.dart';
 
 class ComplimentaryRentalsScreen extends StatefulWidget {
   const ComplimentaryRentalsScreen({super.key});
@@ -390,24 +391,7 @@ class _ComplimentaryRentalsScreenState
                                 ),
                               ),
                             ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: color.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                label,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: color,
-                                ),
-                              ),
-                            ),
+                            StatusPill(label: label, color: color),
                           ],
                         ),
                         const SizedBox(height: 10),

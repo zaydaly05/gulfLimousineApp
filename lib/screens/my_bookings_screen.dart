@@ -16,6 +16,7 @@ import '../l10n/locale_service.dart';
 import '../utils/live_refresh.dart';
 import '../widgets/condition_video_chips.dart';
 import '../theme/app_theme.dart';
+import '../widgets/status_pill.dart';
 
 class MyBookingsScreen extends StatefulWidget {
   const MyBookingsScreen({super.key});
@@ -286,23 +287,10 @@ class _BookingCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: bookingStatusColor(status).withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    statusTranslated.toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: bookingStatusColor(status),
-                    ),
-                  ),
+                StatusPill(
+                  label: statusTranslated.toUpperCase(),
+                  color: bookingStatusColor(status),
+                  alpha: 0.15,
                 ),
               ],
             ),
