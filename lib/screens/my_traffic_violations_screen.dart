@@ -9,6 +9,7 @@ import 'instapay_screen.dart';
 import 'payment_success_screen.dart';
 import 'wallet_payment_screen.dart';
 import '../l10n/locale_service.dart';
+import '../utils/booking_fields.dart';
 
 class MyTrafficViolationsScreen extends StatelessWidget {
   const MyTrafficViolationsScreen({super.key});
@@ -52,17 +53,9 @@ class _UserViolationsList extends StatelessWidget {
             for (final doc in [...?byId.data?.docs, ...?byEmail.data?.docs]) {
               merged[doc.id] = doc;
             }
-            final docs =
-                merged.values.where((doc) {
-                  return (doc.data()['status'] ?? '') != 'waived';
-                }).toList()..sort((a, b) {
-                  final aDate = a.data()['createdAt'];
-                  final bDate = b.data()['createdAt'];
-                  if (aDate is Timestamp && bDate is Timestamp) {
-                    return bDate.compareTo(aDate);
-                  }
-                  return 0;
-                });
+            final docs = merged.values.where((doc) {
+              return (doc.data()['status'] ?? '') != 'waived';
+            }).toList()..sort(compareCreatedAtDesc);
 
             if (byId.connectionState == ConnectionState.waiting &&
                 docs.isEmpty) {

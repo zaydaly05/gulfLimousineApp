@@ -22,17 +22,6 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
   String _source = 'all';
   String _personQuery = '';
 
-  Color _statusColor(String status) {
-    switch (status) {
-      case 'paid':
-        return Colors.green;
-      case 'waived':
-        return Colors.grey;
-      default:
-        return Colors.orange;
-    }
-  }
-
   Future<void> _addFromPicker() async {
     final picked = await showModalBottomSheet<_PickedRental>(
       context: context,
@@ -92,14 +81,7 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
             final docs = List<QueryDocumentSnapshot<Map<String, dynamic>>>.from(
               snapshot.data?.docs ?? [],
             );
-            docs.sort((a, b) {
-              final aDate = a.data()['createdAt'];
-              final bDate = b.data()['createdAt'];
-              if (aDate is Timestamp && bDate is Timestamp) {
-                return bDate.compareTo(aDate);
-              }
-              return 0;
-            });
+            docs.sort(compareCreatedAtDesc);
 
             final pendingTotal = TrafficViolationService.pendingTotal(docs);
             final paidTotal = docs.fold<double>(0, (total, doc) {
@@ -290,7 +272,7 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: _statusColor(status)
+                                color: violationStatusColor(status)
                                     .withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(20),
                               ),
@@ -299,7 +281,7 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
-                                  color: _statusColor(status),
+                                  color: violationStatusColor(status),
                                 ),
                               ),
                             ),
@@ -510,14 +492,7 @@ class _PickRentalSheetState extends State<_PickRentalSheet> {
               final docs = List<QueryDocumentSnapshot>.from(
                 snapshot.data?.docs ?? [],
               );
-              docs.sort((a, b) {
-                final aDate = (a.data() as Map)['createdAt'];
-                final bDate = (b.data() as Map)['createdAt'];
-                if (aDate is Timestamp && bDate is Timestamp) {
-                  return bDate.compareTo(aDate);
-                }
-                return 0;
-              });
+              docs.sort(compareCreatedAtDesc);
               final limited = docs.take(80).toList();
               if (limited.isEmpty) {
                 return const Text(

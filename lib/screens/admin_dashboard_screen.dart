@@ -493,12 +493,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  DateTime? _asDate(dynamic value) {
-    if (value is Timestamp) return value.toDate();
-    if (value is DateTime) return value;
-    return null;
-  }
-
   double _giftedValue(Map<String, dynamic> data) {
     final stored = data['gifted_value'] ?? data['total_amount'];
     if (stored is num) return stored.toDouble();
@@ -523,7 +517,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
           if (status == 'active') active.add(doc);
           if (status == 'cancelled') continue;
           final value = _giftedValue(data);
-          final date = _asDate(data['startDate']) ?? _asDate(data['createdAt']);
+          final date =
+              timestampDate(data['startDate']) ??
+              timestampDate(data['createdAt']);
           if (date == null || date.year != now.year) continue;
           yearTotal += value;
           if (date.month == now.month) monthTotal += value;

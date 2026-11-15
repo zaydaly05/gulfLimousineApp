@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../services/traffic_violation_service.dart';
+import '../utils/booking_fields.dart';
+import 'status_colors.dart';
 
 class TrafficViolationsAdminPanel extends StatelessWidget {
   final String sourceType;
@@ -34,17 +36,6 @@ class TrafficViolationsAdminPanel extends StatelessWidget {
     );
   }
 
-  Color _statusColor(String status) {
-    switch (status) {
-      case 'paid':
-        return Colors.green;
-      case 'waived':
-        return Colors.grey;
-      default:
-        return Colors.orange;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
@@ -59,14 +50,7 @@ class TrafficViolationsAdminPanel extends StatelessWidget {
                 )
                 .where((doc) => (doc.data()['sourceType'] ?? '') == sourceType)
                 .toList();
-        docs.sort((a, b) {
-          final aDate = a.data()['createdAt'];
-          final bDate = b.data()['createdAt'];
-          if (aDate is Timestamp && bDate is Timestamp) {
-            return bDate.compareTo(aDate);
-          }
-          return 0;
-        });
+        docs.sort(compareCreatedAtDesc);
         final pending = TrafficViolationService.pendingTotal(docs);
 
         return Container(
@@ -149,7 +133,7 @@ class TrafficViolationsAdminPanel extends StatelessWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: _statusColor(status)
+                              color: violationStatusColor(status)
                                   .withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -158,7 +142,7 @@ class TrafficViolationsAdminPanel extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
-                                color: _statusColor(status),
+                                color: violationStatusColor(status),
                               ),
                             ),
                           ),

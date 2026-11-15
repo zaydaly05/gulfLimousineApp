@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../l10n/locale_service.dart';
+import '../utils/booking_fields.dart';
 
 const _accent = Color(0xFFFF8C00);
 const _primary = Color(0xFF000000);
@@ -234,9 +235,9 @@ class UserMonthlyBookingsChart extends StatelessWidget {
     for (final doc in docs) {
       final data = doc.data() as Map<String, dynamic>;
       final date =
-          _parseDate(data['createdAt']) ??
-          _parseDate(data['pickupDate']) ??
-          _parseDate(data['startDate']);
+          parseFirestoreDate(data['createdAt']) ??
+          parseFirestoreDate(data['pickupDate']) ??
+          parseFirestoreDate(data['startDate']);
       if (date == null) continue;
 
       final key = DateFormat('MMM').format(DateTime(date.year, date.month, 1));
@@ -262,12 +263,4 @@ class _EmptyChart extends StatelessWidget {
       ),
     );
   }
-}
-
-DateTime? _parseDate(dynamic value) {
-  if (value == null) return null;
-  if (value is Timestamp) return value.toDate();
-  if (value is DateTime) return value;
-  if (value is String) return DateTime.tryParse(value);
-  return null;
 }

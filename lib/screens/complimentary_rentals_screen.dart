@@ -9,6 +9,7 @@ import '../services/traffic_violation_service.dart';
 import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
 import '../utils/rental_dates.dart';
+import '../utils/booking_fields.dart';
 
 class ComplimentaryRentalsScreen extends StatefulWidget {
   const ComplimentaryRentalsScreen({super.key});
@@ -46,7 +47,7 @@ class _ComplimentaryRentalsScreenState
 
   bool _isOverdue(Map<String, dynamic> data) {
     if ((data['status'] ?? '') != 'active') return false;
-    final end = _asDate(data['endDate']);
+    final end = timestampDate(data['endDate']);
     if (end == null) return false;
     final today = DateTime.now();
     final endDay = DateTime(end.year, end.month, end.day);
@@ -54,20 +55,14 @@ class _ComplimentaryRentalsScreenState
     return endDay.isBefore(todayDay);
   }
 
-  DateTime? _asDate(dynamic value) {
-    if (value is Timestamp) return value.toDate();
-    if (value is DateTime) return value;
-    return null;
-  }
-
   String _fmt(dynamic value) {
-    final date = _asDate(value);
+    final date = timestampDate(value);
     if (date == null) return '';
     return DateFormat('dd MMM yyyy').format(date);
   }
 
   DateTime? _giftDate(Map<String, dynamic> data) {
-    return _asDate(data['startDate']) ?? _asDate(data['createdAt']);
+    return timestampDate(data['startDate']) ?? timestampDate(data['createdAt']);
   }
 
   double _giftedValue(Map<String, dynamic> data) {
@@ -239,16 +234,7 @@ class _ComplimentaryRentalsScreenState
             final docs = List<QueryDocumentSnapshot>.from(
               snapshot.data?.docs ?? [],
             );
-            docs.sort((a, b) {
-              final aData = a.data() as Map<String, dynamic>;
-              final bData = b.data() as Map<String, dynamic>;
-              final aDate = aData['createdAt'];
-              final bDate = bData['createdAt'];
-              if (aDate is Timestamp && bDate is Timestamp) {
-                return bDate.compareTo(aDate);
-              }
-              return 0;
-            });
+            docs.sort(compareCreatedAtDesc);
 
             if (docs.isEmpty) {
               return const Center(

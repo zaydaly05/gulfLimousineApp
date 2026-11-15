@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import '../widgets/admin_charts.dart';
+import '../utils/booking_fields.dart';
 
 class TrafficViolationService {
   TrafficViolationService._();

@@ -3,6 +3,11 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../utils/booking_fields.dart';
+
+export '../utils/booking_fields.dart';
+export 'status_colors.dart';
+
 const _accent = Color(0xFFFF8C00);
 const _primary = Color(0xFF000000);
 
@@ -214,7 +219,7 @@ class RevenueTrendChart extends StatelessWidget {
 
     for (final doc in docs) {
       final data = doc.data() as Map<String, dynamic>;
-      final date = _parseDate(data['payment_date']);
+      final date = parseFirestoreDate(data['payment_date']);
       if (date == null) continue;
 
       final key = DateFormat('MMM').format(DateTime(date.year, date.month, 1));
@@ -510,9 +515,9 @@ class MonthlyBookingsChart extends StatelessWidget {
     for (final doc in docs) {
       final data = doc.data() as Map<String, dynamic>;
       final date =
-          _parseDate(data['createdAt']) ??
-          _parseDate(data['pickupDate']) ??
-          _parseDate(data['startDate']);
+          parseFirestoreDate(data['createdAt']) ??
+          parseFirestoreDate(data['pickupDate']) ??
+          parseFirestoreDate(data['startDate']);
       if (date == null) continue;
 
       final key = DateFormat('MMM').format(DateTime(date.year, date.month, 1));
@@ -578,124 +583,4 @@ class _EmptyChart extends StatelessWidget {
       ),
     );
   }
-}
-
-DateTime? _parseDate(dynamic value) {
-  if (value == null) return null;
-  if (value is Timestamp) return value.toDate();
-  if (value is DateTime) return value;
-  if (value is String) return DateTime.tryParse(value);
-  return null;
-}
-
-String formatBookingDate(dynamic value) {
-  final date = _parseDate(value);
-  if (date == null) {
-    if (value != null && value.toString().isNotEmpty) return value.toString();
-    return '';
-  }
-  return DateFormat('dd MMM yyyy').format(date);
-}
-
-String resolveBookingName(Map<String, dynamic> data) {
-  return data['userName'] ??
-      data['customerName'] ??
-      data['user_email'] ??
-      'Unknown';
-}
-
-String resolveBookingCar(Map<String, dynamic> data) {
-  return data['carName'] ?? data['car_name'] ?? 'Car';
-}
-
-String resolveBookingDateLabel(Map<String, dynamic> data) {
-  return formatBookingDate(
-    data['startDate'] ?? data['pickupDate'] ?? data['createdAt'],
-  );
-}
-
-Map<String, dynamic>? parseKmAllowance(Map<String, dynamic> booking) {
-  final km = booking['kmAllowance'];
-  if (km is Map) return Map<String, dynamic>.from(km);
-  return null;
-}
-
-Map<String, dynamic>? parseOdometer(Map<String, dynamic> booking) {
-  final odometer = booking['odometer'];
-  if (odometer is Map) return Map<String, dynamic>.from(odometer);
-  return null;
-}
-
-bool bookingHasExtraKmCharge(Map<String, dynamic> booking) {
-  final km = parseKmAllowance(booking);
-  final charge = (km?['extraKmChargeEgp'] as num?)?.toDouble() ?? 0;
-  return charge > 0;
-}
-
-String extraKmPaymentStatusLabel(Map<String, dynamic> booking) {
-  final status = (booking['extraKmPaymentStatus'] ?? '').toString();
-  switch (status) {
-    case 'paid':
-      return 'Paid';
-    case 'pending':
-      return 'Pending payment';
-    case 'not_applicable':
-      return 'No extra km';
-    default:
-      return status.isEmpty ? 'N/A' : status;
-  }
-}
-
-Color extraKmPaymentStatusColor(Map<String, dynamic> booking) {
-  final status = (booking['extraKmPaymentStatus'] ?? '').toString();
-  switch (status) {
-    case 'paid':
-      return Colors.green;
-    case 'pending':
-      return Colors.orange;
-    default:
-      return Colors.grey;
-  }
-}
-
-ExtraKmDashboardStats computeExtraKmStats(
-  List<QueryDocumentSnapshot> bookings,
-) {
-  var pendingCount = 0;
-  var pendingAmount = 0.0;
-  var paidAmount = 0.0;
-
-  for (final doc in bookings) {
-    final data = doc.data() as Map<String, dynamic>;
-    if (!bookingHasExtraKmCharge(data)) continue;
-
-    final km = parseKmAllowance(data)!;
-    final charge = (km['extraKmChargeEgp'] as num?)?.toDouble() ?? 0;
-    final status = (data['extraKmPaymentStatus'] ?? '').toString();
-
-    if (status == 'paid') {
-      paidAmount += charge;
-    } else if (status == 'pending') {
-      pendingCount++;
-      pendingAmount += charge;
-    }
-  }
-
-  return ExtraKmDashboardStats(
-    pendingCount: pendingCount,
-    pendingAmount: pendingAmount,
-    paidAmount: paidAmount,
-  );
-}
-
-class ExtraKmDashboardStats {
-  final int pendingCount;
-  final double pendingAmount;
-  final double paidAmount;
-
-  const ExtraKmDashboardStats({
-    required this.pendingCount,
-    required this.pendingAmount,
-    required this.paidAmount,
-  });
 }

@@ -11,6 +11,7 @@ import 'update_trip_location_screen.dart';
 import 'video_viewer_screen.dart';
 import '../services/booking_service.dart';
 import '../utils/rental_dates.dart';
+import '../utils/booking_fields.dart';
 
 class EditBookingScreen extends StatefulWidget {
   final String bookingId;
@@ -99,8 +100,8 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
     pickupLocation = GeoLocation.tryParse(data['pickupLocation']);
     dropoffLocation = GeoLocation.tryParse(data['dropoffLocation']);
 
-    pickupDate = _parseDate(data['pickupDate'] ?? data['startDate']);
-    returnDate = _parseDate(data['returnDate']);
+    pickupDate = parseFirestoreDate(data['pickupDate'] ?? data['startDate']);
+    returnDate = parseFirestoreDate(data['returnDate']);
 
     final security = data['security'];
     _isImmobilized = security is Map && security['isImmobilized'] == true;
@@ -112,14 +113,6 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
     emailController.dispose();
     phoneController.dispose();
     super.dispose();
-  }
-
-  DateTime? _parseDate(dynamic value) {
-    if (value == null) return null;
-    if (value is Timestamp) return value.toDate();
-    if (value is DateTime) return value;
-    if (value is String) return DateTime.tryParse(value);
-    return null;
   }
 
   int get _days {

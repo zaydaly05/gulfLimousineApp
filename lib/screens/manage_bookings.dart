@@ -69,34 +69,6 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
     );
   }
 
-  Color _statusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'confirmed':
-      case 'paid':
-      case 'completed':
-        return Colors.green;
-      case 'cancelled':
-        return Colors.red;
-      default:
-        return Colors.orange;
-    }
-  }
-
-  List<QueryDocumentSnapshot> _sortedDocs(List<QueryDocumentSnapshot> docs) {
-    final sorted = List<QueryDocumentSnapshot>.from(docs);
-    sorted.sort((a, b) {
-      final aData = a.data() as Map<String, dynamic>;
-      final bData = b.data() as Map<String, dynamic>;
-      final aDate = aData['createdAt'];
-      final bDate = bData['createdAt'];
-      if (aDate is Timestamp && bDate is Timestamp) {
-        return bDate.compareTo(aDate);
-      }
-      return 0;
-    });
-    return sorted;
-  }
-
   @override
   Widget build(BuildContext context) {
     final bottomPad = MediaQuery.viewPaddingOf(context).bottom;
@@ -146,7 +118,9 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
               );
             }
 
-            final docs = _sortedDocs(snapshot.data?.docs ?? []);
+            final docs = sortedByCreatedAtDesc(
+              snapshot.data?.docs ?? const <QueryDocumentSnapshot>[],
+            );
             if (docs.isEmpty) {
               return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -219,7 +193,7 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: _statusColor(status)
+                                color: bookingStatusColor(status)
                                     .withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(20),
                               ),
@@ -228,7 +202,7 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
-                                  color: _statusColor(status),
+                                  color: bookingStatusColor(status),
                                 ),
                               ),
                             ),
