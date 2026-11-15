@@ -2,15 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class WhatsAppService {
-  static const String _adminPhone = '+201001116666';
-
-  /// Contact Gulf Limousine Admin
-  static Future<void> contactAdmin({String? message}) async {
-    final text =
-        message ?? 'Hello Gulf Limousine, I have an inquiry about my rental.';
-    await _launchWhatsApp(_adminPhone, text);
-  }
-
   /// Message a chauffeur
   static Future<void> messageChauffeur({
     required String phone,

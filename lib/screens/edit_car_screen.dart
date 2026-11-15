@@ -66,7 +66,7 @@ class _EditCarScreenState extends State<EditCarScreen> {
     final oldId = widget.carData['public_id']?.toString();
     if (oldId == null || oldId.isEmpty || oldId == publicId) return;
     try {
-      await cloudinary.deleteImage(oldId);
+      await cloudinary.deleteAsset(oldId);
     } catch (e) {
       debugPrint('Old car image delete failed: $e');
     }

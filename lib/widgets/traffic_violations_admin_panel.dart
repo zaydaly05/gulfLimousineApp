@@ -39,10 +39,7 @@ class TrafficViolationsAdminPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: TrafficViolationService.watchForRental(
-        sourceType: sourceType,
-        rentalId: rentalId,
-      ),
+      stream: TrafficViolationService.watchForRental(rentalId),
       builder: (context, snapshot) {
         final docs =
             List<QueryDocumentSnapshot<Map<String, dynamic>>>.from(

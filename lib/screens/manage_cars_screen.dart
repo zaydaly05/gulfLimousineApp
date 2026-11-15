@@ -65,7 +65,7 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
 
               if (publicId != null && publicId.isNotEmpty) {
                 try {
-                  await cloudinary.deleteImage(publicId);
+                  await cloudinary.deleteAsset(publicId);
                 } catch (e) {
                   // The car is gone; only the stored file is left behind.
                   debugPrint('Car image delete failed: $e');

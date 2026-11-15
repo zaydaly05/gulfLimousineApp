@@ -213,32 +213,17 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
         if (chauffeurId != null &&
             chauffeurId!.isNotEmpty &&
             chauffeurId != previousChauffeur) {
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(userId)
-              .collection('notifications')
-              .add({
-                'title': 'Chauffeur assigned',
-                'body':
-                    '$chauffeurName will drive your trip. Track from My Bookings.',
-                'type': 'chauffeur_assigned',
-                'bookingId': widget.bookingId,
-                'read': false,
-                'createdAt': FieldValue.serverTimestamp(),
-              });
+          await BookingService.notifyChauffeurAssigned(
+            userId: userId,
+            bookingId: widget.bookingId,
+            chauffeurName: chauffeurName,
+          );
         } else if (tripStatus != previousTrip) {
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(userId)
-              .collection('notifications')
-              .add({
-                'title': 'Trip update',
-                'body': 'Your trip is now ${tripStatus.replaceAll('_', ' ')}.',
-                'type': 'trip_$tripStatus',
-                'bookingId': widget.bookingId,
-                'read': false,
-                'createdAt': FieldValue.serverTimestamp(),
-              });
+          await BookingService.notifyTripStatusChanged(
+            userId: userId,
+            bookingId: widget.bookingId,
+            tripStatus: tripStatus,
+          );
         }
       }
 

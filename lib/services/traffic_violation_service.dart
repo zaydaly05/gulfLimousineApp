@@ -18,10 +18,9 @@ class TrafficViolationService {
     return collection.snapshots();
   }
 
-  static Stream<QuerySnapshot<Map<String, dynamic>>> watchForRental({
-    required String sourceType,
-    required String rentalId,
-  }) {
+  static Stream<QuerySnapshot<Map<String, dynamic>>> watchForRental(
+    String rentalId,
+  ) {
     return collection.where('rentalId', isEqualTo: rentalId).snapshots();
   }
 
