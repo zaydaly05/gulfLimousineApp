@@ -13,6 +13,7 @@ import '../utils/booking_fields.dart';
 import '../utils/live_refresh.dart';
 import '../widgets/dark_form_fields.dart';
 import '../widgets/status_pill.dart';
+import '../services/complimentary_rental_service.dart';
 
 class ComplimentaryRentalsScreen extends StatefulWidget {
   const ComplimentaryRentalsScreen({super.key});
@@ -26,9 +27,7 @@ class _ComplimentaryRentalsScreenState
     extends State<ComplimentaryRentalsScreen> {
   // Created once, not in build(): rebuilding it on every setState would
   // reopen the Firestore listener and flash the loading spinner.
-  final _giftsStream = FirebaseFirestore.instance
-      .collection('complimentary_rentals')
-      .snapshots();
+  final _giftsStream = ComplimentaryRentalService.collection.snapshots();
   String? _selectedPersonKey;
   String _period = 'all';
 
@@ -73,14 +72,6 @@ class _ComplimentaryRentalsScreenState
     return timestampDate(data['startDate']) ?? timestampDate(data['createdAt']);
   }
 
-  double _giftedValue(Map<String, dynamic> data) {
-    final stored = data['gifted_value'] ?? data['total_amount'];
-    if (stored is num) return stored.toDouble();
-    final days = (data['days'] as num?)?.toDouble() ?? 0;
-    final price = (data['price_per_day'] as num?)?.toDouble() ?? 0;
-    return days * price;
-  }
-
   bool _countsTowardGiftTotal(Map<String, dynamic> data) {
     final status = (data['status'] ?? '').toString();
     return status != 'cancelled';
@@ -106,15 +97,7 @@ class _ComplimentaryRentalsScreenState
     Map<String, dynamic> data,
     String status,
   ) async {
-    final carId = (data['car_id'] ?? '').toString();
-    await FirebaseFirestore.instance
-        .collection('complimentary_rentals')
-        .doc(id)
-        .update({'status': status, 'endedAt': FieldValue.serverTimestamp()});
-
-    if (carId.isNotEmpty && (status == 'completed' || status == 'cancelled')) {
-      await _releaseCarIfUnused(carId, exceptDocId: id);
-    }
+    await ComplimentaryRentalService.setStatus(id, data, status);
 
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -126,27 +109,6 @@ class _ComplimentaryRentalsScreenState
         ),
       ),
     );
-  }
-
-  Future<void> _releaseCarIfUnused(
-    String carId, {
-    required String exceptDocId,
-  }) async {
-    final others = await FirebaseFirestore.instance
-        .collection('complimentary_rentals')
-        .where('car_id', isEqualTo: carId)
-        .get();
-
-    final stillOut = others.docs.any((doc) {
-      if (doc.id == exceptDocId) return false;
-      return (doc.data()['status'] ?? '') == 'active';
-    });
-
-    if (!stillOut) {
-      await FirebaseFirestore.instance.collection('cars').doc(carId).update({
-        'available': true,
-      });
-    }
   }
 
   Future<void> _delete(
@@ -180,17 +142,7 @@ class _ComplimentaryRentalsScreenState
     );
     if (confirmed != true) return;
 
-    if ((data['status'] ?? '') == 'active') {
-      final carId = (data['car_id'] ?? '').toString();
-      if (carId.isNotEmpty) {
-        await _releaseCarIfUnused(carId, exceptDocId: id);
-      }
-    }
-
-    await FirebaseFirestore.instance
-        .collection('complimentary_rentals')
-        .doc(id)
-        .delete();
+    await ComplimentaryRentalService.delete(id, data);
   }
 
   @override
@@ -268,7 +220,7 @@ class _ComplimentaryRentalsScreenState
                 ),
               );
               if (!_countsTowardGiftTotal(data)) continue;
-              final value = _giftedValue(data);
+              final value = ComplimentaryRentalService.giftedValue(data);
               final date = _giftDate(data);
               person.allCount += 1;
               person.allTotal += value;
@@ -314,7 +266,7 @@ class _ComplimentaryRentalsScreenState
             final filteredTotal = visibleDocs.fold<double>(0, (total, doc) {
               final data = doc.data() as Map<String, dynamic>;
               if (!_countsTowardGiftTotal(data)) return total;
-              return total + _giftedValue(data);
+              return total + ComplimentaryRentalService.giftedValue(data);
             });
 
             return ListView.builder(
@@ -361,7 +313,7 @@ class _ComplimentaryRentalsScreenState
                 final end = _fmt(data['endDate']);
                 final days = data['days'];
                 final price = (data['price_per_day'] as num?)?.toDouble() ?? 0;
-                final gifted = _giftedValue(data);
+                final gifted = ComplimentaryRentalService.giftedValue(data);
 
                 return Card(
                   color: Colors.grey.shade900,
@@ -611,7 +563,7 @@ class _AddComplimentaryRentalScreenState
       setState(() => _isLoading = true);
       final admin = FirebaseAuth.instance.currentUser;
 
-      await FirebaseFirestore.instance.collection('complimentary_rentals').add({
+      await ComplimentaryRentalService.grant({
         'recipientName': name.text.trim(),
         'phone': phone.text.trim(),
         'email': email.text.trim(),
@@ -636,11 +588,6 @@ class _AddComplimentaryRentalScreenState
         'createdBy': admin?.uid,
         'createdAt': FieldValue.serverTimestamp(),
       });
-
-      await FirebaseFirestore.instance
-          .collection('cars')
-          .doc(selectedCarId)
-          .update({'available': false});
 
       if (!mounted) return;
       Navigator.pop(context);

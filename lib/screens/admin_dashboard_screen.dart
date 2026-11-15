@@ -21,6 +21,7 @@ import '../services/traffic_violation_service.dart';
 import '../widgets/language_picker.dart';
 import '../l10n/locale_service.dart';
 import '../utils/live_refresh.dart';
+import '../services/complimentary_rental_service.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -492,14 +493,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  double _giftedValue(Map<String, dynamic> data) {
-    final stored = data['gifted_value'] ?? data['total_amount'];
-    if (stored is num) return stored.toDouble();
-    final days = (data['days'] as num?)?.toDouble() ?? 0;
-    final price = (data['price_per_day'] as num?)?.toDouble() ?? 0;
-    return days * price;
-  }
-
   Widget _complimentarySection() {
     return StreamBuilder<QuerySnapshot>(
       stream: _giftsStream,
@@ -515,7 +508,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           final status = (data['status'] ?? '').toString();
           if (status == 'active') active.add(doc);
           if (status == 'cancelled') continue;
-          final value = _giftedValue(data);
+          final value = ComplimentaryRentalService.giftedValue(data);
           final date =
               timestampDate(data['startDate']) ??
               timestampDate(data['createdAt']);
@@ -612,7 +605,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         '$label · until ${formatBookingDate(data['endDate'])}',
                       ),
                       trailing: Text(
-                        'EGP ${_giftedValue(data).toStringAsFixed(0)}',
+                        'EGP ${ComplimentaryRentalService.giftedValue(data).toStringAsFixed(0)}',
                         style: const TextStyle(
                           color: Colors.orange,
                           fontWeight: FontWeight.w600,
