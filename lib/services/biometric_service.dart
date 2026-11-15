@@ -163,7 +163,14 @@ class BiometricService {
     return credential.user!;
   }
 
-  static Future<void> maybeOfferEnable(BuildContext context) async {
+  /// Asks whether to turn on biometric login. The [email]/[password] just
+  /// used to sign in are stored only if the user enables it, so declining
+  /// leaves no credentials on the device.
+  static Future<void> maybeOfferEnable(
+    BuildContext context, {
+    String? email,
+    String? password,
+  }) async {
     if (!await isHardwareAvailable()) return;
     if (await isEnabledForCurrentUser()) return;
     if (!context.mounted) return;
@@ -193,6 +200,9 @@ class BiometricService {
 
     if (enable == true) {
       final ok = await enableWithPrompt();
+      if (ok && email != null && password != null) {
+        await rememberEmailLogin(email, password);
+      }
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

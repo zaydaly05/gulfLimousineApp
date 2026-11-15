@@ -14,7 +14,7 @@ const { defineSecret, defineString } = require('firebase-functions/params');
 const logger = require('firebase-functions/logger');
 const cloudinary = require('cloudinary').v2;
 
-const { retentionCutoff, conditionVideos } = require('./video_retention');
+const { cleanupWindow, conditionVideos } = require('./video_retention');
 
 initializeApp();
 const db = getFirestore();
@@ -87,9 +87,11 @@ exports.cleanupExpiredConditionVideos = onSchedule(
   { schedule: 'every day 03:00', timeZone: 'Africa/Cairo', secrets },
   async () => {
     configureCloudinary();
+    const { from, to } = cleanupWindow(new Date());
     const snapshot = await db
       .collection('bookings')
-      .where('returnDate', '<', Timestamp.fromDate(retentionCutoff(new Date())))
+      .where('returnDate', '>=', Timestamp.fromDate(from))
+      .where('returnDate', '<', Timestamp.fromDate(to))
       .get();
 
     let cleaned = 0;

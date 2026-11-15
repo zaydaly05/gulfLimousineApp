@@ -45,10 +45,28 @@ service cloud.firestore {
         'returnVideo',
         'agreement',
         'liveLocation',
-        'security',
         'reviewed',
         'rating',
-      ]);
+      ]) && hasValidUserBookingValues();
+    }
+
+    // The keys above say WHAT a customer may change; this says to WHICH
+    // values, matching what the app writes (cancel, record return km):
+    // - status: only to 'cancelled' or 'completed';
+    // - extraKmPaymentStatus: set once, never to 'paid' (admins confirm it);
+    // - final_amount: set once, and only to base + the recorded extra-km charge.
+    function hasValidUserBookingValues() {
+      let next = request.resource.data;
+      let changed = next.diff(resource.data).affectedKeys();
+      return (!changed.hasAny(['status']) ||
+          next.status in ['cancelled', 'completed']) &&
+        (!changed.hasAny(['extraKmPaymentStatus']) ||
+          (!('extraKmPaymentStatus' in resource.data) &&
+            next.extraKmPaymentStatus in ['pending', 'not_applicable'])) &&
+        (!changed.hasAny(['final_amount']) ||
+          (!('final_amount' in resource.data) &&
+            next.final_amount ==
+              resource.data.total_amount + next.kmAllowance.extraKmChargeEgp));
     }
 
     match /users/{userId} {

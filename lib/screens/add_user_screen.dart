@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -22,6 +24,13 @@ class _AddUserScreenState extends State<AddUserScreen> {
   String role = "user";
   bool _isLoading = false;
 
+  static String _randomPassword() {
+    const chars =
+        'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#%*-_';
+    final random = Random.secure();
+    return List.generate(32, (_) => chars[random.nextInt(chars.length)]).join();
+  }
+
   @override
   void dispose() {
     name.dispose();
@@ -45,13 +54,16 @@ class _AddUserScreenState extends State<AddUserScreen> {
       );
       final secondaryAuth = FirebaseAuth.instanceFor(app: secondaryApp);
 
+      // Random throwaway password that nobody ever sees; the new user sets
+      // their own through the reset email sent below.
       final UserCredential credential = await secondaryAuth
           .createUserWithEmailAndPassword(
             email: email.text.trim(),
-            password: "123456", // default password
+            password: _randomPassword(),
           );
 
       final uid = credential.user!.uid;
+      await secondaryAuth.sendPasswordResetEmail(email: email.text.trim());
 
       // Written by the signed-in admin: the rules only let admins assign a
       // role, so a new account can't make itself an admin.
@@ -71,7 +83,9 @@ class _AddUserScreenState extends State<AddUserScreen> {
 
       messenger.showSnackBar(
         const SnackBar(
-          content: Text("User created successfully"),
+          content: Text(
+            "User created. A link to set their password was emailed to them.",
+          ),
           backgroundColor: Colors.green,
         ),
       );

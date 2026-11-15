@@ -45,14 +45,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
       .orderBy('createdAt', descending: true)
       .limit(5)
       .snapshots();
-  // One stream per consumer: Firestore streams don't replay the last value.
-  late final _bookingsCountStream = _bookingsQuery();
-  late final _extraKmPendingStream = _bookingsQuery();
-  late final _extraKmCollectedStream = _bookingsQuery();
-  late final _extraKmSectionStream = _bookingsQuery();
-
-  Stream<QuerySnapshot<Map<String, dynamic>>> _bookingsQuery() =>
-      firestore.collection('bookings').snapshots();
+  // One bookings listener feeds the count card, both extra-km cards and the
+  // pending extra-km section (see _bookingsOverview).
+  late final _bookingsStream = firestore.collection('bookings').snapshots();
 
   @override
   void initState() {
@@ -238,35 +233,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               const SizedBox(height: 20),
 
               /// 📊 LIVE STATS
-              GridView(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 1.3,
-                ),
-                children: [
-                  _statCard(
-                    context.t('totalCars'),
-                    _carsStream,
-                    Icons.directions_car,
-                  ),
-                  _statCard(
-                    context.t('bookings'),
-                    _bookingsCountStream,
-                    Icons.calendar_today,
-                  ),
-                  _statCard(context.t('users'), _usersStream, Icons.people),
-                  _revenueCard(),
-                  _extraKmPendingCard(),
-                  _extraKmCollectedCard(),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-              _pendingExtraKmSection(),
+              _bookingsOverview(),
 
               const SizedBox(height: 16),
               _complimentarySection(),
@@ -378,131 +345,151 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  Widget _extraKmPendingCard() {
+  /// Stat grid plus the pending extra-km section, all computed from one
+  /// bookings snapshot so the extra-km stats are calculated once per change.
+  Widget _bookingsOverview() {
     return StreamBuilder<QuerySnapshot>(
-      stream: _extraKmPendingStream,
+      stream: _bookingsStream,
       builder: (context, snapshot) {
-        final stats = computeExtraKmStats(snapshot.data?.docs ?? []);
-        return DashboardCard(
-          title: context.t('pendingExtraKm'),
-          value: stats.pendingCount.toString(),
-          icon: Icons.pending_actions,
-        );
-      },
-    );
-  }
-
-  Widget _extraKmCollectedCard() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _extraKmCollectedStream,
-      builder: (context, snapshot) {
-        final stats = computeExtraKmStats(snapshot.data?.docs ?? []);
-        return DashboardCard(
-          title: context.t('extraKmCollected'),
-          value: "EGP ${stats.paidAmount.toStringAsFixed(0)}",
-          icon: Icons.add_road,
-        );
-      },
-    );
-  }
-
-  Widget _pendingExtraKmSection() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _extraKmSectionStream,
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const SizedBox.shrink();
-        }
-
-        final pending = snapshot.data!.docs.where((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          return bookingHasExtraKmCharge(data) &&
-              (data['extraKmPaymentStatus'] ?? '') == 'pending';
-        }).toList();
-
-        if (pending.isEmpty) {
-          return const SizedBox.shrink();
-        }
-
-        final stats = computeExtraKmStats(snapshot.data!.docs);
-
+        final docs = snapshot.data?.docs ?? const <QueryDocumentSnapshot>[];
+        final stats = computeExtraKmStats(docs);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            GridView(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1.3,
+              ),
               children: [
-                Text(
-                  context.t('pendingExtraKmPayments'),
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                _statCard(
+                  context.t('totalCars'),
+                  _carsStream,
+                  Icons.directions_car,
                 ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const ManageBookingsScreen(),
-                      ),
-                    );
-                  },
-                  child: Text(context.t('manageAll')),
+                DashboardCard(
+                  title: context.t('bookings'),
+                  value: '${docs.length}',
+                  icon: Icons.calendar_today,
                 ),
+                _statCard(context.t('users'), _usersStream, Icons.people),
+                _revenueCard(),
+                _extraKmPendingCard(stats),
+                _extraKmCollectedCard(stats),
               ],
             ),
-            Text(
-              context.t(
-                'pendingBookingsCount',
-                args: {
-                  'count': '${stats.pendingCount}',
-                  'amount': stats.pendingAmount.toStringAsFixed(0),
-                },
-              ),
-              style: TextStyle(color: Colors.grey.shade700),
-            ),
-            const SizedBox(height: 8),
-            ...pending.take(3).map((doc) {
-              final data = doc.data() as Map<String, dynamic>;
-              final km = parseKmAllowance(data);
-              final charge = (km?['extraKmChargeEgp'] as num?)?.toDouble() ?? 0;
-              return Card(
-                margin: const EdgeInsets.only(bottom: 8),
-                child: ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: Colors.orange,
-                    child: Icon(Icons.speed, color: Colors.white, size: 20),
-                  ),
-                  title: Text(resolveBookingName(data)),
-                  subtitle: Text(
-                    '${resolveBookingCar(data)} · '
-                    '${km?['extraKm'] ?? 0} extra km',
-                  ),
-                  trailing: Text(
-                    'EGP ${charge.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                      color: Colors.orange,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => EditBookingScreen(
-                          bookingId: doc.id,
-                          bookingData: data,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              );
-            }),
+            const SizedBox(height: 16),
+            _pendingExtraKmSection(docs, stats),
           ],
         );
       },
+    );
+  }
+
+  Widget _extraKmPendingCard(ExtraKmDashboardStats stats) {
+    return DashboardCard(
+      title: context.t('pendingExtraKm'),
+      value: stats.pendingCount.toString(),
+      icon: Icons.pending_actions,
+    );
+  }
+
+  Widget _extraKmCollectedCard(ExtraKmDashboardStats stats) {
+    return DashboardCard(
+      title: context.t('extraKmCollected'),
+      value: "EGP ${stats.paidAmount.toStringAsFixed(0)}",
+      icon: Icons.add_road,
+    );
+  }
+
+  Widget _pendingExtraKmSection(
+    List<QueryDocumentSnapshot> docs,
+    ExtraKmDashboardStats stats,
+  ) {
+    final pending = docs.where((doc) {
+      final data = doc.data() as Map<String, dynamic>;
+      return bookingHasExtraKmCharge(data) &&
+          (data['extraKmPaymentStatus'] ?? '') == 'pending';
+    }).toList();
+
+    if (pending.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              context.t('pendingExtraKmPayments'),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ManageBookingsScreen(),
+                  ),
+                );
+              },
+              child: Text(context.t('manageAll')),
+            ),
+          ],
+        ),
+        Text(
+          context.t(
+            'pendingBookingsCount',
+            args: {
+              'count': '${stats.pendingCount}',
+              'amount': stats.pendingAmount.toStringAsFixed(0),
+            },
+          ),
+          style: TextStyle(color: Colors.grey.shade700),
+        ),
+        const SizedBox(height: 8),
+        ...pending.take(3).map((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final km = parseKmAllowance(data);
+          final charge = (km?['extraKmChargeEgp'] as num?)?.toDouble() ?? 0;
+          return Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            child: ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: Colors.orange,
+                child: Icon(Icons.speed, color: Colors.white, size: 20),
+              ),
+              title: Text(resolveBookingName(data)),
+              subtitle: Text(
+                '${resolveBookingCar(data)} · '
+                '${km?['extraKm'] ?? 0} extra km',
+              ),
+              trailing: Text(
+                'EGP ${charge.toStringAsFixed(0)}',
+                style: const TextStyle(
+                  color: Colors.orange,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        EditBookingScreen(bookingId: doc.id, bookingData: data),
+                  ),
+                );
+              },
+            ),
+          );
+        }),
+      ],
     );
   }
 
