@@ -50,8 +50,9 @@ const finalize = {
   extraKmPaymentStatus: 'pending',
   status: 'completed',
   tripStatus: 'completed',
-  updatedAt: 1,
 };
+// Each real write also stamps updatedAt with the server time.
+const finalizeWrite = () => ({ ...finalize, updatedAt: serverTimestamp() });
 
 const customer = () =>
   env.authenticatedContext('u1', { email: EMAIL }).firestore();
@@ -253,7 +254,7 @@ test('the pickup km cannot be recorded twice', async () => {
 });
 test('app: a customer records the return km with the extra-km bill', async () => {
   await seed(BOOKING, started);
-  await assertSucceeds(updateDoc(doc(customer(), BOOKING), finalize));
+  await assertSucceeds(updateDoc(doc(customer(), BOOKING), finalizeWrite()));
 });
 test('app: return within the allowance has no extra charge', async () => {
   await seed(BOOKING, started);
@@ -288,12 +289,12 @@ test('a customer cannot forge a zero extra-km bill for a long drive', async () =
 });
 test('a customer cannot under-report the final amount', async () => {
   await seed(BOOKING, started);
-  await assertFails(updateDoc(doc(customer(), BOOKING), { ...finalize, final_amount: 1000 }));
+  await assertFails(updateDoc(doc(customer(), BOOKING), { ...finalizeWrite(), final_amount: 1000 }));
 });
 test('a customer cannot mark their extra-km charge paid', async () => {
   await seed(BOOKING, started);
   await assertFails(
-    updateDoc(doc(customer(), BOOKING), { ...finalize, extraKmPaymentStatus: 'paid' }),
+    updateDoc(doc(customer(), BOOKING), { ...finalizeWrite(), extraKmPaymentStatus: 'paid' }),
   );
   await seed(BOOKING, { ...started, ...finalize });
   await assertFails(updateDoc(doc(customer(), BOOKING), { extraKmPaymentStatus: 'paid' }));
@@ -325,10 +326,22 @@ test('a condition video cannot be replaced', async () => {
 test('app: a customer signs the agreement; it cannot be re-signed', async () => {
   await seed(BOOKING, base);
   await assertSucceeds(
-    updateDoc(doc(customer(), BOOKING), { agreement: { isSigned: true }, updatedAt: 1 }),
+    updateDoc(doc(customer(), BOOKING), {
+      agreement: { isSigned: true, signedBy: 'u1' },
+      updatedAt: serverTimestamp(),
+    }),
   );
   await assertFails(
     updateDoc(doc(customer(), BOOKING), { agreement: { isSigned: false } }),
+  );
+});
+test('an agreement cannot be signed in someone else\'s name', async () => {
+  await seed(BOOKING, base);
+  await assertFails(
+    updateDoc(doc(customer(), BOOKING), {
+      agreement: { isSigned: true, signedBy: 'u2' },
+      updatedAt: serverTimestamp(),
+    }),
   );
 });
 
@@ -417,4 +430,83 @@ test('chauffeur contact details are admin-only', async () => {
   await seed('chauffeurs/d1', { name: 'Driver', phone: '010' });
   await assertFails(getDoc(doc(customer(), 'chauffeurs/d1')));
   await assertSucceeds(getDoc(doc(admin(), 'chauffeurs/d1')));
+});
+
+// ------------------------------------------------ review round 1 fixes
+// Bookings an admin entered carry only the customer's email, no userId.
+const adminEntered = { user_email: EMAIL, status: 'completed', total_amount: 500, days: 1 };
+
+test('app: a customer reviews an admin-entered booking (matched by email)', async () => {
+  await seed(BOOKING, adminEntered);
+  await assertSucceeds(
+    setDoc(doc(customer(), 'reviews/b1'), {
+      bookingId: 'b1',
+      rating: 4,
+      comment: '',
+      userId: 'u1',
+      createdAt: serverTimestamp(),
+    }),
+  );
+});
+test('app: alerts about an admin-entered booking are accepted', async () => {
+  await seed(BOOKING, { ...adminEntered, status: 'confirmed' });
+  await assertSucceeds(
+    addDoc(collection(customer(), 'admin_alerts'), {
+      title: 'Pickup video uploaded',
+      body: 'A condition video was uploaded.',
+      type: 'video_pickup',
+      bookingId: 'b1',
+      read: false,
+      createdAt: serverTimestamp(),
+    }),
+  );
+});
+test('a trip cannot be cancelled once the car is out', async () => {
+  await seed(BOOKING, started);
+  await assertFails(
+    updateDoc(doc(customer(), BOOKING), {
+      status: 'cancelled',
+      tripStatus: 'cancelled',
+      cancelledAt: serverTimestamp(),
+    }),
+  );
+});
+test('the return km cannot skip the bill', async () => {
+  await seed(BOOKING, started);
+  const { final_amount, extraKmPaymentStatus, ...noBill } = finalizeWrite();
+  await assertFails(updateDoc(doc(customer(), BOOKING), noBill));
+});
+test('pickup evidence cannot be rewritten at return', async () => {
+  await seed(BOOKING, { ...started, odometer: { startKm: 1000, startPhotoUrl: 'real' } });
+  await assertFails(
+    updateDoc(doc(customer(), BOOKING), {
+      ...finalizeWrite(),
+      odometer: { startKm: 1000, startPhotoUrl: 'fake', endKm: 1150 },
+    }),
+  );
+});
+test('timestamps must be the server time', async () => {
+  await seed(BOOKING, base);
+  await assertFails(
+    updateDoc(doc(customer(), BOOKING), {
+      status: 'cancelled',
+      tripStatus: 'cancelled',
+      cancelledAt: new Date(2000, 0, 1),
+    }),
+  );
+});
+test('app: FCM token save works even if the stored email drifted', async () => {
+  await seed('users/u1', { role: 'user', email: 'typo@example.com' });
+  await assertSucceeds(
+    setDoc(doc(customer(), 'users/u1'), { fcmToken: 't', fcmUpdatedAt: serverTimestamp() }, { merge: true }),
+  );
+});
+test('profile completion needs real https ID photo URLs', async () => {
+  await assertFails(
+    updateDoc(doc(customer(), 'users/u1'), {
+      national_id_url: '',
+      license_id_url: '',
+      profile_completed: true,
+    }),
+  );
 });

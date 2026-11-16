@@ -45,10 +45,24 @@ index a17fe82..bf4cca4 100644
          "source": "**/*.@(js|wasm|json|otf|ttf)",
          "headers": [
 diff --git a/firestore.rules b/firestore.rules
-index 1a06fac..d6aa6a5 100644
+index 1a06fac..34d82d1 100644
 --- a/firestore.rules
 +++ b/firestore.rules
-@@ -31,6 +31,26 @@ service cloud.firestore {
+@@ -14,6 +14,13 @@ service cloud.firestore {
+       return isSignedIn() && request.auth.uid == userId;
+     }
+ 
++    // Bookings belong to a customer by uid, or by email for bookings an admin
++    // entered (those have no userId).
++    function ownsBooking(booking) {
++      return booking.get('userId', null) == request.auth.uid ||
++        booking.get('user_email', null) == request.auth.token.get('email', '');
++    }
++
+     function isBookingOwner() {
+       return isSignedIn() && (
+         resource.data.userId == request.auth.uid ||
+@@ -31,6 +38,38 @@ service cloud.firestore {
          resource.data.get('role', 'user');
      }
  
@@ -64,18 +78,30 @@ index 1a06fac..d6aa6a5 100644
 +    function profileCompletionValid() {
 +      let next = request.resource.data;
 +      return next.get('profile_completed', false) != true ||
-+        (next.get('national_id_url', null) is string &&
-+          next.get('license_id_url', null) is string);
++        (isHttpsUrl(next.get('national_id_url', null)) &&
++          isHttpsUrl(next.get('license_id_url', null)));
 +    }
 +
-+    function isOwnProfileWrite() {
++    function isHttpsUrl(value) {
++      return value is string && value.matches('https://.+');
++    }
++
++    function isOwnProfileCreate() {
 +      return profileEmailIsOwn() && profileCompletionValid();
++    }
++
++    // Updates check the email only if it changes, so a profile whose stored
++    // email drifted (e.g. an admin typo) can still save its FCM token.
++    function isOwnProfileUpdate() {
++      return (!request.resource.data.diff(resource.data).affectedKeys()
++          .hasAny(['email']) || profileEmailIsOwn()) &&
++        profileCompletionValid();
 +    }
 +
      function isUserBookingUpdate() {
        return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
          'odometer',
-@@ -44,35 +64,126 @@ service cloud.firestore {
+@@ -44,35 +83,159 @@ service cloud.firestore {
          'pickupVideo',
          'returnVideo',
          'agreement',
@@ -101,7 +127,9 @@ index 1a06fac..d6aa6a5 100644
 -          next.status in ['cancelled', 'completed']) &&
 +      let prev = resource.data;
 +      let changed = next.diff(prev).affectedKeys();
-+      return statusChangeOk(next, prev, changed) &&
++      return serverTime(next, changed, 'updatedAt') &&
++        serverTime(next, changed, 'cancelledAt') &&
++        statusChangeOk(next, prev, changed) &&
 +        tripStatusChangeOk(next, prev, changed) &&
 +        (!changed.hasAny(['odometer']) ||
 +          isStartingTrip(next, prev) || isEndingTrip(next, prev)) &&
@@ -117,11 +145,22 @@ index 1a06fac..d6aa6a5 100644
 +          (!('final_amount' in prev) &&
              next.final_amount ==
 -              resource.data.total_amount + next.kmAllowance.extraKmChargeEgp));
-+              prev.total_amount + next.kmAllowance.extraKmChargeEgp)) &&
++              prev.get('total_amount', 0) + next.kmAllowance.extraKmChargeEgp)) &&
 +        writeOnce('pickupVideo', prev, changed) &&
 +        writeOnce('returnVideo', prev, changed) &&
 +        writeOnce('agreement', prev, changed) &&
++        (!changed.hasAny(['agreement']) || isOwnSignature(next.agreement)) &&
 +        reviewChangeOk(next, prev, changed);
++    }
++
++    // Timestamps the app sets are server timestamps, not client-chosen.
++    function serverTime(next, changed, key) {
++      return !changed.hasAny([key]) || next[key] == request.time;
++    }
++
++    // A signed agreement must be signed by the caller.
++    function isOwnSignature(agreement) {
++      return agreement.isSigned == true && agreement.signedBy == request.auth.uid;
 +    }
 +
 +    // Evidence (condition videos, signed agreement) can be added, never
@@ -133,7 +172,8 @@ index 1a06fac..d6aa6a5 100644
 +    function statusChangeOk(next, prev, changed) {
 +      return !changed.hasAny(['status']) ||
 +        (next.status == 'cancelled' &&
-+          prev.status in ['pending', 'confirmed']) ||
++          prev.status in ['pending', 'confirmed'] &&
++          !hasStartedTrip(prev)) ||
 +        (next.status == 'completed' && isEndingTrip(next, prev));
 +    }
 +
@@ -144,25 +184,43 @@ index 1a06fac..d6aa6a5 100644
 +        (next.tripStatus == 'completed' && isEndingTrip(next, prev));
 +    }
 +
++    // Once the pickup km is recorded the car is out: no more cancelling.
++    function hasStartedTrip(prev) {
++      return 'odometer' in prev && prev.odometer != null &&
++        'startKm' in prev.odometer;
++    }
++
 +    // Recording the pickup odometer: once, on an active booking.
 +    function isStartingTrip(next, prev) {
 +      return prev.status in ['pending', 'confirmed'] &&
-+        (!('odometer' in prev) || !('startKm' in prev.odometer)) &&
-+        next.odometer.startKm is int && next.odometer.startKm >= 0 &&
-+        !('endKm' in next.odometer);
++        !hasStartedTrip(prev) &&
++        next.odometer.keys().hasOnly(['startKm', 'startPhotoUrl',
++          'startPhotoPublicId', 'startCapturedAt', 'startCapturedBy']) &&
++        next.odometer.startKm is int && next.odometer.startKm >= 0;
 +    }
 +
 +    // Recording the return odometer: once, after pickup, with the extra-km
 +    // bill computed from the readings.
 +    function isEndingTrip(next, prev) {
-+      return 'odometer' in prev && 'startKm' in prev.odometer &&
++      return hasStartedTrip(prev) &&
 +        !('endKm' in prev.odometer) &&
-+        next.odometer.startKm == prev.odometer.startKm &&
++        // Only the return fields are added; pickup evidence stays as it was.
++        next.odometer.diff(prev.odometer).affectedKeys().hasOnly(['endKm',
++          'endPhotoUrl', 'endPhotoPublicId', 'endCapturedAt', 'endCapturedBy']) &&
 +        next.odometer.endKm is int &&
 +        next.odometer.endKm >= prev.odometer.startKm &&
++        // The bill is part of the same write, never skipped.
++        next.keys().hasAll(['kmAllowance', 'final_amount',
++          'extraKmPaymentStatus']) &&
 +        isKmBillCorrect(next.kmAllowance,
 +          next.odometer.endKm - prev.odometer.startKm,
-+          prev.get('days', 1) < 1 ? 1 : prev.get('days', 1));
++          billableDays(prev.get('days', 1)));
++    }
++
++    // Days as KmBillingService counts them: whole days, clamped to 1..3650.
++    function billableDays(raw) {
++      let d = raw is number ? int(raw) : 1;
++      return d < 1 ? 1 : (d > 3650 ? 3650 : d);
 +    }
 +
 +    // Same formula as KmBillingService (lib/services/km_billing_service.dart):
@@ -201,7 +259,8 @@ index 1a06fac..d6aa6a5 100644
 +        b.days is int && b.days >= 1 &&
 +        b.price_per_day is number && b.price_per_day > 0 &&
 +        b.total_amount == b.price_per_day * b.days &&
-+        b.createdAt == request.time;
++        b.createdAt == request.time &&
++        (!('agreement' in b) || b.agreement.signedBy == request.auth.uid);
      }
  
      match /users/{userId} {
@@ -209,15 +268,15 @@ index 1a06fac..d6aa6a5 100644
 -      allow create: if isAdmin() || (isOwner(userId) && keepsUserRole());
 -      allow update: if isAdmin() || (isOwner(userId) && roleUnchanged());
 +      allow create: if isAdmin() || (
-+        isOwner(userId) && keepsUserRole() && isOwnProfileWrite()
++        isOwner(userId) && keepsUserRole() && isOwnProfileCreate()
 +      );
 +      allow update: if isAdmin() || (
-+        isOwner(userId) && roleUnchanged() && isOwnProfileWrite()
++        isOwner(userId) && roleUnchanged() && isOwnProfileUpdate()
 +      );
        allow delete: if isAdmin();
  
        match /chat_messages/{messageId} {
-@@ -92,10 +203,17 @@ service cloud.firestore {
+@@ -92,10 +255,17 @@ service cloud.firestore {
      match /cars/{carId} {
        allow read: if isSignedIn();
        allow create, delete: if isAdmin();
@@ -236,7 +295,7 @@ index 1a06fac..d6aa6a5 100644
        );
      }
  
-@@ -106,7 +224,7 @@ service cloud.firestore {
+@@ -106,7 +276,7 @@ service cloud.firestore {
          isAdmin()
        );
        allow create: if isAdmin() || (
@@ -245,7 +304,7 @@ index 1a06fac..d6aa6a5 100644
        );
        allow update: if isAdmin() || (
          isBookingOwner() && isUserBookingUpdate()
-@@ -125,20 +243,55 @@ service cloud.firestore {
+@@ -125,20 +295,55 @@ service cloud.firestore {
        allow update, delete: if isAdmin();
      }
  
@@ -269,8 +328,8 @@ index 1a06fac..d6aa6a5 100644
 +        a.body is string && a.body.size() <= 300 &&
 +        a.read == false &&
 +        a.createdAt == request.time &&
-+        get(/databases/$(database)/documents/bookings/$(a.bookingId))
-+          .data.userId == request.auth.uid;
++        ownsBooking(
++          get(/databases/$(database)/documents/bookings/$(a.bookingId)).data);
 +    }
 +
 +    // One review per completed booking (the document id is the booking id),
@@ -292,7 +351,7 @@ index 1a06fac..d6aa6a5 100644
 +        r.userId == request.auth.uid &&
 +        r.rating is int && r.rating >= 1 && r.rating <= 5 &&
 +        r.comment is string && r.comment.size() <= 2000 &&
-+        booking.userId == request.auth.uid &&
++        ownsBooking(booking) &&
 +        booking.status == 'completed' &&
 +        booking.get('reviewed', false) != true;
 +    }
@@ -306,7 +365,7 @@ index 1a06fac..d6aa6a5 100644
      }
  
 diff --git a/firestore_tests/rules.test.js b/firestore_tests/rules.test.js
-index 78d3c19..0c2e05b 100644
+index 78d3c19..d581cf7 100644
 --- a/firestore_tests/rules.test.js
 +++ b/firestore_tests/rules.test.js
 @@ -1,5 +1,8 @@
@@ -318,7 +377,7 @@ index 78d3c19..0c2e05b 100644
  import { test, before, after, beforeEach } from 'node:test';
  import { readFileSync } from 'node:fs';
  import {
-@@ -7,16 +10,42 @@ import {
+@@ -7,58 +10,184 @@ import {
    assertFails,
    assertSucceeds,
  } from '@firebase/rules-unit-testing';
@@ -366,9 +425,11 @@ index 78d3c19..0c2e05b 100644
    final_amount: 1150,
    extraKmPaymentStatus: 'pending',
    status: 'completed',
-@@ -24,41 +53,140 @@ const finalize = {
-   updatedAt: 1,
+   tripStatus: 'completed',
+-  updatedAt: 1,
  };
++// Each real write also stamps updatedAt with the server time.
++const finalizeWrite = () => ({ ...finalize, updatedAt: serverTimestamp() });
  
 -const customer = () => env.authenticatedContext('u1', { email: 'u1@example.com' }).firestore();
 -const stranger = () => env.authenticatedContext('u2', { email: 'u2@example.com' }).firestore();
@@ -483,7 +544,7 @@ index 78d3c19..0c2e05b 100644
 +});
 +test('a booking cannot be created for someone else', async () => {
 +  await assertFails(addDoc(collection(stranger(), 'bookings'), newBooking));
-+});
+ });
 +test('a booking cannot be underpriced', async () => {
 +  await assertFails(
 +    addDoc(collection(customer(), 'bookings'), { ...newBooking, total_amount: 0 }),
@@ -514,13 +575,13 @@ index 78d3c19..0c2e05b 100644
 +      user_email: 'victim@example.com',
 +    }),
 +  );
- });
++});
 +
 +// ------------------------------------------------- booking: who and what
  test('a customer cannot delete their booking', async () => {
    await seed(BOOKING, base);
    await assertFails(deleteDoc(doc(customer(), BOOKING)));
-@@ -67,46 +195,226 @@ test('another user cannot update a booking', async () => {
+@@ -67,46 +196,317 @@ test('another user cannot update a booking', async () => {
    await seed(BOOKING, base);
    await assertFails(updateDoc(doc(stranger(), BOOKING), { status: 'cancelled' }));
  });
@@ -572,6 +633,7 @@ index 78d3c19..0c2e05b 100644
 +// --------------------------------------------- booking: odometer and bill
 +test('app: a customer records the pickup km', async () => {
    await seed(BOOKING, base);
+-  await assertSucceeds(updateDoc(doc(customer(), BOOKING), finalize));
 +  await assertSucceeds(
 +    updateDoc(doc(customer(), BOOKING), {
 +      odometer: { startKm: 1000, startPhotoUrl: 'u', startCapturedBy: 'u1' },
@@ -588,8 +650,8 @@ index 78d3c19..0c2e05b 100644
 +});
 +test('app: a customer records the return km with the extra-km bill', async () => {
 +  await seed(BOOKING, started);
-   await assertSucceeds(updateDoc(doc(customer(), BOOKING), finalize));
- });
++  await assertSucceeds(updateDoc(doc(customer(), BOOKING), finalizeWrite()));
++});
 +test('app: return within the allowance has no extra charge', async () => {
 +  await seed(BOOKING, started);
 +  await assertSucceeds(
@@ -620,11 +682,12 @@ index 78d3c19..0c2e05b 100644
 +      extraKmPaymentStatus: 'not_applicable',
 +    }),
 +  );
-+});
+ });
  test('a customer cannot under-report the final amount', async () => {
 -  await seed(BOOKING, base);
+-  await assertFails(updateDoc(doc(customer(), BOOKING), { ...finalize, final_amount: 1000 }));
 +  await seed(BOOKING, started);
-   await assertFails(updateDoc(doc(customer(), BOOKING), { ...finalize, final_amount: 1000 }));
++  await assertFails(updateDoc(doc(customer(), BOOKING), { ...finalizeWrite(), final_amount: 1000 }));
  });
  test('a customer cannot mark their extra-km charge paid', async () => {
 -  await seed(BOOKING, base);
@@ -632,7 +695,7 @@ index 78d3c19..0c2e05b 100644
 -  await seed(BOOKING, { ...base, ...finalize });
 +  await seed(BOOKING, started);
 +  await assertFails(
-+    updateDoc(doc(customer(), BOOKING), { ...finalize, extraKmPaymentStatus: 'paid' }),
++    updateDoc(doc(customer(), BOOKING), { ...finalizeWrite(), extraKmPaymentStatus: 'paid' }),
 +  );
 +  await seed(BOOKING, { ...started, ...finalize });
    await assertFails(updateDoc(doc(customer(), BOOKING), { extraKmPaymentStatus: 'paid' }));
@@ -656,7 +719,8 @@ index 78d3c19..0c2e05b 100644
 +      updatedAt: serverTimestamp(),
 +    }),
 +  );
-+});
+ });
+-test('a customer can submit a review flag', async () => {
 +test('a condition video cannot be replaced', async () => {
 +  await seed(BOOKING, { ...base, pickupVideo: { publicId: 'v1' } });
 +  await assertFails(
@@ -666,13 +730,24 @@ index 78d3c19..0c2e05b 100644
 +test('app: a customer signs the agreement; it cannot be re-signed', async () => {
 +  await seed(BOOKING, base);
 +  await assertSucceeds(
-+    updateDoc(doc(customer(), BOOKING), { agreement: { isSigned: true }, updatedAt: 1 }),
++    updateDoc(doc(customer(), BOOKING), {
++      agreement: { isSigned: true, signedBy: 'u1' },
++      updatedAt: serverTimestamp(),
++    }),
 +  );
 +  await assertFails(
 +    updateDoc(doc(customer(), BOOKING), { agreement: { isSigned: false } }),
 +  );
- });
--test('a customer can submit a review flag', async () => {
++});
++test('an agreement cannot be signed in someone else\'s name', async () => {
++  await seed(BOOKING, base);
++  await assertFails(
++    updateDoc(doc(customer(), BOOKING), {
++      agreement: { isSigned: true, signedBy: 'u2' },
++      updatedAt: serverTimestamp(),
++    }),
++  );
++});
 +
 +// ------------------------------------------------------------- reviews
 +test('app: a customer reviews a completed booking once', async () => {
@@ -714,8 +789,9 @@ index 78d3c19..0c2e05b 100644
 +  await assertFails(
 +    updateDoc(doc(customer(), 'cars/c1'), { avgRating: 0.1, reviewCount: 9999 }),
 +  );
-+});
-+
+ });
+ 
+-// --- payments ---
 +// ------------------------------------------------------- admin alerts
 +test('app: a customer action posts an alert about their own booking', async () => {
 +  await seed(BOOKING, base);
@@ -747,9 +823,8 @@ index 78d3c19..0c2e05b 100644
 +    addDoc(collection(customer(), 'admin_alerts'), { ...alert, body: 'x'.repeat(301) }),
 +  );
 +  await assertFails(addDoc(collection(stranger(), 'admin_alerts'), alert));
- });
- 
--// --- payments ---
++});
++
 +// ------------------------------------------------- payments, chauffeurs
  test('a user cannot create a payment for someone else', async () => {
 -  await assertFails(addDoc(collection(stranger(), 'payments'), { userId: 'u1', status: 'paid' }));
@@ -761,6 +836,85 @@ index 78d3c19..0c2e05b 100644
 +  await seed('chauffeurs/d1', { name: 'Driver', phone: '010' });
 +  await assertFails(getDoc(doc(customer(), 'chauffeurs/d1')));
 +  await assertSucceeds(getDoc(doc(admin(), 'chauffeurs/d1')));
++});
++
++// ------------------------------------------------ review round 1 fixes
++// Bookings an admin entered carry only the customer's email, no userId.
++const adminEntered = { user_email: EMAIL, status: 'completed', total_amount: 500, days: 1 };
++
++test('app: a customer reviews an admin-entered booking (matched by email)', async () => {
++  await seed(BOOKING, adminEntered);
++  await assertSucceeds(
++    setDoc(doc(customer(), 'reviews/b1'), {
++      bookingId: 'b1',
++      rating: 4,
++      comment: '',
++      userId: 'u1',
++      createdAt: serverTimestamp(),
++    }),
++  );
++});
++test('app: alerts about an admin-entered booking are accepted', async () => {
++  await seed(BOOKING, { ...adminEntered, status: 'confirmed' });
++  await assertSucceeds(
++    addDoc(collection(customer(), 'admin_alerts'), {
++      title: 'Pickup video uploaded',
++      body: 'A condition video was uploaded.',
++      type: 'video_pickup',
++      bookingId: 'b1',
++      read: false,
++      createdAt: serverTimestamp(),
++    }),
++  );
++});
++test('a trip cannot be cancelled once the car is out', async () => {
++  await seed(BOOKING, started);
++  await assertFails(
++    updateDoc(doc(customer(), BOOKING), {
++      status: 'cancelled',
++      tripStatus: 'cancelled',
++      cancelledAt: serverTimestamp(),
++    }),
++  );
++});
++test('the return km cannot skip the bill', async () => {
++  await seed(BOOKING, started);
++  const { final_amount, extraKmPaymentStatus, ...noBill } = finalizeWrite();
++  await assertFails(updateDoc(doc(customer(), BOOKING), noBill));
++});
++test('pickup evidence cannot be rewritten at return', async () => {
++  await seed(BOOKING, { ...started, odometer: { startKm: 1000, startPhotoUrl: 'real' } });
++  await assertFails(
++    updateDoc(doc(customer(), BOOKING), {
++      ...finalizeWrite(),
++      odometer: { startKm: 1000, startPhotoUrl: 'fake', endKm: 1150 },
++    }),
++  );
++});
++test('timestamps must be the server time', async () => {
++  await seed(BOOKING, base);
++  await assertFails(
++    updateDoc(doc(customer(), BOOKING), {
++      status: 'cancelled',
++      tripStatus: 'cancelled',
++      cancelledAt: new Date(2000, 0, 1),
++    }),
++  );
++});
++test('app: FCM token save works even if the stored email drifted', async () => {
++  await seed('users/u1', { role: 'user', email: 'typo@example.com' });
++  await assertSucceeds(
++    setDoc(doc(customer(), 'users/u1'), { fcmToken: 't', fcmUpdatedAt: serverTimestamp() }, { merge: true }),
++  );
++});
++test('profile completion needs real https ID photo URLs', async () => {
++  await assertFails(
++    updateDoc(doc(customer(), 'users/u1'), {
++      national_id_url: '',
++      license_id_url: '',
++      profile_completed: true,
++    }),
++  );
  });
 diff --git a/lib/screens/login_screen.dart b/lib/screens/login_screen.dart
 index b1324e4..270b4cb 100644
@@ -860,7 +1014,7 @@ index fc2af83..2820fd8 100644
      }
      await FirebaseFunctions.instance
 diff --git a/lib/services/gemini_chat_service.dart b/lib/services/gemini_chat_service.dart
-index 6ddc56c..d9bc702 100644
+index 6ddc56c..acfe5d5 100644
 --- a/lib/services/gemini_chat_service.dart
 +++ b/lib/services/gemini_chat_service.dart
 @@ -33,14 +33,16 @@ class GeminiChatService {
@@ -895,7 +1049,7 @@ index 6ddc56c..d9bc702 100644
              body: jsonEncode(body),
            )
            .timeout(const Duration(seconds: 20));
-@@ -185,11 +191,14 @@ class GeminiChatService {
+@@ -185,13 +191,24 @@ class GeminiChatService {
      buffer.writeln('Revenue sum: EGP ${revenue.toStringAsFixed(0)}');
  
      if (alerts.docs.isNotEmpty) {
@@ -905,12 +1059,23 @@ index 6ddc56c..d9bc702 100644
 +      buffer.writeln('\nRecent Admin Alerts:\n<alerts>');
        for (final a in alerts.docs) {
          final d = a.data();
-         buffer.writeln('- [${d['type']}] ${d['title']}: ${d['body']}');
+-        buffer.writeln('- [${d['type']}] ${d['title']}: ${d['body']}');
++        buffer.writeln(
++          '- [${_untrusted(d['type'])}] ${_untrusted(d['title'])}: '
++          '${_untrusted(d['body'])}',
++        );
        }
 +      buffer.writeln('</alerts>');
      }
  
      return buffer.toString();
+   }
++
++  /// Customer-written text for the prompt, with angle brackets removed so it
++  /// cannot close the `<alerts>` fence and pose as instructions.
++  static String _untrusted(Object? value) =>
++      (value ?? '').toString().replaceAll(RegExp('[<>]'), '');
+ }
 diff --git a/lib/services/odometer_service.dart b/lib/services/odometer_service.dart
 index 158e544..de09108 100644
 --- a/lib/services/odometer_service.dart
@@ -938,10 +1103,16 @@ index 158e544..de09108 100644
            )
            .timeout(const Duration(seconds: 25));
 diff --git a/lib/services/review_service.dart b/lib/services/review_service.dart
-index 8daaf9c..5691a1d 100644
+index 8daaf9c..72dc0b7 100644
 --- a/lib/services/review_service.dart
 +++ b/lib/services/review_service.dart
-@@ -19,7 +19,9 @@ class ReviewService {
+@@ -1,4 +1,5 @@
+ import 'package:cloud_firestore/cloud_firestore.dart';
++import 'package:firebase_auth/firebase_auth.dart';
+ import 'package:flutter/foundation.dart';
+ 
+ /// Customer reviews of completed bookings and the per-car rating summary.
+@@ -19,13 +20,16 @@ class ReviewService {
      final carName = (booking['carName'] ?? booking['car_name'] ?? 'Car')
          .toString();
  
@@ -952,6 +1123,27 @@ index 8daaf9c..5691a1d 100644
        'bookingId': bookingId,
        'carId': carId,
        'carName': carName,
+       'rating': rating,
+       'comment': comment.trim(),
+-      'userId': booking['userId'],
++      // The reviewer: bookings an admin entered have no userId of their own.
++      'userId': FirebaseAuth.instance.currentUser?.uid,
+       'userName': booking['userName'] ?? booking['customerName'],
+       'createdAt': FieldValue.serverTimestamp(),
+     });
+diff --git a/lib/services/whatsapp_service.dart b/lib/services/whatsapp_service.dart
+index 7c2b831..af55b0d 100644
+--- a/lib/services/whatsapp_service.dart
++++ b/lib/services/whatsapp_service.dart
+@@ -35,7 +35,7 @@ class WhatsAppService {
+       if (await canLaunchUrl(uri)) {
+         await launchUrl(uri, mode: LaunchMode.externalApplication);
+       } else {
+-        debugPrint('Could not launch WhatsApp for $url');
++        debugPrint('Could not launch WhatsApp'); // no phone number in logs
+       }
+     } catch (e) {
+       debugPrint('WhatsApp launch error: $e');
 diff --git a/test/cloudinary_url_test.dart b/test/cloudinary_url_test.dart
 new file mode 100644
 index 0000000..004b239

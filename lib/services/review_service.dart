@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
 /// Customer reviews of completed bookings and the per-car rating summary.
@@ -27,7 +28,8 @@ class ReviewService {
       'carName': carName,
       'rating': rating,
       'comment': comment.trim(),
-      'userId': booking['userId'],
+      // The reviewer: bookings an admin entered have no userId of their own.
+      'userId': FirebaseAuth.instance.currentUser?.uid,
       'userName': booking['userName'] ?? booking['customerName'],
       'createdAt': FieldValue.serverTimestamp(),
     });

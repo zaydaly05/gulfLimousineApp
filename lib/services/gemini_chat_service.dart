@@ -196,11 +196,19 @@ class GeminiChatService {
       buffer.writeln('\nRecent Admin Alerts:\n<alerts>');
       for (final a in alerts.docs) {
         final d = a.data();
-        buffer.writeln('- [${d['type']}] ${d['title']}: ${d['body']}');
+        buffer.writeln(
+          '- [${_untrusted(d['type'])}] ${_untrusted(d['title'])}: '
+          '${_untrusted(d['body'])}',
+        );
       }
       buffer.writeln('</alerts>');
     }
 
     return buffer.toString();
   }
+
+  /// Customer-written text for the prompt, with angle brackets removed so it
+  /// cannot close the `<alerts>` fence and pose as instructions.
+  static String _untrusted(Object? value) =>
+      (value ?? '').toString().replaceAll(RegExp('[<>]'), '');
 }

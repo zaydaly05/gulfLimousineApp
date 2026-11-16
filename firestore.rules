@@ -14,6 +14,13 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    // Bookings belong to a customer by uid, or by email for bookings an admin
+    // entered (those have no userId).
+    function ownsBooking(booking) {
+      return booking.get('userId', null) == request.auth.uid ||
+        booking.get('user_email', null) == request.auth.token.get('email', '');
+    }
+
     function isBookingOwner() {
       return isSignedIn() && (
         resource.data.userId == request.auth.uid ||
@@ -43,12 +50,24 @@ service cloud.firestore {
     function profileCompletionValid() {
       let next = request.resource.data;
       return next.get('profile_completed', false) != true ||
-        (next.get('national_id_url', null) is string &&
-          next.get('license_id_url', null) is string);
+        (isHttpsUrl(next.get('national_id_url', null)) &&
+          isHttpsUrl(next.get('license_id_url', null)));
     }
 
-    function isOwnProfileWrite() {
+    function isHttpsUrl(value) {
+      return value is string && value.matches('https://.+');
+    }
+
+    function isOwnProfileCreate() {
       return profileEmailIsOwn() && profileCompletionValid();
+    }
+
+    // Updates check the email only if it changes, so a profile whose stored
+    // email drifted (e.g. an admin typo) can still save its FCM token.
+    function isOwnProfileUpdate() {
+      return (!request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['email']) || profileEmailIsOwn()) &&
+        profileCompletionValid();
     }
 
     function isUserBookingUpdate() {
@@ -77,7 +96,9 @@ service cloud.firestore {
       let next = request.resource.data;
       let prev = resource.data;
       let changed = next.diff(prev).affectedKeys();
-      return statusChangeOk(next, prev, changed) &&
+      return serverTime(next, changed, 'updatedAt') &&
+        serverTime(next, changed, 'cancelledAt') &&
+        statusChangeOk(next, prev, changed) &&
         tripStatusChangeOk(next, prev, changed) &&
         (!changed.hasAny(['odometer']) ||
           isStartingTrip(next, prev) || isEndingTrip(next, prev)) &&
@@ -89,11 +110,22 @@ service cloud.firestore {
         (!changed.hasAny(['final_amount']) ||
           (!('final_amount' in prev) &&
             next.final_amount ==
-              prev.total_amount + next.kmAllowance.extraKmChargeEgp)) &&
+              prev.get('total_amount', 0) + next.kmAllowance.extraKmChargeEgp)) &&
         writeOnce('pickupVideo', prev, changed) &&
         writeOnce('returnVideo', prev, changed) &&
         writeOnce('agreement', prev, changed) &&
+        (!changed.hasAny(['agreement']) || isOwnSignature(next.agreement)) &&
         reviewChangeOk(next, prev, changed);
+    }
+
+    // Timestamps the app sets are server timestamps, not client-chosen.
+    function serverTime(next, changed, key) {
+      return !changed.hasAny([key]) || next[key] == request.time;
+    }
+
+    // A signed agreement must be signed by the caller.
+    function isOwnSignature(agreement) {
+      return agreement.isSigned == true && agreement.signedBy == request.auth.uid;
     }
 
     // Evidence (condition videos, signed agreement) can be added, never
@@ -105,7 +137,8 @@ service cloud.firestore {
     function statusChangeOk(next, prev, changed) {
       return !changed.hasAny(['status']) ||
         (next.status == 'cancelled' &&
-          prev.status in ['pending', 'confirmed']) ||
+          prev.status in ['pending', 'confirmed'] &&
+          !hasStartedTrip(prev)) ||
         (next.status == 'completed' && isEndingTrip(next, prev));
     }
 
@@ -116,25 +149,43 @@ service cloud.firestore {
         (next.tripStatus == 'completed' && isEndingTrip(next, prev));
     }
 
+    // Once the pickup km is recorded the car is out: no more cancelling.
+    function hasStartedTrip(prev) {
+      return 'odometer' in prev && prev.odometer != null &&
+        'startKm' in prev.odometer;
+    }
+
     // Recording the pickup odometer: once, on an active booking.
     function isStartingTrip(next, prev) {
       return prev.status in ['pending', 'confirmed'] &&
-        (!('odometer' in prev) || !('startKm' in prev.odometer)) &&
-        next.odometer.startKm is int && next.odometer.startKm >= 0 &&
-        !('endKm' in next.odometer);
+        !hasStartedTrip(prev) &&
+        next.odometer.keys().hasOnly(['startKm', 'startPhotoUrl',
+          'startPhotoPublicId', 'startCapturedAt', 'startCapturedBy']) &&
+        next.odometer.startKm is int && next.odometer.startKm >= 0;
     }
 
     // Recording the return odometer: once, after pickup, with the extra-km
     // bill computed from the readings.
     function isEndingTrip(next, prev) {
-      return 'odometer' in prev && 'startKm' in prev.odometer &&
+      return hasStartedTrip(prev) &&
         !('endKm' in prev.odometer) &&
-        next.odometer.startKm == prev.odometer.startKm &&
+        // Only the return fields are added; pickup evidence stays as it was.
+        next.odometer.diff(prev.odometer).affectedKeys().hasOnly(['endKm',
+          'endPhotoUrl', 'endPhotoPublicId', 'endCapturedAt', 'endCapturedBy']) &&
         next.odometer.endKm is int &&
         next.odometer.endKm >= prev.odometer.startKm &&
+        // The bill is part of the same write, never skipped.
+        next.keys().hasAll(['kmAllowance', 'final_amount',
+          'extraKmPaymentStatus']) &&
         isKmBillCorrect(next.kmAllowance,
           next.odometer.endKm - prev.odometer.startKm,
-          prev.get('days', 1) < 1 ? 1 : prev.get('days', 1));
+          billableDays(prev.get('days', 1)));
+    }
+
+    // Days as KmBillingService counts them: whole days, clamped to 1..3650.
+    function billableDays(raw) {
+      let d = raw is number ? int(raw) : 1;
+      return d < 1 ? 1 : (d > 3650 ? 3650 : d);
     }
 
     // Same formula as KmBillingService (lib/services/km_billing_service.dart):
@@ -173,16 +224,17 @@ service cloud.firestore {
         b.days is int && b.days >= 1 &&
         b.price_per_day is number && b.price_per_day > 0 &&
         b.total_amount == b.price_per_day * b.days &&
-        b.createdAt == request.time;
+        b.createdAt == request.time &&
+        (!('agreement' in b) || b.agreement.signedBy == request.auth.uid);
     }
 
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
       allow create: if isAdmin() || (
-        isOwner(userId) && keepsUserRole() && isOwnProfileWrite()
+        isOwner(userId) && keepsUserRole() && isOwnProfileCreate()
       );
       allow update: if isAdmin() || (
-        isOwner(userId) && roleUnchanged() && isOwnProfileWrite()
+        isOwner(userId) && roleUnchanged() && isOwnProfileUpdate()
       );
       allow delete: if isAdmin();
 
@@ -261,8 +313,8 @@ service cloud.firestore {
         a.body is string && a.body.size() <= 300 &&
         a.read == false &&
         a.createdAt == request.time &&
-        get(/databases/$(database)/documents/bookings/$(a.bookingId))
-          .data.userId == request.auth.uid;
+        ownsBooking(
+          get(/databases/$(database)/documents/bookings/$(a.bookingId)).data);
     }
 
     // One review per completed booking (the document id is the booking id),
@@ -283,7 +335,7 @@ service cloud.firestore {
         r.userId == request.auth.uid &&
         r.rating is int && r.rating >= 1 && r.rating <= 5 &&
         r.comment is string && r.comment.size() <= 2000 &&
-        booking.userId == request.auth.uid &&
+        ownsBooking(booking) &&
         booking.status == 'completed' &&
         booking.get('reviewed', false) != true;
     }

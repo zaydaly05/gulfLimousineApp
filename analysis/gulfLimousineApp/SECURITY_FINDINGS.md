@@ -49,7 +49,7 @@ Top weakness categories:
 | SEC-016 | Low | 321 | `android/app/build.gradle.kts` | Release builds signed with the debug key | **Ready on request**: the Play Store signing setup was written earlier and set aside for the demo |
 | SEC-017 | Low | 1021, 693 | `firebase.json` hosting | No security headers on the web app | **Fixed**: X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy (a full CSP needs on-site testing) |
 | SEC-018 | Low | 359 | `firestore.rules` chauffeurs | Any user could list chauffeur phone numbers | **Fixed**: admins only (customers get their chauffeur's details on the booking) |
-| SEC-019 | Low | 532 | `booking_service.dart`, `cloudinary_service.dart`, `login_screen.dart` | Personal data in release logs | **Fixed** |
+| SEC-019 | Low | 532 | `booking_service.dart`, `cloudinary_service.dart`, `login_screen.dart`, `whatsapp_service.dart` | Personal data in release logs | **Fixed** |
 | SEC-020 | Low | 20 | `video_viewer_screen.dart` | Customer-supplied video URLs loaded on admin devices | **Fixed**: only the app's own Cloudinary URLs play |
 
 Not in the repo: Realtime Database and Storage rules. Check in the Firebase
@@ -78,13 +78,45 @@ console that both are locked down (deny all if unused).
 | SEC-015 | Cleartext and backups off | `AndroidManifest.xml` |
 | SEC-017 | Hosting security headers | `firebase.json` |
 | SEC-018 | Chauffeurs read admin-only | `firestore.rules` |
-| SEC-019 | PII removed from or guarded in logs | `booking_service.dart`, `cloudinary_service.dart`, `login_screen.dart` |
+| SEC-019 | PII removed from or guarded in logs | `booking_service.dart`, `cloudinary_service.dart`, `login_screen.dart`, `whatsapp_service.dart` |
 | SEC-020 | `CloudinaryService.isOwnAssetUrl` gate in the video viewer (+ tests) | `cloudinary_service.dart`, `video_viewer_screen.dart` |
 
-Tests: `firestore_tests/rules.test.js` has 38 emulator tests. Each blocked
+Tests: `firestore_tests/rules.test.js` has 47 emulator tests. Each blocked
 attack has a test, and each real app write is replayed to prove it still
 passes. CI runs them on every pull request.
 
 ## Patch review
 
-_Pending the independent review of the applied patch._
+An independent security review read the patch against the original code.
+Round 1 verdicts, then what changed in response.
+
+| Finding | Round 1 verdict | Reviewer's reason | Round 1 change | Now |
+|---|---|---|---|---|
+| SEC-001 | PARTIAL | Price, dates and payment are still the client's word | Agreement must be signed by the caller (`signedBy == uid`) | Partly fixed; the rest needs real payments (decision pending) |
+| SEC-003 | PARTIAL | Return km could be written without the bill; pickup evidence could be rewritten at return; trips could be cancelled after pickup; timestamps were client-chosen | Bill fields required at trip end; only `end*` odometer keys may change; no cancel after pickup; `updatedAt`/`cancelledAt` must be server time; `billableDays` clamped to whole days 1–3650; `final_amount` uses `total_amount` default 0 | Resolved for the reviewed paths. Residual: the customer still supplies both odometer readings (photos are the evidence) |
+| SEC-004 | RESOLVES | Key no longer in URLs or logs | – | Partly fixed overall (server-side needs Blaze) |
+| SEC-006 | INTRODUCES-RISK | Customers whose booking an admin entered (email only, no `userId`) could no longer review | Review and alert ownership use `ownsBooking()` (uid **or** token email); reviewer uid comes from `currentUser` | Resolved; test added |
+| SEC-007 | PARTIAL | Alert text could close the prompt fence | Alert fields have `<` and `>` stripped before fencing | Resolved |
+| SEC-008 | PARTIAL | Unverified email still grants access to email-matched bookings | – (requiring `email_verified` hides admin-entered bookings from existing users) | Needs a decision |
+| SEC-014 | PARTIAL | Profile email check broke FCM token saves when the stored email differed; any string counted as an ID URL | Email checked only when it changes; ID URLs must be `https://` | Resolved; tests added |
+| SEC-015 | RESOLVES | – | – | Fixed |
+| SEC-017 | RESOLVES | – | – | Fixed |
+| SEC-018 | RESOLVES | – | – | Fixed |
+| SEC-019 | PARTIAL | WhatsApp service still logged phone numbers | Guarded with `kDebugMode` | Resolved |
+| SEC-020 | RESOLVES | – | – | Fixed |
+
+Each round-1 change has an emulator test (`firestore_tests/rules.test.js`,
+section "review round 1 fixes"), and the app's own writes are replayed to
+show they still pass: 47/47 pass, `flutter analyze --fatal-infos` is clean
+and `flutter test` passes.
+
+Still open, because they change behaviour or need console/paid work:
+- Price isn't checked against `cars/{id}` and days aren't checked against the
+  dates (favourites store a copy of the price, so a strict check would break
+  booking from favourites until that copy is refreshed).
+- Simulated payments: SEC-001, SEC-002, SEC-005.
+- `email_verified` not required: SEC-008.
+- Cloudinary preset hardening and private ID images: SEC-009, SEC-010, SEC-011.
+- App Check: SEC-012. Biometric password storage: SEC-013.
+- Release signing: SEC-016 (ready on request).
+- Realtime Database and Storage rules aren't in the repo; check them in the console.
