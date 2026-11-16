@@ -124,29 +124,33 @@ class _AddCarScreenState extends State<AddCarScreen> {
           child: ListView(
             children: [
               /// 🖼 IMAGE UPLOAD
-              GestureDetector(
-                onTap: _uploadImage,
-                child: Container(
-                  height: 180,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade800,
-                    borderRadius: BorderRadius.circular(16),
-                    image: imageUrl != null
-                        ? DecorationImage(
-                            image: NetworkImage(imageUrl!),
-                            fit: BoxFit.cover,
+              Semantics(
+                button: true,
+                label: 'Upload car image',
+                child: GestureDetector(
+                  onTap: _uploadImage,
+                  child: Container(
+                    height: 180,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade800,
+                      borderRadius: BorderRadius.circular(16),
+                      image: imageUrl != null
+                          ? DecorationImage(
+                              image: NetworkImage(imageUrl!),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                    ),
+                    child: imageUrl == null
+                        ? const Center(
+                            child: Icon(
+                              Icons.add_a_photo,
+                              size: 50,
+                              color: Colors.white70,
+                            ),
                           )
                         : null,
                   ),
-                  child: imageUrl == null
-                      ? const Center(
-                          child: Icon(
-                            Icons.add_a_photo,
-                            size: 50,
-                            color: Colors.white70,
-                          ),
-                        )
-                      : null,
                 ),
               ),
 

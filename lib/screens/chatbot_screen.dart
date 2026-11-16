@@ -471,6 +471,7 @@ class _ChatInput extends StatelessWidget {
                   radius: 24,
                   backgroundColor: AppTheme.accent,
                   child: IconButton(
+                    tooltip: context.t('send'),
                     onPressed: enabled ? onSend : null,
                     icon: const Icon(Icons.send, color: Colors.white),
                   ),

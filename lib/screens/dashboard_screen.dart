@@ -127,6 +127,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           // AppBar is black, so use the light-on-dark variant.
           const LanguageToggleButton(dark: true),
           IconButton(
+            tooltip: context.t('notifications'),
             icon: const Icon(Icons.notifications_outlined),
             onPressed: () {
               Navigator.push(
@@ -138,6 +139,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             },
           ),
           IconButton(
+            tooltip: context.t('profile'),
             icon: const Icon(Icons.person_outline),
             onPressed: _openProfile,
           ),

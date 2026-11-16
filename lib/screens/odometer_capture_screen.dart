@@ -299,57 +299,61 @@ class _OdometerCaptureScreenState extends State<OdometerCaptureScreen> {
               style: TextStyle(color: Colors.grey.shade700),
             ),
             const SizedBox(height: 16),
-            GestureDetector(
-              onTap: _processing ? null : _showCaptureOptions,
-              child: Container(
-                height: 200,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade400),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: _imageFile != null
-                    ? Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          Image.memory(_imageFile!, fit: BoxFit.cover),
-                          if (_ocrRunning)
-                            Container(
-                              color: Colors.black45,
-                              child: const Center(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    CircularProgressIndicator(
-                                      color: Colors.white,
-                                    ),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      'Reading odometer…',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                  ],
+            Semantics(
+              button: true,
+              label: 'Capture odometer photo',
+              child: GestureDetector(
+                onTap: _processing ? null : _showCaptureOptions,
+                child: Container(
+                  height: 200,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade400),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: _imageFile != null
+                      ? Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Image.memory(_imageFile!, fit: BoxFit.cover),
+                            if (_ocrRunning)
+                              Container(
+                                color: Colors.black45,
+                                child: const Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      CircularProgressIndicator(
+                                        color: Colors.white,
+                                      ),
+                                      SizedBox(height: 8),
+                                      Text(
+                                        'Reading odometer…',
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
+                          ],
+                        )
+                      : Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.speed,
+                              size: 48,
+                              color: Colors.grey.shade500,
                             ),
-                        ],
-                      )
-                    : Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.speed,
-                            size: 48,
-                            color: Colors.grey.shade500,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Tap to capture odometer photo',
-                            style: TextStyle(color: Colors.grey.shade600),
-                          ),
-                        ],
-                      ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Tap to capture odometer photo',
+                              style: TextStyle(color: Colors.grey.shade600),
+                            ),
+                          ],
+                        ),
+                ),
               ),
             ),
             const SizedBox(height: 16),

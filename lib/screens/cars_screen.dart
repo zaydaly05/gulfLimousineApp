@@ -57,6 +57,7 @@ class _CarsScreenState extends State<CarsScreen> {
         actions: [
           const LanguageToggleButton(dark: true),
           IconButton(
+            tooltip: context.t('favorites'),
             icon: const Icon(Icons.favorite),
             onPressed: () {
               Navigator.push(
@@ -252,6 +253,7 @@ class _CarsScreenState extends State<CarsScreen> {
                       color: Colors.white,
                       shape: const CircleBorder(),
                       child: IconButton(
+                        tooltip: context.t('favorites'),
                         icon: Icon(
                           isFav ? Icons.favorite : Icons.favorite_border,
                           color: Colors.red,

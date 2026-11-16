@@ -187,6 +187,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
                 ),
                 const SizedBox(width: 8),
                 IconButton.filled(
+                  tooltip: 'Search',
                   onPressed: _searchAddress,
                   icon: const Icon(Icons.search),
                   style: IconButton.styleFrom(backgroundColor: AppTheme.accent),

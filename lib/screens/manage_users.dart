@@ -244,6 +244,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
+                          tooltip: context.t('edit'),
                           icon: const Icon(Icons.edit, color: Colors.blue),
                           onPressed: () {
                             Navigator.push(
@@ -258,6 +259,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
                           },
                         ),
                         IconButton(
+                          tooltip: context.t('delete'),
                           icon: const Icon(Icons.delete, color: Colors.red),
                           onPressed: () => deleteUser(context, doc.id),
                         ),

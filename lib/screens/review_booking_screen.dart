@@ -81,6 +81,7 @@ class _ReviewBookingScreenState extends State<ReviewBookingScreen> {
               children: List.generate(5, (i) {
                 final star = i + 1;
                 return IconButton(
+                  tooltip: star == 1 ? '1 star' : '$star stars',
                   onPressed: () => setState(() => _rating = star),
                   icon: Icon(
                     star <= _rating ? Icons.star : Icons.star_border,

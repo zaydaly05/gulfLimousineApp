@@ -427,20 +427,23 @@ class _LoginScreenState extends State<LoginScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(context.t('noAccount')),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const SignUpDialog(),
+                      Semantics(
+                        button: true,
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const SignUpDialog(),
+                              ),
+                            );
+                          },
+                          child: Text(
+                            context.t('signUp'),
+                            style: const TextStyle(
+                              color: Colors.orange,
+                              fontWeight: FontWeight.bold,
                             ),
-                          );
-                        },
-                        child: Text(
-                          context.t('signUp'),
-                          style: const TextStyle(
-                            color: Colors.orange,
-                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),

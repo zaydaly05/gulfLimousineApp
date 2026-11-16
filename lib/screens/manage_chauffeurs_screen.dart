@@ -220,11 +220,13 @@ class _ManageChauffeursScreenState extends State<ManageChauffeursScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
+                          tooltip: context.t('edit'),
                           icon: const Icon(Icons.edit, color: Colors.blue),
                           onPressed: () =>
                               _openForm(context, id: doc.id, data: data),
                         ),
                         IconButton(
+                          tooltip: context.t('delete'),
                           icon: const Icon(Icons.delete, color: Colors.red),
                           onPressed: () => _delete(context, doc.id),
                         ),

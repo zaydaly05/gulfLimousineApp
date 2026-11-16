@@ -74,34 +74,38 @@ class _AdminSecurityHubState extends State<AdminSecurityHub> {
                   point: pos,
                   width: 80,
                   height: 80,
-                  child: GestureDetector(
-                    onTap: () => _showBookingDetails(doc.id, data),
-                    child: Column(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            carName,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
+                  child: Semantics(
+                    button: true,
+                    label: carName,
+                    child: GestureDetector(
+                      onTap: () => _showBookingDetails(doc.id, data),
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 2,
                             ),
-                            overflow: TextOverflow.ellipsis,
+                            decoration: BoxDecoration(
+                              color: Colors.black,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              carName,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
-                        Icon(
-                          Icons.directions_car,
-                          color: isImmobilized ? Colors.red : Colors.green,
-                          size: 40,
-                        ),
-                      ],
+                          Icon(
+                            Icons.directions_car,
+                            color: isImmobilized ? Colors.red : Colors.green,
+                            size: 40,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

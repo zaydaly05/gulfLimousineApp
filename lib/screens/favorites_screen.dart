@@ -82,6 +82,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                       '${car['brand']} · EGP ${price.toStringAsFixed(0)}${context.t('perDay')}',
                     ),
                     trailing: IconButton(
+                      tooltip: context.t('favorites'),
                       icon: const Icon(Icons.favorite, color: Colors.red),
                       onPressed: () => FavoritesService.toggle(carId, car),
                     ),

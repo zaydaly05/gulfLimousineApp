@@ -226,6 +226,7 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
                               onPressed: () => pickAndUploadCarImage(doc.id),
                             ),
                             IconButton(
+                              tooltip: context.t('edit'),
                               icon: const Icon(Icons.edit, color: Colors.blue),
                               onPressed: () {
                                 Navigator.push(
@@ -240,6 +241,7 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
                               },
                             ),
                             IconButton(
+                              tooltip: context.t('delete'),
                               icon: const Icon(Icons.delete, color: Colors.red),
                               onPressed: () =>
                                   deleteCar(context, doc.id, car['public_id']),

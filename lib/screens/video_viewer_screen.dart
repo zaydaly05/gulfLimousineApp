@@ -62,24 +62,28 @@ class _VideoViewerScreenState extends State<VideoViewerScreen> {
                     aspectRatio: _controller.value.aspectRatio,
                     child: VideoPlayer(_controller),
                   ),
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        unawaited(
+                  Semantics(
+                    button: true,
+                    label: _controller.value.isPlaying ? 'Pause' : 'Play',
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          unawaited(
+                            _controller.value.isPlaying
+                                ? _controller.pause()
+                                : _controller.play(),
+                          );
+                        });
+                      },
+                      child: Container(
+                        color: Colors.transparent,
+                        child: Icon(
                           _controller.value.isPlaying
-                              ? _controller.pause()
-                              : _controller.play(),
-                        );
-                      });
-                    },
-                    child: Container(
-                      color: Colors.transparent,
-                      child: Icon(
-                        _controller.value.isPlaying
-                            ? Icons.pause
-                            : Icons.play_arrow,
-                        size: 64,
-                        color: Colors.white.withValues(alpha: 0.5),
+                              ? Icons.pause
+                              : Icons.play_arrow,
+                          size: 64,
+                          color: Colors.white.withValues(alpha: 0.5),
+                        ),
                       ),
                     ),
                   ),
