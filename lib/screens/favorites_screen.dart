@@ -8,6 +8,7 @@ import '../widgets/rent_bottom_sheet.dart';
 import '../l10n/locale_service.dart';
 import '../utils/live_refresh.dart';
 import '../utils/image_decode.dart';
+import '../widgets/empty_state.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -36,14 +37,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             }
             final docs = snapshot.data?.docs ?? [];
             if (docs.isEmpty) {
-              return ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                children: [
-                  SizedBox(
-                    height: 400,
-                    child: Center(child: Text(context.t('noFavorites'))),
-                  ),
-                ],
+              return EmptyState(
+                icon: Icons.favorite_border,
+                message: context.t('noFavorites'),
               );
             }
             return ListView.builder(

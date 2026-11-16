@@ -34,7 +34,7 @@ class ConditionVideoChips extends StatelessWidget {
       children: [
         if (hasPickup)
           Padding(
-            padding: const EdgeInsets.only(right: 8.0),
+            padding: const EdgeInsetsDirectional.only(end: 8),
             child: ActionChip(
               label: const Text('Pickup Video'),
               avatar: const Icon(Icons.play_circle_fill, size: 16),

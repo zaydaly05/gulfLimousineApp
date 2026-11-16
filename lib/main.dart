@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -33,8 +36,20 @@ Future<void> main() async {
   } catch (e) {
     debugPrint('Unexpected initialization error: $e');
   }
+  _useEmulatorsIfRequested();
 
   runApp(const GulfLimousineApp());
+}
+
+/// Local development only: `--dart-define=USE_FIREBASE_EMULATORS=true`
+/// points Auth and Firestore at the Firebase emulators on this machine.
+/// Off by default, so release builds always talk to the real project.
+const _useFirebaseEmulators = bool.fromEnvironment('USE_FIREBASE_EMULATORS');
+
+void _useEmulatorsIfRequested() {
+  if (!_useFirebaseEmulators) return;
+  unawaited(FirebaseAuth.instance.useAuthEmulator('localhost', 9099));
+  FirebaseFirestore.instance.useFirestoreEmulator('localhost', 8080);
 }
 
 class GulfLimousineApp extends StatelessWidget {

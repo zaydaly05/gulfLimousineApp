@@ -28,7 +28,8 @@ class AppTheme {
       style: ElevatedButton.styleFrom(
         backgroundColor: accent,
         foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        // Side padding too, so short buttons don't hug their label.
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
     ),

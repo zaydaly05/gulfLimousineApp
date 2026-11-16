@@ -79,15 +79,23 @@ class LanguagePicker extends StatelessWidget {
   }
 }
 
-/// A sleek button suitable for AppBars and Header bars that toggles between English and Arabic.
+/// Toggles between English and Arabic.
+///
+/// With [showText] it is a labelled pill (login and intro screens). Without
+/// it, it is a plain globe icon button for app bars: the same size as the
+/// other app-bar actions, so it doesn't squeeze the title.
 class LanguageToggleButton extends StatelessWidget {
   final bool dark;
   final bool showText;
+
+  /// Icon colour override, for app bars whose background is orange.
+  final Color? iconColor;
 
   const LanguageToggleButton({
     super.key,
     this.dark = false,
     this.showText = true,
+    this.iconColor,
   });
 
   @override
@@ -95,6 +103,15 @@ class LanguageToggleButton extends StatelessWidget {
     final service = LocaleService.instance;
     final isAr = service.isArabic;
     final color = dark ? Colors.orange : AppTheme.accent;
+
+    if (!showText) {
+      return IconButton(
+        // Names the language you switch to, as the pill's label does.
+        tooltip: isAr ? 'English' : 'العربية',
+        icon: Icon(Icons.language, color: iconColor ?? color),
+        onPressed: service.toggle,
+      );
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),

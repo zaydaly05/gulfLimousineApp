@@ -63,7 +63,7 @@ class _ExpandableAddressTextState extends State<ExpandableAddressText> {
             ),
             if (isExpandable)
               Align(
-                alignment: Alignment.centerLeft,
+                alignment: AlignmentDirectional.centerStart,
                 child: TextButton(
                   style: TextButton.styleFrom(
                     padding: EdgeInsets.zero,

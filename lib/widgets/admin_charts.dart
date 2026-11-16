@@ -29,21 +29,25 @@ class AdminAnalyticsSection extends StatelessWidget {
         const SizedBox(height: 12),
         RepaintBoundary(child: RevenueTrendChart(firestore: firestore)),
         const SizedBox(height: 16),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: RepaintBoundary(
-                child: BookingStatusChart(firestore: firestore),
+        // Side-by-side cards share one height. Safe with IntrinsicHeight
+        // because each chart sits in a fixed-height box.
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: RepaintBoundary(
+                  child: BookingStatusChart(firestore: firestore),
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: RepaintBoundary(
-                child: FleetAvailabilityChart(firestore: firestore),
+              const SizedBox(width: 12),
+              Expanded(
+                child: RepaintBoundary(
+                  child: FleetAvailabilityChart(firestore: firestore),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         const SizedBox(height: 16),
         RepaintBoundary(child: MonthlyBookingsChart(firestore: firestore)),

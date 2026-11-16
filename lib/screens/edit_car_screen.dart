@@ -129,6 +129,13 @@ class _EditCarScreenState extends State<EditCarScreen> {
                       cacheWidth: screenDecodeWidth(context),
                       height: 180,
                       fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        height: 180,
+                        color: Colors.grey.shade900,
+                        child: const Center(
+                          child: Icon(Icons.broken_image, color: Colors.grey),
+                        ),
+                      ),
                     ),
                   )
                 else

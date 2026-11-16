@@ -263,7 +263,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Align(
-                    alignment: Alignment.topRight,
+                    alignment: AlignmentDirectional.topEnd,
                     child: LanguageToggleButton(),
                   ),
 
@@ -286,7 +286,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.black,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        minimumSize: const Size.fromHeight(54),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                           side: const BorderSide(
@@ -365,8 +366,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 12),
 
                   Align(
-                    alignment: Alignment.centerRight,
+                    alignment: AlignmentDirectional.centerEnd,
                     child: TextButton(
+                      // Small side padding so the link lines up with the
+                      // fields' edge instead of sitting 12px inside it.
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                      ),
                       onPressed: () {
                         Navigator.push(
                           context,
@@ -387,14 +393,23 @@ class _LoginScreenState extends State<LoginScreen> {
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: orangeColor,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      minimumSize: const Size.fromHeight(54),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
                     onPressed: _isLoading ? null : () => _login(context),
                     child: _isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
+                        // Sized to the label so the button doesn't jump.
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          )
                         : Text(
                             context.t('login'),
                             style: const TextStyle(
@@ -414,6 +429,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Colors.orange),
+                      minimumSize: const Size.fromHeight(54),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),

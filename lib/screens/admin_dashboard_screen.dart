@@ -74,7 +74,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        actions: const [LanguageToggleButton(dark: true), SizedBox(width: 8)],
+        actions: const [
+          LanguageToggleButton(dark: true, showText: false),
+          SizedBox(width: 4),
+        ],
         iconTheme: const IconThemeData(color: Colors.orange),
       ),
 

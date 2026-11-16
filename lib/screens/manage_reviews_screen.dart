@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
 import '../utils/live_refresh.dart';
+import '../widgets/empty_state.dart';
 
 class ManageReviewsScreen extends StatefulWidget {
   const ManageReviewsScreen({super.key});
@@ -32,7 +33,10 @@ class _ManageReviewsScreenState extends State<ManageReviewsScreen> {
       appBar: AppBar(
         title: Text(context.t('reviewsTitle')),
         backgroundColor: Colors.black,
-        actions: const [LanguageToggleButton(dark: true), SizedBox(width: 8)],
+        actions: const [
+          LanguageToggleButton(dark: true, showText: false),
+          SizedBox(width: 4),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: liveDataRefresh,
@@ -66,19 +70,10 @@ class _ManageReviewsScreenState extends State<ManageReviewsScreen> {
   }
 
   Widget _empty(BuildContext context) {
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      children: [
-        SizedBox(
-          height: 400,
-          child: Center(
-            child: Text(
-              context.t('reviews'),
-              style: const TextStyle(color: Colors.white70),
-            ),
-          ),
-        ),
-      ],
+    return EmptyState(
+      icon: Icons.rate_review_outlined,
+      message: context.t('noReviews'),
+      dark: true,
     );
   }
 

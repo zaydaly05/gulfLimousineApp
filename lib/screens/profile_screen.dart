@@ -226,7 +226,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: Text(context.t('myProfile')),
         backgroundColor: Colors.orange,
         actions: const [
-          LanguageToggleButton(dark: true, showText: false),
+          LanguageToggleButton(
+            dark: true,
+            showText: false,
+            iconColor: Colors.white,
+          ),
           SizedBox(width: 8),
         ],
       ),
@@ -435,6 +439,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         fit: BoxFit.cover,
                         placeholder: (context, url) =>
                             const Center(child: CircularProgressIndicator()),
+                        // Without this a failed load spins forever.
+                        errorWidget: (context, url, error) => const Center(
+                          child: Icon(Icons.broken_image, color: Colors.grey),
+                        ),
                       ),
                     )
                   : const Center(

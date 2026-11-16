@@ -17,6 +17,7 @@ import '../utils/live_refresh.dart';
 import '../widgets/condition_video_chips.dart';
 import '../theme/app_theme.dart';
 import '../widgets/status_pill.dart';
+import '../widgets/action_button_row.dart';
 
 class MyBookingsScreen extends StatefulWidget {
   const MyBookingsScreen({super.key});
@@ -298,7 +299,7 @@ class _BookingCard extends StatelessWidget {
             if (pickup.isNotEmpty)
               _row(Icons.event, context.t('pickup'), pickup),
             if (returnD.isNotEmpty)
-              _row(Icons.event_available, context.t('return'), returnD),
+              _row(Icons.event_available, context.t('returnDate'), returnD),
             if (days != null)
               _row(
                 Icons.timelapse,
@@ -387,10 +388,8 @@ class _BookingCard extends StatelessWidget {
               const SizedBox(height: 4),
               ConditionVideoChips(booking: data, carName: carName),
             ],
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+            const SizedBox(height: 12),
+            ActionButtonRow(
               children: [
                 if (pickupLoc != null)
                   OutlinedButton.icon(
@@ -453,12 +452,12 @@ class _BookingCard extends StatelessWidget {
                       );
                       if (ok == true && context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Agreement signed!')),
+                          SnackBar(content: Text(context.t('agreementSigned'))),
                         );
                       }
                     },
                     icon: const Icon(Icons.assignment_turned_in, size: 18),
-                    label: const Text('Sign Rental Agreement'),
+                    label: Text(context.t('signAgreement')),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
                       foregroundColor: Colors.white,
@@ -502,7 +501,7 @@ class _BookingCard extends StatelessWidget {
                       );
                     },
                     icon: const Icon(Icons.videocam, size: 18),
-                    label: const Text('Condition Video (Pickup)'),
+                    label: Text(context.t('conditionVideoPickup')),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blueGrey,
                       foregroundColor: Colors.white,
@@ -550,7 +549,7 @@ class _BookingCard extends StatelessWidget {
                       );
                     },
                     icon: const Icon(Icons.videocam, size: 18),
-                    label: const Text('Condition Video (Return)'),
+                    label: Text(context.t('conditionVideoReturn')),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blueGrey,
                       foregroundColor: Colors.white,

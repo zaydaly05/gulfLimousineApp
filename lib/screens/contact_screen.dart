@@ -233,7 +233,7 @@ class ContactScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Padding(
-                    padding: const EdgeInsets.only(left: 36),
+                    padding: const EdgeInsetsDirectional.only(start: 36),
                     child: Text(
                       context.t('openingHoursValue'),
                       style: TextStyle(
@@ -417,7 +417,7 @@ class _StyledFaqTile extends StatelessWidget {
         shape: const RoundedRectangleBorder(side: BorderSide.none),
         collapsedShape: const RoundedRectangleBorder(side: BorderSide.none),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        expandedAlignment: Alignment.topLeft,
+        expandedAlignment: AlignmentDirectional.topStart,
         textColor: AppTheme.accent,
         iconColor: AppTheme.accent,
         children: [

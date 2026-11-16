@@ -181,7 +181,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
           ],
         ),
         actions: [
-          const LanguageToggleButton(dark: true),
+          const LanguageToggleButton(dark: true, showText: false),
           IconButton(
             tooltip: 'Clear chat',
             onPressed: _clearChat,
@@ -377,7 +377,7 @@ class _TypingBubble extends StatelessWidget {
                 (index) => Container(
                   width: 8,
                   height: 8,
-                  margin: EdgeInsets.only(right: index == 2 ? 0 : 6),
+                  margin: EdgeInsetsDirectional.only(end: index == 2 ? 0 : 6),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade400,
                     shape: BoxShape.circle,
@@ -430,7 +430,7 @@ class _ChatInput extends StatelessWidget {
                 children: ChatbotService.welcomeSuggestions
                     .map(
                       (suggestion) => Padding(
-                        padding: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsetsDirectional.only(end: 8),
                         child: ActionChip(
                           label: Text(suggestion),
                           onPressed: enabled

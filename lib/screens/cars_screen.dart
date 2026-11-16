@@ -12,6 +12,7 @@ import '../widgets/language_picker.dart';
 import '../utils/live_refresh.dart';
 import '../theme/app_theme.dart';
 import '../utils/image_decode.dart';
+import '../widgets/empty_state.dart';
 
 class CarsScreen extends StatefulWidget {
   const CarsScreen({super.key});
@@ -56,7 +57,7 @@ class _CarsScreenState extends State<CarsScreen> {
       appBar: AppBar(
         title: Text(context.t('availableCars')),
         actions: [
-          const LanguageToggleButton(dark: true),
+          const LanguageToggleButton(dark: true, showText: false),
           IconButton(
             tooltip: context.t('favorites'),
             icon: const Icon(Icons.favorite),
@@ -128,7 +129,7 @@ class _CarsScreenState extends State<CarsScreen> {
           final selected = selectedBrand == brand;
           final displayLabel = brand == 'All' ? context.t('all') : brand;
           return Padding(
-            padding: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsetsDirectional.only(end: 8),
             child: FilterChip(
               label: Text(displayLabel),
               selected: selected,
@@ -149,14 +150,9 @@ class _CarsScreenState extends State<CarsScreen> {
     }
 
     if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-      return ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: [
-          SizedBox(
-            height: 300,
-            child: Center(child: Text(context.t('noCars'))),
-          ),
-        ],
+      return EmptyState(
+        icon: Icons.directions_car_outlined,
+        message: context.t('noCars'),
       );
     }
 

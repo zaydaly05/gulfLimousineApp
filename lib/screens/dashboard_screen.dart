@@ -126,7 +126,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: Text(context.t('appName')),
         actions: [
           // AppBar is black, so use the light-on-dark variant.
-          const LanguageToggleButton(dark: true),
+          const LanguageToggleButton(dark: true, showText: false),
           IconButton(
             tooltip: context.t('notifications'),
             icon: const Icon(Icons.notifications_outlined),
@@ -189,7 +189,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   MaterialPageRoute(builder: (_) => const MyBookingsScreen()),
                 ),
               ),
-              const SizedBox(height: 20),
+              // Brings its own top gap, so a hidden banner leaves none.
               _UserTrafficTicketsBanner(userId: user?.uid, email: email),
               const SizedBox(height: 24),
               Text(
@@ -749,57 +749,60 @@ class _UserTrafficTicketsBannerState extends State<_UserTrafficTicketsBanner> {
               (value, data) => value + TrafficViolationService.amountOf(data),
             );
 
-            return Material(
-              color: const Color(0xFFFFF3E0),
-              borderRadius: BorderRadius.circular(14),
-              child: InkWell(
+            return Padding(
+              padding: const EdgeInsets.only(top: 20),
+              child: Material(
+                color: const Color(0xFFFFF3E0),
                 borderRadius: BorderRadius.circular(14),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const MyTrafficViolationsScreen(),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const MyTrafficViolationsScreen(),
+                      ),
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.gavel, color: AppTheme.accent),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                context.t('trafficDue'),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                context.t(
+                                  'unpaidTickets',
+                                  args: {
+                                    'count': '${pending.length}',
+                                    'amount': total.toStringAsFixed(0),
+                                  },
+                                ),
+                                style: TextStyle(color: Colors.grey.shade700),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          context.t('pay'),
+                          style: const TextStyle(
+                            color: AppTheme.accent,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right, color: AppTheme.accent),
+                      ],
                     ),
-                  );
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.gavel, color: AppTheme.accent),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              context.t('trafficDue'),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              context.t(
-                                'unpaidTickets',
-                                args: {
-                                  'count': '${pending.length}',
-                                  'amount': total.toStringAsFixed(0),
-                                },
-                              ),
-                              style: TextStyle(color: Colors.grey.shade700),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Text(
-                        context.t('pay'),
-                        style: const TextStyle(
-                          color: AppTheme.accent,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const Icon(Icons.chevron_right, color: AppTheme.accent),
-                    ],
                   ),
                 ),
               ),
