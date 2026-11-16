@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -29,42 +31,47 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
       .snapshots();
 
   Future<void> _deleteBooking(BuildContext context, String id) async {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: Colors.grey.shade900,
-        title: Text(
-          context.t('delete'),
-          style: const TextStyle(color: Colors.white),
-        ),
-        content: Text(
-          context.t('cannotBeUndone'),
-          style: const TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(context.t('cancel')),
+    unawaited(
+      showDialog(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          backgroundColor: Colors.grey.shade900,
+          title: Text(
+            context.t('delete'),
+            style: const TextStyle(color: Colors.white),
           ),
-          TextButton(
-            onPressed: () async {
-              try {
-                await BookingService.deleteBooking(id);
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('$e'), backgroundColor: Colors.red),
-                  );
-                }
-              }
-              if (dialogContext.mounted) Navigator.pop(dialogContext);
-            },
-            child: Text(
-              context.t('delete'),
-              style: const TextStyle(color: Colors.red),
+          content: Text(
+            context.t('cannotBeUndone'),
+            style: const TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(context.t('cancel')),
             ),
-          ),
-        ],
+            TextButton(
+              onPressed: () async {
+                try {
+                  await BookingService.deleteBooking(id);
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('$e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+                if (dialogContext.mounted) Navigator.pop(dialogContext);
+              },
+              child: Text(
+                context.t('delete'),
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

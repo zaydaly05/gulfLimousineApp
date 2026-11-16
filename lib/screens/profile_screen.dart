@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import 'package:flutter/material.dart';
@@ -49,7 +51,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _loadUserData();
+    unawaited(_loadUserData());
   }
 
   @override

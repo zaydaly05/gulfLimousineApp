@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -41,7 +42,7 @@ class _CarConditionCaptureScreenState extends State<CarConditionCaptureScreen> {
 
   @override
   void dispose() {
-    _videoController?.dispose();
+    unawaited(_videoController?.dispose());
     super.dispose();
   }
 
@@ -73,34 +74,36 @@ class _CarConditionCaptureScreenState extends State<CarConditionCaptureScreen> {
 
     setState(() {
       _videoFile = file;
-      _videoController?.dispose();
+      unawaited(_videoController?.dispose());
       _videoController = controller;
     });
   }
 
   void _showCaptureOptions() {
-    showModalBottomSheet(
-      context: context,
-      builder: (sheetContext) => SafeArea(
-        child: Wrap(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.videocam),
-              title: const Text('Record video'),
-              onTap: () {
-                Navigator.pop(sheetContext);
-                _captureVideo(ImageSource.camera);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.video_library),
-              title: const Text('Choose from gallery'),
-              onTap: () {
-                Navigator.pop(sheetContext);
-                _captureVideo(ImageSource.gallery);
-              },
-            ),
-          ],
+    unawaited(
+      showModalBottomSheet(
+        context: context,
+        builder: (sheetContext) => SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.videocam),
+                title: const Text('Record video'),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  unawaited(_captureVideo(ImageSource.camera));
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.video_library),
+                title: const Text('Choose from gallery'),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  unawaited(_captureVideo(ImageSource.gallery));
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -185,9 +188,11 @@ class _CarConditionCaptureScreenState extends State<CarConditionCaptureScreen> {
                             ),
                             onPressed: () {
                               setState(() {
-                                _videoController!.value.isPlaying
-                                    ? _videoController!.pause()
-                                    : _videoController!.play();
+                                unawaited(
+                                  _videoController!.value.isPlaying
+                                      ? _videoController!.pause()
+                                      : _videoController!.play(),
+                                );
                               });
                             },
                           ),

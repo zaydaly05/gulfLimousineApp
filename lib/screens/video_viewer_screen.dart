@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
@@ -20,7 +22,7 @@ class _VideoViewerScreenState extends State<VideoViewerScreen> {
   void initState() {
     super.initState();
     _controller = VideoPlayerController.networkUrl(Uri.parse(widget.url));
-    _initialize();
+    unawaited(_initialize());
   }
 
   Future<void> _initialize() async {
@@ -37,7 +39,7 @@ class _VideoViewerScreenState extends State<VideoViewerScreen> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    unawaited(_controller.dispose());
     super.dispose();
   }
 
@@ -63,9 +65,11 @@ class _VideoViewerScreenState extends State<VideoViewerScreen> {
                   GestureDetector(
                     onTap: () {
                       setState(() {
-                        _controller.value.isPlaying
-                            ? _controller.pause()
-                            : _controller.play();
+                        unawaited(
+                          _controller.value.isPlaying
+                              ? _controller.pause()
+                              : _controller.play(),
+                        );
                       });
                     },
                     child: Container(

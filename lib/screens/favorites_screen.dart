@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
@@ -84,15 +86,17 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                       onPressed: () => FavoritesService.toggle(carId, car),
                     ),
                     onTap: () {
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(20),
+                      unawaited(
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(20),
+                            ),
                           ),
+                          builder: (_) => RentBottomSheet(car: car),
                         ),
-                        builder: (_) => RentBottomSheet(car: car),
                       );
                     },
                   ),

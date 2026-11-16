@@ -40,7 +40,7 @@ class _CarsScreenState extends State<CarsScreen> {
 
   @override
   void dispose() {
-    _favoritesSub?.cancel();
+    unawaited(_favoritesSub?.cancel());
     super.dispose();
   }
 
@@ -308,15 +308,17 @@ class _CarsScreenState extends State<CarsScreen> {
                     ),
                     ElevatedButton(
                       onPressed: () {
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(
-                              top: Radius.circular(20),
+                        unawaited(
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(20),
+                              ),
                             ),
+                            builder: (_) => RentBottomSheet(car: car),
                           ),
-                          builder: (_) => RentBottomSheet(car: car),
                         );
                       },
                       child: Text(context.t('rent')),

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -39,8 +41,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _loadUserData();
-    NotificationService.instance.initialize();
+    unawaited(_loadUserData());
+    unawaited(NotificationService.instance.initialize());
   }
 
   Future<void> _loadUserData() async {
@@ -299,7 +301,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           _drawerTile(Icons.person, context.t('profile'), () {
             Navigator.pop(context);
-            _openProfile();
+            unawaited(_openProfile());
           }),
           _drawerNavTile(
             Icons.phone,
@@ -308,7 +310,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           _drawerTile(Icons.smart_toy_outlined, context.t('aiAssistant'), () {
             Navigator.pop(context);
-            _openChatbot();
+            unawaited(_openChatbot());
           }),
           const Divider(),
           ListTile(
@@ -316,7 +318,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             title: Text(context.t('logout')),
             onTap: () {
               Navigator.pop(context);
-              _logout();
+              unawaited(_logout());
             },
           ),
         ],

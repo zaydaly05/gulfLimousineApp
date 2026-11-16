@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../l10n/locale_service.dart';
@@ -22,7 +24,7 @@ class LanguagePicker extends StatelessWidget {
         ],
         selected: {selected},
         onSelectionChanged: (value) {
-          service.setLocale(Locale(value.first));
+          unawaited(service.setLocale(Locale(value.first)));
         },
       );
     }

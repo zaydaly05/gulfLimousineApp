@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -35,8 +37,8 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeGoogleSignIn();
-    _prepareBiometricLogin();
+    unawaited(_initializeGoogleSignIn());
+    unawaited(_prepareBiometricLogin());
   }
 
   Future<void> _prepareBiometricLogin() async {
@@ -335,7 +337,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     obscureText: true,
                     autofillHints: const [AutofillHints.password],
                     onSubmitted: (_) {
-                      if (!_isLoading) _login(context);
+                      if (!_isLoading) unawaited(_login(context));
                     },
                     decoration: _inputDecoration(
                       context.t('password'),

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -169,92 +171,94 @@ class _AdminSecurityHubState extends State<AdminSecurityHub> {
     final messenger = ScaffoldMessenger.of(context);
     final customerName =
         (data['customerName'] ?? data['userName'] ?? 'Customer').toString();
-    showModalBottomSheet(
-      context: context,
-      builder: (sheetContext) {
-        final security = data['security'];
-        final isImmobilized =
-            security is Map && security['isImmobilized'] == true;
+    unawaited(
+      showModalBottomSheet(
+        context: context,
+        builder: (sheetContext) {
+          final security = data['security'];
+          final isImmobilized =
+              security is Map && security['isImmobilized'] == true;
 
-        return Container(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                (data['carName'] ?? data['car_name'] ?? 'Car').toString(),
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+          return Container(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  (data['carName'] ?? data['car_name'] ?? 'Car').toString(),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              Text('Customer: $customerName'),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  if ((data['phone'] ?? '').toString().isNotEmpty)
-                    IconButton(
-                      tooltip: 'WhatsApp Customer',
-                      icon: const Icon(
-                        Icons.chat_bubble_outline,
-                        color: Color(0xFF25D366),
-                      ),
-                      onPressed: () => WhatsAppService.messageCustomer(
-                        phone: data['phone'].toString(),
-                        customerName: customerName,
-                        bookingId: id,
-                      ),
-                    ),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      navigator.pop();
-                      navigator.push(
-                        MaterialPageRoute(
-                          builder: (_) => EditBookingScreen(
-                            bookingId: id,
-                            bookingData: data,
-                          ),
+                Text('Customer: $customerName'),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    if ((data['phone'] ?? '').toString().isNotEmpty)
+                      IconButton(
+                        tooltip: 'WhatsApp Customer',
+                        icon: const Icon(
+                          Icons.chat_bubble_outline,
+                          color: Color(0xFF25D366),
                         ),
-                      );
-                    },
-                    icon: const Icon(Icons.edit),
-                    label: const Text('Manage'),
-                  ),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isImmobilized
-                          ? Colors.green
-                          : Colors.red,
-                      foregroundColor: Colors.white,
-                    ),
-                    onPressed: () async {
-                      try {
-                        await BookingService.toggleImmobilization(
+                        onPressed: () => WhatsAppService.messageCustomer(
+                          phone: data['phone'].toString(),
+                          customerName: customerName,
                           bookingId: id,
-                          immobilized: !isImmobilized,
-                        );
-                      } catch (e) {
-                        messenger.showSnackBar(
-                          SnackBar(
-                            content: Text('$e'),
-                            backgroundColor: Colors.red,
+                        ),
+                      ),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        navigator.pop();
+                        navigator.push(
+                          MaterialPageRoute(
+                            builder: (_) => EditBookingScreen(
+                              bookingId: id,
+                              bookingData: data,
+                            ),
                           ),
                         );
-                      }
-                      if (sheetContext.mounted) Navigator.pop(sheetContext);
-                    },
-                    icon: Icon(isImmobilized ? Icons.lock_open : Icons.lock),
-                    label: Text(
-                      isImmobilized ? 'Restore Engine' : 'Engine Kill Switch',
+                      },
+                      icon: const Icon(Icons.edit),
+                      label: const Text('Manage'),
                     ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isImmobilized
+                            ? Colors.green
+                            : Colors.red,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () async {
+                        try {
+                          await BookingService.toggleImmobilization(
+                            bookingId: id,
+                            immobilized: !isImmobilized,
+                          );
+                        } catch (e) {
+                          messenger.showSnackBar(
+                            SnackBar(
+                              content: Text('$e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                        if (sheetContext.mounted) Navigator.pop(sheetContext);
+                      },
+                      icon: Icon(isImmobilized ? Icons.lock_open : Icons.lock),
+                      label: Text(
+                        isImmobilized ? 'Restore Engine' : 'Engine Kill Switch',
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }

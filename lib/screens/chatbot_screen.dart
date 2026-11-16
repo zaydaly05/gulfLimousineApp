@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -199,8 +201,8 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
 
                 final messages = snapshot.data ?? [];
                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _ensureWelcomeMessage(messages);
-                  _scrollToBottom();
+                  unawaited(_ensureWelcomeMessage(messages));
+                  unawaited(_scrollToBottom());
                 });
 
                 return ListView.builder(

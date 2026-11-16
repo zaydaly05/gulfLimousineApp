@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -107,28 +109,30 @@ class _OdometerCaptureScreenState extends State<OdometerCaptureScreen> {
   }
 
   void _showCaptureOptions() {
-    showModalBottomSheet(
-      context: context,
-      builder: (_) => SafeArea(
-        child: Wrap(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Take photo'),
-              onTap: () {
-                Navigator.pop(context);
-                _capturePhoto(ImageSource.camera);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Choose from gallery'),
-              onTap: () {
-                Navigator.pop(context);
-                _capturePhoto(ImageSource.gallery);
-              },
-            ),
-          ],
+    unawaited(
+      showModalBottomSheet(
+        context: context,
+        builder: (_) => SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Take photo'),
+                onTap: () {
+                  Navigator.pop(context);
+                  unawaited(_capturePhoto(ImageSource.camera));
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Choose from gallery'),
+                onTap: () {
+                  Navigator.pop(context);
+                  unawaited(_capturePhoto(ImageSource.gallery));
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
