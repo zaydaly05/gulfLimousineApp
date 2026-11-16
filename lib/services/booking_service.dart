@@ -373,7 +373,7 @@ class BookingService {
     });
 
     // Simulate sending email (in a real app, this triggers a Cloud Function)
-    debugPrint('Sending rental agreement copy to ${user.email}...');
+    if (kDebugMode) debugPrint('Sending rental agreement copy to the user');
   }
 
   /// Runs a side write (e.g. a notification) without letting its failure

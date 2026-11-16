@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+import '../services/cloudinary_service.dart';
+
 class VideoViewerScreen extends StatefulWidget {
   final String url;
   final String title;
@@ -22,7 +24,12 @@ class _VideoViewerScreenState extends State<VideoViewerScreen> {
   void initState() {
     super.initState();
     _controller = VideoPlayerController.networkUrl(Uri.parse(widget.url));
-    unawaited(_initialize());
+    if (CloudinaryService.isOwnAssetUrl(widget.url)) {
+      unawaited(_initialize());
+    } else {
+      // Only play videos hosted on the app's own Cloudinary account.
+      _error = 'Video unavailable';
+    }
   }
 
   Future<void> _initialize() async {

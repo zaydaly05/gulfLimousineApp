@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -128,7 +129,7 @@ class _LoginScreenState extends State<LoginScreen> {
       await UserProfileService.ensureGoogleUser(userCredential.user!);
       await _handleUserNavigation(userCredential.user!);
     } catch (e) {
-      debugPrint("GOOGLE ERROR: $e");
+      if (kDebugMode) debugPrint('Google sign-in error: $e');
 
       if (mounted) {
         final errorStr = e.toString().toLowerCase();

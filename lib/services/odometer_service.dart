@@ -14,7 +14,7 @@ class OdometerService {
     try {
       final base64Image = base64Encode(imageBytes);
       final uri = Uri.parse(
-        'https://generativelanguage.googleapis.com/v1beta/models/$_model:generateContent?key=${ApiKeys.gemini}',
+        'https://generativelanguage.googleapis.com/v1beta/models/$_model:generateContent',
       );
 
       final body = {
@@ -40,7 +40,11 @@ class OdometerService {
       final response = await http
           .post(
             uri,
-            headers: {'Content-Type': 'application/json'},
+            // Key in a header, not the URL, so it stays out of proxy/server logs.
+            headers: {
+              'Content-Type': 'application/json',
+              'x-goog-api-key': ApiKeys.gemini,
+            },
             body: jsonEncode(body),
           )
           .timeout(const Duration(seconds: 25));

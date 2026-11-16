@@ -7,7 +7,20 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
 class CloudinaryService {
-  final String cloudName = 'delnnzcph';
+  static const String cloudName = 'delnnzcph';
+
+  /// Whether [url] points at a file in this app's Cloudinary account.
+  /// Booking documents carry URLs written by customers, so viewers check
+  /// this before loading anything.
+  static bool isOwnAssetUrl(String url) {
+    final uri = Uri.tryParse(url);
+    return uri != null &&
+        uri.scheme == 'https' &&
+        uri.host == 'res.cloudinary.com' &&
+        uri.pathSegments.isNotEmpty &&
+        uri.pathSegments.first == cloudName;
+  }
+
   final String uploadPreset = 'flutter_upload';
 
   /// Upload image and return BOTH secure_url and public_id
@@ -104,7 +117,9 @@ class CloudinaryService {
     String resourceType = 'image',
   }) async {
     if (!serverDeletesEnabled) {
-      debugPrint('Cloudinary delete skipped (server deletes off): $publicId');
+      if (kDebugMode) {
+        debugPrint('Cloudinary delete skipped (server deletes off)');
+      }
       return;
     }
     await FirebaseFunctions.instance

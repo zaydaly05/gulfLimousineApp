@@ -19,7 +19,9 @@ class ReviewService {
     final carName = (booking['carName'] ?? booking['car_name'] ?? 'Car')
         .toString();
 
-    await _db.collection('reviews').add({
+    // The booking id is the document id: one review per booking (enforced
+    // by firestore.rules).
+    await _db.collection('reviews').doc(bookingId).set({
       'bookingId': bookingId,
       'carId': carId,
       'carName': carName,
