@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import 'package:flutter/material.dart';
@@ -12,6 +14,7 @@ import '../widgets/biometric_settings_tile.dart';
 import '../widgets/language_picker.dart';
 import '../l10n/locale_service.dart';
 import '../services/user_profile_service.dart';
+import '../utils/image_decode.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -49,7 +52,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _loadUserData();
+    unawaited(_loadUserData());
   }
 
   @override
@@ -211,7 +214,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_profileImage != null) {
       avatar = MemoryImage(_profileImage!);
     } else if (_profileImageUrl != null && _profileImageUrl!.isNotEmpty) {
-      avatar = CachedNetworkImageProvider(_profileImageUrl!);
+      // Avatar is 100 px across (radius 50).
+      avatar = ResizeImage(
+        CachedNetworkImageProvider(_profileImageUrl!),
+        width: decodeWidth(context, 100),
+      );
     }
 
     return Scaffold(
@@ -230,15 +237,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
           padding: const EdgeInsets.all(20),
           child: Column(
             children: [
-              GestureDetector(
-                onTap: _pickImage,
-                child: CircleAvatar(
-                  radius: 50,
-                  backgroundColor: Colors.orange,
-                  backgroundImage: avatar,
-                  child: avatar == null
-                      ? const Icon(Icons.person, size: 60, color: Colors.white)
-                      : null,
+              Semantics(
+                button: true,
+                label: context.t('tapChangePhoto'),
+                child: GestureDetector(
+                  onTap: _pickImage,
+                  child: CircleAvatar(
+                    radius: 50,
+                    backgroundColor: Colors.orange,
+                    backgroundImage: avatar,
+                    child: avatar == null
+                        ? const Icon(
+                            Icons.person,
+                            size: 60,
+                            color: Colors.white,
+                          )
+                        : null,
+                  ),
                 ),
               ),
               const SizedBox(height: 8),
@@ -393,34 +408,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
       children: [
         Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
-        GestureDetector(
-          onTap: onTap,
-          child: Container(
-            height: 120,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade400),
-            ),
-            child: localFile != null
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.memory(localFile, fit: BoxFit.cover),
-                  )
-                : (remoteUrl != null && remoteUrl.isNotEmpty)
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: CachedNetworkImage(
-                      imageUrl: remoteUrl,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) =>
-                          const Center(child: CircularProgressIndicator()),
+        Semantics(
+          button: true,
+          label: label,
+          child: GestureDetector(
+            onTap: onTap,
+            child: Container(
+              height: 120,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade400),
+              ),
+              child: localFile != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.memory(localFile, fit: BoxFit.cover),
+                    )
+                  : (remoteUrl != null && remoteUrl.isNotEmpty)
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: CachedNetworkImage(
+                        imageUrl: remoteUrl,
+                        memCacheWidth: screenDecodeWidth(context),
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) =>
+                            const Center(child: CircularProgressIndicator()),
+                      ),
+                    )
+                  : const Center(
+                      child: Icon(Icons.add_a_photo, color: Colors.grey),
                     ),
-                  )
-                : const Center(
-                    child: Icon(Icons.add_a_photo, color: Colors.grey),
-                  ),
+            ),
           ),
         ),
       ],

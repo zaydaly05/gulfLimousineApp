@@ -30,7 +30,7 @@ class _IntroScreenState extends State<IntroScreen>
     // Video
     _videoController = VideoPlayerController.asset('assets/videos/intro.mp4');
 
-    _initializeVideo();
+    unawaited(_initializeVideo());
 
     // Fade animation
     _fadeController = AnimationController(
@@ -102,11 +102,11 @@ class _IntroScreenState extends State<IntroScreen>
 
     try {
       if (_videoController.value.isInitialized) {
-        _videoController.pause();
+        unawaited(_videoController.pause());
       }
     } catch (_) {}
 
-    _videoController.dispose();
+    unawaited(_videoController.dispose());
     _fadeController.dispose();
 
     super.dispose();

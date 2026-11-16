@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -7,6 +9,7 @@ import '../services/cloudinary_service.dart';
 import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
 import '../utils/live_refresh.dart';
+import '../utils/image_decode.dart';
 
 class ManageCarsScreen extends StatefulWidget {
   const ManageCarsScreen({super.key});
@@ -28,63 +31,65 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
     String id,
     String? publicId,
   ) async {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: Colors.grey.shade900,
-        title: Text(
-          context.t('delete'),
-          style: const TextStyle(color: Colors.white),
-        ),
-        content: Text(
-          context.t('cannotBeUndone'),
-          style: const TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            child: Text(context.t('cancel')),
-            onPressed: () => Navigator.pop(dialogContext),
+    unawaited(
+      showDialog(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          backgroundColor: Colors.grey.shade900,
+          title: Text(
+            context.t('delete'),
+            style: const TextStyle(color: Colors.white),
           ),
-          TextButton(
-            child: Text(
-              context.t('delete'),
-              style: const TextStyle(color: Colors.red),
+          content: Text(
+            context.t('cannotBeUndone'),
+            style: const TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              child: Text(context.t('cancel')),
+              onPressed: () => Navigator.pop(dialogContext),
             ),
-            onPressed: () async {
-              final messenger = ScaffoldMessenger.of(context);
-              try {
-                // Remove the car first so it never points at a deleted image.
-                await FirebaseFirestore.instance
-                    .collection('cars')
-                    .doc(id)
-                    .delete();
-              } catch (e) {
-                messenger.showSnackBar(
-                  SnackBar(content: Text('$e'), backgroundColor: Colors.red),
-                );
-                if (dialogContext.mounted) Navigator.pop(dialogContext);
-                return;
-              }
-              if (dialogContext.mounted) Navigator.pop(dialogContext);
-
-              if (publicId != null && publicId.isNotEmpty) {
+            TextButton(
+              child: Text(
+                context.t('delete'),
+                style: const TextStyle(color: Colors.red),
+              ),
+              onPressed: () async {
+                final messenger = ScaffoldMessenger.of(context);
                 try {
-                  await cloudinary.deleteAsset(publicId);
+                  // Remove the car first so it never points at a deleted image.
+                  await FirebaseFirestore.instance
+                      .collection('cars')
+                      .doc(id)
+                      .delete();
                 } catch (e) {
-                  // The car is gone; only the stored file is left behind.
-                  debugPrint('Car image delete failed: $e');
                   messenger.showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Car deleted, but its image file was not removed.',
-                      ),
-                    ),
+                    SnackBar(content: Text('$e'), backgroundColor: Colors.red),
                   );
+                  if (dialogContext.mounted) Navigator.pop(dialogContext);
+                  return;
                 }
-              }
-            },
-          ),
-        ],
+                if (dialogContext.mounted) Navigator.pop(dialogContext);
+
+                if (publicId != null && publicId.isNotEmpty) {
+                  try {
+                    await cloudinary.deleteAsset(publicId);
+                  } catch (e) {
+                    // The car is gone; only the stored file is left behind.
+                    debugPrint('Car image delete failed: $e');
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Car deleted, but its image file was not removed.',
+                        ),
+                      ),
+                    );
+                  }
+                }
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -184,6 +189,7 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
                                 borderRadius: BorderRadius.circular(8),
                                 child: Image.network(
                                   car['image_url'],
+                                  cacheWidth: decodeWidth(context, 60 * 2),
                                   width: 60,
                                   height: 60,
                                   fit: BoxFit.cover,
@@ -222,6 +228,7 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
                               onPressed: () => pickAndUploadCarImage(doc.id),
                             ),
                             IconButton(
+                              tooltip: context.t('edit'),
                               icon: const Icon(Icons.edit, color: Colors.blue),
                               onPressed: () {
                                 Navigator.push(
@@ -236,6 +243,7 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
                               },
                             ),
                             IconButton(
+                              tooltip: context.t('delete'),
                               icon: const Icon(Icons.delete, color: Colors.red),
                               onPressed: () =>
                                   deleteCar(context, doc.id, car['public_id']),

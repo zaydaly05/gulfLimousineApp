@@ -42,9 +42,11 @@ class NotificationService {
       debugPrint('Notification setup failed: $e');
     }
     if (_auth.currentUser?.uid != _inboxUid) {
-      _saveToken().timeout(const Duration(seconds: 5)).catchError((e) {
-        debugPrint('FCM token save timed out or failed: $e');
-      });
+      unawaited(
+        _saveToken().timeout(const Duration(seconds: 5)).catchError((e) {
+          debugPrint('FCM token save timed out or failed: $e');
+        }),
+      );
       listenToInbox();
     }
   }
@@ -144,7 +146,7 @@ class NotificationService {
       final body = message.notification?.body ?? message.data['body'];
 
       if (title != null) {
-        showLocal(title: title, body: body ?? '');
+        unawaited(showLocal(title: title, body: body ?? ''));
       }
     });
   }
@@ -175,7 +177,7 @@ class NotificationService {
   }
 
   void listenToInbox() {
-    _inboxSub?.cancel();
+    unawaited(_inboxSub?.cancel());
     _inboxSub = null;
 
     final user = _auth.currentUser;
@@ -214,30 +216,38 @@ class NotificationService {
               if (age.inMinutes > 2) continue;
             }
 
-            showLocal(
-              title: (data['title'] ?? 'Gulf Limousine').toString(),
-              body: (data['body'] ?? '').toString(),
+            unawaited(
+              showLocal(
+                title: (data['title'] ?? 'Gulf Limousine').toString(),
+                body: (data['body'] ?? '').toString(),
+              ),
             );
           }
         });
   }
 
+  /// Shows a local notification. Never throws (failures are logged), so
+  /// callers may fire and forget it.
   Future<void> showLocal({required String title, required String body}) async {
-    await _local.show(
-      id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      title: title,
-      body: body,
-      notificationDetails: const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'gulf_limousine',
-          'Gulf Limousine',
-          channelDescription: 'Booking and trip updates',
-          importance: Importance.high,
-          priority: Priority.high,
+    try {
+      await _local.show(
+        id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        title: title,
+        body: body,
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'gulf_limousine',
+            'Gulf Limousine',
+            channelDescription: 'Booking and trip updates',
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
+          iOS: DarwinNotificationDetails(),
         ),
-        iOS: DarwinNotificationDetails(),
-      ),
-    );
+      );
+    } catch (e, stack) {
+      debugPrint('Local notification failed: $e\n$stack');
+    }
   }
 
   Future<void> dispose() async {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../services/auth_navigation.dart';
@@ -20,7 +22,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen> {
   @override
   void initState() {
     super.initState();
-    _unlock();
+    unawaited(_unlock());
   }
 
   Future<void> _unlock() async {

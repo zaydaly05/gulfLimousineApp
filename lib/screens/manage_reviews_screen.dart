@@ -109,6 +109,7 @@ class _ManageReviewsScreenState extends State<ManageReviewsScreen> {
             ),
             isThreeLine: true,
             trailing: IconButton(
+              tooltip: context.t('delete'),
               icon: const Icon(Icons.delete, color: Colors.red),
               onPressed: () async {
                 await doc.reference.delete();

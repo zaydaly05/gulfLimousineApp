@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -68,34 +70,36 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
   }
 
   Future<void> deleteUser(BuildContext context, String id) async {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: Colors.grey.shade900,
-        title: Text(
-          context.t('delete'),
-          style: const TextStyle(color: Colors.white),
-        ),
-        content: Text(
-          context.t('cannotBeUndone'),
-          style: const TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(context.t('cancel')),
+    unawaited(
+      showDialog(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          backgroundColor: Colors.grey.shade900,
+          title: Text(
+            context.t('delete'),
+            style: const TextStyle(color: Colors.white),
           ),
-          TextButton(
-            onPressed: () async {
-              await UserProfileService.delete(id);
-              if (dialogContext.mounted) Navigator.pop(dialogContext);
-            },
-            child: Text(
-              context.t('delete'),
-              style: const TextStyle(color: Colors.red),
+          content: Text(
+            context.t('cannotBeUndone'),
+            style: const TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(context.t('cancel')),
             ),
-          ),
-        ],
+            TextButton(
+              onPressed: () async {
+                await UserProfileService.delete(id);
+                if (dialogContext.mounted) Navigator.pop(dialogContext);
+              },
+              child: Text(
+                context.t('delete'),
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -240,6 +244,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
+                          tooltip: context.t('edit'),
                           icon: const Icon(Icons.edit, color: Colors.blue),
                           onPressed: () {
                             Navigator.push(
@@ -254,6 +259,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
                           },
                         ),
                         IconButton(
+                          tooltip: context.t('delete'),
                           icon: const Icon(Icons.delete, color: Colors.red),
                           onPressed: () => deleteUser(context, doc.id),
                         ),

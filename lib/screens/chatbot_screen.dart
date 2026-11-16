@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -199,8 +201,8 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
 
                 final messages = snapshot.data ?? [];
                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _ensureWelcomeMessage(messages);
-                  _scrollToBottom();
+                  unawaited(_ensureWelcomeMessage(messages));
+                  unawaited(_scrollToBottom());
                 });
 
                 return ListView.builder(
@@ -469,6 +471,7 @@ class _ChatInput extends StatelessWidget {
                   radius: 24,
                   backgroundColor: AppTheme.accent,
                   child: IconButton(
+                    tooltip: context.t('send'),
                     onPressed: enabled ? onSend : null,
                     icon: const Icon(Icons.send, color: Colors.white),
                   ),

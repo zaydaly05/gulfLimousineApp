@@ -11,6 +11,7 @@ import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
 import '../utils/live_refresh.dart';
 import '../theme/app_theme.dart';
+import '../utils/image_decode.dart';
 
 class CarsScreen extends StatefulWidget {
   const CarsScreen({super.key});
@@ -40,7 +41,7 @@ class _CarsScreenState extends State<CarsScreen> {
 
   @override
   void dispose() {
-    _favoritesSub?.cancel();
+    unawaited(_favoritesSub?.cancel());
     super.dispose();
   }
 
@@ -57,6 +58,7 @@ class _CarsScreenState extends State<CarsScreen> {
         actions: [
           const LanguageToggleButton(dark: true),
           IconButton(
+            tooltip: context.t('favorites'),
             icon: const Icon(Icons.favorite),
             onPressed: () {
               Navigator.push(
@@ -228,6 +230,7 @@ class _CarsScreenState extends State<CarsScreen> {
                             car['imageUrl'].toString().isNotEmpty
                         ? CachedNetworkImage(
                             imageUrl: car['imageUrl'],
+                            memCacheWidth: screenDecodeWidth(context),
                             height: 180,
                             width: double.infinity,
                             fit: BoxFit.cover,
@@ -252,6 +255,7 @@ class _CarsScreenState extends State<CarsScreen> {
                       color: Colors.white,
                       shape: const CircleBorder(),
                       child: IconButton(
+                        tooltip: context.t('favorites'),
                         icon: Icon(
                           isFav ? Icons.favorite : Icons.favorite_border,
                           color: Colors.red,
@@ -308,15 +312,17 @@ class _CarsScreenState extends State<CarsScreen> {
                     ),
                     ElevatedButton(
                       onPressed: () {
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(
-                              top: Radius.circular(20),
+                        unawaited(
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(20),
+                              ),
                             ),
+                            builder: (_) => RentBottomSheet(car: car),
                           ),
-                          builder: (_) => RentBottomSheet(car: car),
                         );
                       },
                       child: Text(context.t('rent')),
@@ -333,6 +339,7 @@ class _CarsScreenState extends State<CarsScreen> {
 
   Widget _imageFallback() {
     return Image.network(
+      cacheWidth: screenDecodeWidth(context),
       'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80',
       height: 180,
       width: double.infinity,

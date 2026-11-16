@@ -1,0 +1,91 @@
+# Quality gates for every pull request and push to main. Each step guards one
+# named contract; a red step blocks the merge.
+#
+# What CI cannot prove: real-device behaviour (camera, fingerprint, push
+# notifications, maps on a phone). Those need the manual check on a device
+# before each release.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  flutter:
+    name: Flutter (format, analyze, test)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.9' # keep in step with local builds
+          cache: true
+      - run: flutter pub get
+
+      # Contract: code follows `dart format` (generated Data Connect code
+      # is left as generated).
+      - name: Formatting
+        run: |
+          dart format --output=none --set-exit-if-changed \
+            $(git ls-files 'lib/*.dart' 'test/*.dart' | grep -v '^lib/dataconnect_generated/')
+
+      # Contract: no analyzer findings, including the silent-failure lints
+      # (dropped Futures, BuildContext after await, unclosed streams).
+      - name: Analyze
+        run: flutter analyze --fatal-infos
+
+      # Contract: billing, date and review rules keep their tested behaviour.
+      # Random order catches tests that depend on each other.
+      - name: Unit tests
+        run: flutter test --test-randomize-ordering-seed random
+
+  firestore-rules:
+    name: Firestore security rules
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4 # VERIFY: confirm current major
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: firestore_tests/package-lock.json
+      - uses: actions/setup-java@v4 # VERIFY: confirm current major; the emulator needs Java
+        with:
+          distribution: temurin
+          java-version: '21'
+      # Contract: customers can't make themselves admin, tamper with the
+      # engine lock or billing fields, or act on other people's bookings.
+      - name: Rules tests (emulator)
+        working-directory: firestore_tests
+        run: |
+          npm ci
+          npm test
+
+  functions:
+    name: Cloud Functions tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4 # VERIFY: confirm current major
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+      # Contract: condition-video retention timing stays correct.
+      - name: Unit tests
+        working-directory: functions
+        run: |
+          npm ci
+          npm test

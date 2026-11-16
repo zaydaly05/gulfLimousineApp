@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -103,7 +105,11 @@ class _NotificationsInboxScreenState extends State<NotificationsInboxScreen> {
           ),
           subtitle: Text(data['body']?.toString() ?? ''),
           onTap: () {
-            doc.reference.update({'read': true});
+            unawaited(
+              doc.reference.update({'read': true}).catchError((Object e) {
+                debugPrint('Could not mark notification read: $e');
+              }),
+            );
           },
         );
       },

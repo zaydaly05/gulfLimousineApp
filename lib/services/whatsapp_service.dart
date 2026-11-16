@@ -35,7 +35,7 @@ class WhatsAppService {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
-        debugPrint('Could not launch WhatsApp for $url');
+        debugPrint('Could not launch WhatsApp'); // no phone number in logs
       }
     } catch (e) {
       debugPrint('WhatsApp launch error: $e');

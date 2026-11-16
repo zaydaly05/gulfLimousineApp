@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../services/biometric_service.dart';
@@ -27,7 +29,7 @@ class BiometricSettingsTileState extends State<BiometricSettingsTile> {
   @override
   void initState() {
     super.initState();
-    _load();
+    unawaited(_load());
   }
 
   Future<void> _load() async {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -26,7 +28,7 @@ class _InstaPayScreenState extends State<InstaPayScreen> {
   @override
   void initState() {
     super.initState();
-    _copyUsername();
+    unawaited(_copyUsername());
   }
 
   @override

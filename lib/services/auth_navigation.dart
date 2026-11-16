@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -15,11 +17,10 @@ class AuthNavigation {
     if (user == null) {
       throw Exception('Not signed in');
     }
-    try {
-      await NotificationService.instance.initialize().timeout(
-        const Duration(seconds: 5),
-      );
-    } catch (_) {}
+    // Not awaited: notification setup (including the permission prompt)
+    // must not hold up showing the home screen. initialize() handles its
+    // own errors.
+    unawaited(NotificationService.instance.initialize());
 
     try {
       final doc = await FirebaseFirestore.instance

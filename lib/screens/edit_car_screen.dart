@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../services/cloudinary_service.dart';
+import '../utils/image_decode.dart';
 
 class EditCarScreen extends StatefulWidget {
   final String carId;
@@ -125,6 +126,7 @@ class _EditCarScreenState extends State<EditCarScreen> {
                     borderRadius: BorderRadius.circular(12),
                     child: Image.network(
                       imageUrl!,
+                      cacheWidth: screenDecodeWidth(context),
                       height: 180,
                       fit: BoxFit.cover,
                     ),

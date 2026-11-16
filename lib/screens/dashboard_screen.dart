@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -21,6 +23,7 @@ import '../widgets/language_picker.dart';
 import '../widgets/user_charts.dart';
 import '../l10n/locale_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/image_decode.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -39,8 +42,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _loadUserData();
-    NotificationService.instance.initialize();
+    unawaited(_loadUserData());
+    unawaited(NotificationService.instance.initialize());
   }
 
   Future<void> _loadUserData() async {
@@ -125,6 +128,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           // AppBar is black, so use the light-on-dark variant.
           const LanguageToggleButton(dark: true),
           IconButton(
+            tooltip: context.t('notifications'),
             icon: const Icon(Icons.notifications_outlined),
             onPressed: () {
               Navigator.push(
@@ -136,6 +140,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             },
           ),
           IconButton(
+            tooltip: context.t('profile'),
             icon: const Icon(Icons.person_outline),
             onPressed: _openProfile,
           ),
@@ -254,7 +259,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   backgroundColor: const Color(0xFF333333),
                   backgroundImage:
                       _profileImageUrl != null && _profileImageUrl!.isNotEmpty
-                      ? CachedNetworkImageProvider(_profileImageUrl!)
+                      ? ResizeImage(
+                          CachedNetworkImageProvider(_profileImageUrl!),
+                          // Drawer header avatar is 72 px across.
+                          width: decodeWidth(context, 72),
+                        )
                       : null,
                   child: _profileImageUrl == null || _profileImageUrl!.isEmpty
                       ? const Icon(Icons.person, color: Colors.white, size: 36)
@@ -299,7 +308,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           _drawerTile(Icons.person, context.t('profile'), () {
             Navigator.pop(context);
-            _openProfile();
+            unawaited(_openProfile());
           }),
           _drawerNavTile(
             Icons.phone,
@@ -308,7 +317,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           _drawerTile(Icons.smart_toy_outlined, context.t('aiAssistant'), () {
             Navigator.pop(context);
-            _openChatbot();
+            unawaited(_openChatbot());
           }),
           const Divider(),
           ListTile(
@@ -316,7 +325,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             title: Text(context.t('logout')),
             onTap: () {
               Navigator.pop(context);
-              _logout();
+              unawaited(_logout());
             },
           ),
         ],

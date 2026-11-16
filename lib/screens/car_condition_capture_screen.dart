@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -41,7 +42,7 @@ class _CarConditionCaptureScreenState extends State<CarConditionCaptureScreen> {
 
   @override
   void dispose() {
-    _videoController?.dispose();
+    unawaited(_videoController?.dispose());
     super.dispose();
   }
 
@@ -73,34 +74,36 @@ class _CarConditionCaptureScreenState extends State<CarConditionCaptureScreen> {
 
     setState(() {
       _videoFile = file;
-      _videoController?.dispose();
+      unawaited(_videoController?.dispose());
       _videoController = controller;
     });
   }
 
   void _showCaptureOptions() {
-    showModalBottomSheet(
-      context: context,
-      builder: (sheetContext) => SafeArea(
-        child: Wrap(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.videocam),
-              title: const Text('Record video'),
-              onTap: () {
-                Navigator.pop(sheetContext);
-                _captureVideo(ImageSource.camera);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.video_library),
-              title: const Text('Choose from gallery'),
-              onTap: () {
-                Navigator.pop(sheetContext);
-                _captureVideo(ImageSource.gallery);
-              },
-            ),
-          ],
+    unawaited(
+      showModalBottomSheet(
+        context: context,
+        builder: (sheetContext) => SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.videocam),
+                title: const Text('Record video'),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  unawaited(_captureVideo(ImageSource.camera));
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.video_library),
+                title: const Text('Choose from gallery'),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  unawaited(_captureVideo(ImageSource.gallery));
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -155,59 +158,68 @@ class _CarConditionCaptureScreenState extends State<CarConditionCaptureScreen> {
               style: TextStyle(color: Colors.grey.shade700),
             ),
             const SizedBox(height: 16),
-            GestureDetector(
-              onTap: _processing ? null : _showCaptureOptions,
-              child: Container(
-                height: 300,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade400),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child:
-                    _videoController != null &&
-                        _videoController!.value.isInitialized
-                    ? Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          AspectRatio(
-                            aspectRatio: _videoController!.value.aspectRatio,
-                            child: VideoPlayer(_videoController!),
-                          ),
-                          IconButton(
-                            icon: Icon(
-                              _videoController!.value.isPlaying
-                                  ? Icons.pause
-                                  : Icons.play_arrow,
-                              size: 50,
-                              color: Colors.white,
+            Semantics(
+              button: true,
+              label: 'Record or select video',
+              child: GestureDetector(
+                onTap: _processing ? null : _showCaptureOptions,
+                child: Container(
+                  height: 300,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade400),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child:
+                      _videoController != null &&
+                          _videoController!.value.isInitialized
+                      ? Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            AspectRatio(
+                              aspectRatio: _videoController!.value.aspectRatio,
+                              child: VideoPlayer(_videoController!),
                             ),
-                            onPressed: () {
-                              setState(() {
+                            IconButton(
+                              tooltip: _videoController!.value.isPlaying
+                                  ? 'Pause'
+                                  : 'Play',
+                              icon: Icon(
                                 _videoController!.value.isPlaying
-                                    ? _videoController!.pause()
-                                    : _videoController!.play();
-                              });
-                            },
-                          ),
-                        ],
-                      )
-                    : Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.videocam,
-                            size: 64,
-                            color: Colors.grey.shade500,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Tap to record or select video',
-                            style: TextStyle(color: Colors.grey.shade600),
-                          ),
-                        ],
-                      ),
+                                    ? Icons.pause
+                                    : Icons.play_arrow,
+                                size: 50,
+                                color: Colors.white,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  unawaited(
+                                    _videoController!.value.isPlaying
+                                        ? _videoController!.pause()
+                                        : _videoController!.play(),
+                                  );
+                                });
+                              },
+                            ),
+                          ],
+                        )
+                      : Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.videocam,
+                              size: 64,
+                              color: Colors.grey.shade500,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Tap to record or select video',
+                              style: TextStyle(color: Colors.grey.shade600),
+                            ),
+                          ],
+                        ),
+                ),
               ),
             ),
             const SizedBox(height: 24),

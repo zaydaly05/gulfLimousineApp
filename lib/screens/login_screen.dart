@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -35,8 +38,8 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeGoogleSignIn();
-    _prepareBiometricLogin();
+    unawaited(_initializeGoogleSignIn());
+    unawaited(_prepareBiometricLogin());
   }
 
   Future<void> _prepareBiometricLogin() async {
@@ -126,7 +129,7 @@ class _LoginScreenState extends State<LoginScreen> {
       await UserProfileService.ensureGoogleUser(userCredential.user!);
       await _handleUserNavigation(userCredential.user!);
     } catch (e) {
-      debugPrint("GOOGLE ERROR: $e");
+      if (kDebugMode) debugPrint('Google sign-in error: $e');
 
       if (mounted) {
         final errorStr = e.toString().toLowerCase();
@@ -335,7 +338,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     obscureText: true,
                     autofillHints: const [AutofillHints.password],
                     onSubmitted: (_) {
-                      if (!_isLoading) _login(context);
+                      if (!_isLoading) unawaited(_login(context));
                     },
                     decoration: _inputDecoration(
                       context.t('password'),
@@ -425,20 +428,23 @@ class _LoginScreenState extends State<LoginScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(context.t('noAccount')),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const SignUpDialog(),
+                      Semantics(
+                        button: true,
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const SignUpDialog(),
+                              ),
+                            );
+                          },
+                          child: Text(
+                            context.t('signUp'),
+                            style: const TextStyle(
+                              color: Colors.orange,
+                              fontWeight: FontWeight.bold,
                             ),
-                          );
-                        },
-                        child: Text(
-                          context.t('signUp'),
-                          style: const TextStyle(
-                            color: Colors.orange,
-                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),

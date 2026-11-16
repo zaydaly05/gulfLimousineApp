@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -54,7 +56,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   @override
   void initState() {
     super.initState();
-    NotificationService.instance.initialize();
+    unawaited(NotificationService.instance.initialize());
   }
 
   @override
@@ -202,7 +204,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 style: const TextStyle(color: Colors.white),
               ),
               onTap: () {
-                _confirmLogout(context);
+                unawaited(_confirmLogout(context));
               },
             ),
           ],
