@@ -22,7 +22,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
   late LatLng _pin;
   String _address = '';
   bool _resolving = false;
-  final _geocoding = Geocoding();
+  final Geocoding? _geocoding = _createGeocoding();
   final _searchController = TextEditingController();
   final _mapController = MapController();
 
@@ -33,6 +33,22 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
     'New Cairo': const LatLng(30.0300, 31.4700),
     'Zamalek': const LatLng(30.0611, 31.2197),
   };
+
+  /// The geocoding plugin has no web implementation, and its constructor
+  /// throws where the plugin isn't registered, which used to blank the
+  /// whole picker on the web demo. Without it the map still works:
+  /// addresses fall back to coordinates and search says it's unavailable.
+  static Geocoding? _createGeocoding() {
+    try {
+      return Geocoding();
+    } catch (e) {
+      debugPrint('Geocoding unavailable on this platform: $e');
+      return null;
+    }
+  }
+
+  static String _coordinates(LatLng point) =>
+      '${point.latitude.toStringAsFixed(5)}, ${point.longitude.toStringAsFixed(5)}';
 
   @override
   void initState() {
@@ -59,8 +75,14 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
       _pin = point;
       _resolving = true;
     });
+    final geocoding = _geocoding;
+    if (geocoding == null) {
+      _address = _coordinates(point);
+      if (mounted) setState(() => _resolving = false);
+      return;
+    }
     try {
-      final places = await _geocoding.placemarkFromCoordinates(
+      final places = await geocoding.placemarkFromCoordinates(
         point.latitude,
         point.longitude,
       );
@@ -76,16 +98,12 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
               p.administrativeArea!.trim().isNotEmpty)
             p.administrativeArea!.trim(),
         ];
-        _address = parts.isEmpty
-            ? '${point.latitude.toStringAsFixed(5)}, ${point.longitude.toStringAsFixed(5)}'
-            : parts.join(', ');
+        _address = parts.isEmpty ? _coordinates(point) : parts.join(', ');
       } else {
-        _address =
-            '${point.latitude.toStringAsFixed(5)}, ${point.longitude.toStringAsFixed(5)}';
+        _address = _coordinates(point);
       }
     } catch (_) {
-      _address =
-          '${point.latitude.toStringAsFixed(5)}, ${point.longitude.toStringAsFixed(5)}';
+      _address = _coordinates(point);
     }
     if (mounted) setState(() => _resolving = false);
   }
@@ -93,9 +111,20 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
   Future<void> _searchAddress() async {
     final query = _searchController.text.trim();
     if (query.isEmpty) return;
+    final geocoding = _geocoding;
+    if (geocoding == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Address search isn\'t available here. Tap the map or pick a place below.',
+          ),
+        ),
+      );
+      return;
+    }
     setState(() => _resolving = true);
     try {
-      final results = await _geocoding.locationFromAddress(
+      final results = await geocoding.locationFromAddress(
         '$query, Cairo, Egypt',
       );
       if (results.isNotEmpty) {
@@ -151,16 +180,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-        actions: [
-          IconButton(
-            tooltip: 'My location',
-            icon: const Icon(Icons.my_location),
-            onPressed: _useMyLocation,
-          ),
-        ],
-      ),
+      appBar: AppBar(title: Text(widget.title)),
       body: Column(
         children: [
           Padding(
@@ -202,7 +222,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               children: _presets.entries.map((e) {
                 return Padding(
-                  padding: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsetsDirectional.only(end: 8),
                   child: ActionChip(
                     label: Text(e.key),
                     onPressed: () async {
@@ -222,16 +242,19 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
                   options: MapOptions(
                     initialCenter: _pin,
                     initialZoom: 13,
+                    interactionOptions: kAppMapInteraction,
                     onTap: (_, point) => _reverseGeocode(point),
                   ),
                   children: [
-                    appTileLayer(matrix: kLightMapMatrix),
+                    const AppTileLayer(dark: false),
                     MarkerLayer(
                       markers: [
                         Marker(
                           point: _pin,
                           width: 48,
                           height: 48,
+                          // The pin's tip, not its middle, marks the spot.
+                          alignment: Alignment.topCenter,
                           child: const Icon(
                             Icons.location_on,
                             color: AppTheme.accent,
@@ -240,6 +263,8 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
                         ),
                       ],
                     ),
+                    AppMapControls(dark: false, onMyLocation: _useMyLocation),
+                    const AppMapAttribution(),
                   ],
                 ),
                 if (_resolving)

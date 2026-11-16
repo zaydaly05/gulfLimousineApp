@@ -82,6 +82,8 @@ class _EditUserScreenState extends State<EditUserScreen> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
+          // Full-width button, like the other admin forms.
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             buildField(nameController, "Name"),
             buildField(emailController, "Email"),

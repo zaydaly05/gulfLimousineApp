@@ -85,9 +85,13 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
       appBar: AppBar(
         title: Text(context.t('manageBookingsTitle')),
         backgroundColor: Colors.black,
-        actions: const [LanguageToggleButton(dark: true), SizedBox(width: 8)],
+        actions: const [
+          LanguageToggleButton(dark: true, showText: false),
+          SizedBox(width: 4),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
+        tooltip: context.t('newBooking'),
         backgroundColor: Colors.orange,
         child: const Icon(Icons.add, color: Colors.white),
         onPressed: () {
@@ -215,7 +219,7 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                           ),
                         if (returnDate.isNotEmpty)
                           Text(
-                            '${context.t('return')}: $returnDate',
+                            '${context.t('returnDate')}: $returnDate',
                             style: TextStyle(color: Colors.grey.shade400),
                           ),
                         if (booking['pickupLocation'] is Map &&
@@ -243,7 +247,7 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                           ),
                         if ((booking['tripStatus'] ?? '').toString().isNotEmpty)
                           Text(
-                            '${context.t('trip')}: ${booking['tripStatus']}',
+                            '${context.t('trip')}: ${booking['tripStatus'].toString().replaceAll('_', ' ')}',
                             style: TextStyle(color: Colors.grey.shade400),
                           ),
                         if (total != null)

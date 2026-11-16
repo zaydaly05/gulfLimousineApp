@@ -15,6 +15,22 @@ flutter analyze
 flutter test
 ```
 
+### Running against local emulators
+
+To try changes without touching the live project, start the Auth and
+Firestore emulators (they use `firestore.rules` from this repo) and point
+the app at them:
+
+```bash
+cd firestore_tests && npm ci && cd ..
+firestore_tests/node_modules/.bin/firebase emulators:start --only auth,firestore --project gulf-limousine-travel-1d4c7
+flutter run -d chrome --dart-define=USE_FIREBASE_EMULATORS=true
+```
+
+The emulators start empty: sign up in the app, then set `role: "admin"` on
+your `users/{uid}` document in the emulator to see the admin screens.
+Release builds ignore this switch.
+
 ## Releasing to Google Play
 
 ### 1. Create the upload keystore (once)

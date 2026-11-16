@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
 import '../utils/live_refresh.dart';
+import '../widgets/empty_state.dart';
 
 class ManageChauffeursScreen extends StatefulWidget {
   const ManageChauffeursScreen({super.key});
@@ -152,9 +153,13 @@ class _ManageChauffeursScreenState extends State<ManageChauffeursScreen> {
       appBar: AppBar(
         title: Text(context.t('chauffeursTitle')),
         backgroundColor: Colors.black,
-        actions: const [LanguageToggleButton(dark: true), SizedBox(width: 8)],
+        actions: const [
+          LanguageToggleButton(dark: true, showText: false),
+          SizedBox(width: 4),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
+        tooltip: context.t('addChauffeur'),
         backgroundColor: Colors.orange,
         child: const Icon(Icons.add, color: Colors.white),
         onPressed: () => _openForm(context),
@@ -169,19 +174,10 @@ class _ManageChauffeursScreenState extends State<ManageChauffeursScreen> {
             }
             final docs = snapshot.data?.docs ?? [];
             if (docs.isEmpty) {
-              return ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                children: [
-                  SizedBox(
-                    height: 400,
-                    child: Center(
-                      child: Text(
-                        context.t('chauffeurs'),
-                        style: const TextStyle(color: Colors.white70),
-                      ),
-                    ),
-                  ),
-                ],
+              return EmptyState(
+                icon: Icons.badge_outlined,
+                message: context.t('noChauffeurs'),
+                dark: true,
               );
             }
             return ListView.builder(

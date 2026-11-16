@@ -52,6 +52,13 @@ class TrackTripScreen extends StatelessWidget {
             center = kCairoLatLng;
           }
 
+          // Everything worth framing: pickup, drop-off and the car.
+          final points = [
+            if (pickup != null) LatLng(pickup.lat, pickup.lng),
+            if (dropoff != null) LatLng(dropoff.lat, dropoff.lng),
+            if (live.isValid) LatLng(live.lat, live.lng),
+          ];
+
           final markers = <Marker>[
             if (pickup != null)
               Marker(
@@ -124,10 +131,17 @@ class TrackTripScreen extends StatelessWidget {
             children: [
               Expanded(
                 child: FlutterMap(
-                  options: MapOptions(initialCenter: center, initialZoom: 13),
+                  options: MapOptions(
+                    initialCenter: center,
+                    initialZoom: 13,
+                    initialCameraFit: cameraFitFor(points),
+                    interactionOptions: kAppMapInteraction,
+                  ),
                   children: [
-                    appTileLayer(),
+                    const AppTileLayer(),
                     MarkerLayer(markers: markers),
+                    AppMapControls(fitPoints: points),
+                    const AppMapAttribution(),
                   ],
                 ),
               ),

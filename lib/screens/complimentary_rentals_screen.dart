@@ -154,7 +154,10 @@ class _ComplimentaryRentalsScreenState
       appBar: AppBar(
         backgroundColor: Colors.black,
         title: Text(context.t('complimentaryTitle')),
-        actions: const [LanguageToggleButton(dark: true), SizedBox(width: 8)],
+        actions: const [
+          LanguageToggleButton(dark: true, showText: false),
+          SizedBox(width: 4),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: Colors.orange,
@@ -424,7 +427,7 @@ class _ComplimentaryRentalsScreenState
                           ),
                         ] else
                           Align(
-                            alignment: Alignment.centerRight,
+                            alignment: AlignmentDirectional.centerEnd,
                             child: TextButton(
                               onPressed: () => _delete(context, doc.id, data),
                               child: const Text(
@@ -727,6 +730,7 @@ class _AddComplimentaryRentalScreenState
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
+              runSpacing: 8,
               children: [
                 _chip('1 day', 1),
                 _chip('3 days', 3),
@@ -921,6 +925,7 @@ class _GiftTotalsHeader extends StatelessWidget {
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
+            runSpacing: 8,
             children: [
               _periodChip('This month', 'month'),
               _periodChip('This year', 'year'),
@@ -1092,7 +1097,7 @@ class _GiftTotalsHeader extends StatelessWidget {
           const SizedBox(height: 6),
           FittedBox(
             fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
+            alignment: AlignmentDirectional.centerStart,
             child: Text(
               value,
               style: const TextStyle(

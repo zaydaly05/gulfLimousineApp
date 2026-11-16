@@ -4,6 +4,7 @@ import '../services/booking_service.dart';
 import '../services/km_billing_service.dart';
 import 'admin_charts.dart';
 import 'status_pill.dart';
+import 'action_button_row.dart';
 
 class ExtraKmAdminPanel extends StatefulWidget {
   final String bookingId;
@@ -180,8 +181,7 @@ class _ExtraKmAdminPanelState extends State<ExtraKmAdminPanel> {
                 ),
               )
             else if (widget.compact)
-              Wrap(
-                spacing: 8,
+              ActionButtonRow(
                 children: [
                   if (isPending)
                     ElevatedButton.icon(

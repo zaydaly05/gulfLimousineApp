@@ -51,7 +51,10 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         title: Text(context.t('trafficViolationsTitle')),
-        actions: const [LanguageToggleButton(dark: true), SizedBox(width: 8)],
+        actions: const [
+          LanguageToggleButton(dark: true, showText: false),
+          SizedBox(width: 4),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: Colors.orange,
@@ -171,6 +174,7 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
                         const SizedBox(height: 10),
                         Wrap(
                           spacing: 8,
+                          runSpacing: 8,
                           children: [
                             _chip('All status', 'all', _status, (v) {
                               setState(() => _status = v);
@@ -189,6 +193,7 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
                         const SizedBox(height: 6),
                         Wrap(
                           spacing: 8,
+                          runSpacing: 8,
                           children: [
                             _chip('All rentals', 'all', _source, (v) {
                               setState(() => _source = v);

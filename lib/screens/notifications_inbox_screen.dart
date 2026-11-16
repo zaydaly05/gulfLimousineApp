@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../l10n/locale_service.dart';
 import '../utils/live_refresh.dart';
 import '../theme/app_theme.dart';
+import '../widgets/empty_state.dart';
 
 class NotificationsInboxScreen extends StatefulWidget {
   const NotificationsInboxScreen({super.key});
@@ -72,14 +73,9 @@ class _NotificationsInboxScreenState extends State<NotificationsInboxScreen> {
   }
 
   Widget _empty(BuildContext context) {
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      children: [
-        SizedBox(
-          height: 400,
-          child: Center(child: Text(context.t('noNotifications'))),
-        ),
-      ],
+    return EmptyState(
+      icon: Icons.notifications_none,
+      message: context.t('noNotifications'),
     );
   }
 

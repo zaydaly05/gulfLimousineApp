@@ -101,10 +101,11 @@ class UpdateTripLocationScreen extends StatelessWidget {
                   options: MapOptions(
                     initialCenter: center,
                     initialZoom: 13,
+                    interactionOptions: kAppMapInteraction,
                     onTap: (_, point) => _setLocation(context, point),
                   ),
                   children: [
-                    appTileLayer(),
+                    const AppTileLayer(),
                     MarkerLayer(
                       markers: [
                         if (live.isValid)
@@ -123,6 +124,8 @@ class UpdateTripLocationScreen extends StatelessWidget {
                             point: LatLng(pickup.lat, pickup.lng),
                             width: 44,
                             height: 44,
+                            // The pin's tip, not its middle, marks the spot.
+                            alignment: Alignment.topCenter,
                             child: const Icon(
                               Icons.place,
                               color: AppTheme.accent,
@@ -131,6 +134,13 @@ class UpdateTripLocationScreen extends StatelessWidget {
                           ),
                       ],
                     ),
+                    AppMapControls(
+                      fitPoints: [
+                        if (live.isValid) LatLng(live.lat, live.lng),
+                        if (pickup != null) LatLng(pickup.lat, pickup.lng),
+                      ],
+                    ),
+                    const AppMapAttribution(),
                   ],
                 );
               },

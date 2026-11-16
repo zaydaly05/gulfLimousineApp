@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
+import '../widgets/empty_state.dart';
 
 class ViewPaymentsScreen extends StatefulWidget {
   const ViewPaymentsScreen({super.key});
@@ -25,33 +26,22 @@ class _ViewPaymentsScreenState extends State<ViewPaymentsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        leading: Navigator.canPop(context)
+            ? const BackButton(color: Colors.orange)
+            : null,
+        title: Text(context.t('paymentsTitle')),
+        actions: const [
+          LanguageToggleButton(dark: true, showText: false),
+          SizedBox(width: 4),
+        ],
+      ),
       body: SafeArea(
+        top: false,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 🔹 HEADER
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              child: Row(
-                children: [
-                  // This screen has no AppBar, so provide the way back.
-                  if (Navigator.canPop(context))
-                    const BackButton(color: Colors.orange),
-                  Expanded(
-                    child: Text(
-                      context.t('paymentsTitle'),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const LanguageToggleButton(dark: true),
-                ],
-              ),
-            ),
-
             // 🔹 PAYMENTS LIST
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
@@ -62,11 +52,10 @@ class _ViewPaymentsScreenState extends State<ViewPaymentsScreen> {
                   }
 
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return Center(
-                      child: Text(
-                        context.t('payments'),
-                        style: const TextStyle(color: Colors.white),
-                      ),
+                    return EmptyState(
+                      icon: Icons.receipt_long_outlined,
+                      message: context.t('noPayments'),
+                      dark: true,
                     );
                   }
 

@@ -10,6 +10,7 @@ import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
 import '../utils/live_refresh.dart';
 import '../utils/image_decode.dart';
+import '../widgets/empty_state.dart';
 
 class ManageCarsScreen extends StatefulWidget {
   const ManageCarsScreen({super.key});
@@ -127,9 +128,13 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
       appBar: AppBar(
         title: Text(context.t('manageCars')),
         backgroundColor: Colors.black,
-        actions: const [LanguageToggleButton(dark: true), SizedBox(width: 8)],
+        actions: const [
+          LanguageToggleButton(dark: true, showText: false),
+          SizedBox(width: 4),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
+        tooltip: context.t('addCar'),
         backgroundColor: Colors.orange,
         child: const Icon(Icons.add, color: Colors.white),
         onPressed: () {
@@ -151,25 +156,17 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
                 }
 
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    children: [
-                      SizedBox(
-                        height: 400,
-                        child: Center(
-                          child: Text(
-                            context.t('noCars'),
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                        ),
-                      ),
-                    ],
+                  return EmptyState(
+                    icon: Icons.directions_car_outlined,
+                    message: context.t('noCars'),
+                    dark: true,
                   );
                 }
 
                 return ListView.builder(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(16),
+                  // Bottom room so the + button never covers the last car.
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
                   itemCount: snapshot.data!.docs.length,
                   itemBuilder: (context, index) {
                     final doc = snapshot.data!.docs[index];
@@ -181,72 +178,109 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                       margin: const EdgeInsets.only(bottom: 16),
-                      child: ListTile(
-                        leading:
-                            car['image_url'] != null &&
-                                car['image_url'].toString().isNotEmpty
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.network(
-                                  car['image_url'],
-                                  cacheWidth: decodeWidth(context, 60 * 2),
-                                  width: 60,
-                                  height: 60,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      const Icon(
-                                        Icons.broken_image,
-                                        color: Colors.red,
-                                      ),
-                                ),
-                              )
-                            : const Icon(
-                                Icons.directions_car,
-                                color: Colors.orange,
-                                size: 40,
-                              ),
-                        title: Text(
-                          car['name'] ?? 'No Name',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        subtitle: Text(
-                          "${car['brand'] ?? ''} • ${car['price_per_day'] ?? ''} EGP${context.t('perDay')}",
-                          style: TextStyle(color: Colors.grey.shade400),
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            IconButton(
-                              icon: const Icon(
-                                Icons.image,
-                                color: Colors.orange,
-                              ),
-                              tooltip: 'Upload Image',
-                              onPressed: () => pickAndUploadCarImage(doc.id),
+                            SizedBox(
+                              width: 60,
+                              height: 60,
+                              child:
+                                  car['image_url'] != null &&
+                                      car['image_url'].toString().isNotEmpty
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.network(
+                                        car['image_url'],
+                                        cacheWidth: decodeWidth(
+                                          context,
+                                          60 * 2,
+                                        ),
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) =>
+                                                const Icon(
+                                                  Icons.broken_image,
+                                                  color: Colors.red,
+                                                ),
+                                      ),
+                                    )
+                                  : const Icon(
+                                      Icons.directions_car,
+                                      color: Colors.orange,
+                                      size: 40,
+                                    ),
                             ),
-                            IconButton(
-                              tooltip: context.t('edit'),
-                              icon: const Icon(Icons.edit, color: Colors.blue),
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => EditCarScreen(
-                                      carId: doc.id,
-                                      carData: car,
+                            const SizedBox(width: 12),
+                            // The name gets the card's full width; the
+                            // actions sit beside the brand and price below it.
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    car['name'] ?? 'No Name',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                );
-                              },
-                            ),
-                            IconButton(
-                              tooltip: context.t('delete'),
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () =>
-                                  deleteCar(context, doc.id, car['public_id']),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          "${car['brand'] ?? ''}\n${car['price_per_day'] ?? ''} EGP${context.t('perDay')}",
+                                          style: TextStyle(
+                                            color: Colors.grey.shade400,
+                                            height: 1.4,
+                                          ),
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.image,
+                                          color: Colors.orange,
+                                        ),
+                                        tooltip: 'Upload Image',
+                                        onPressed: () =>
+                                            pickAndUploadCarImage(doc.id),
+                                      ),
+                                      IconButton(
+                                        tooltip: context.t('edit'),
+                                        icon: const Icon(
+                                          Icons.edit,
+                                          color: Colors.blue,
+                                        ),
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => EditCarScreen(
+                                                carId: doc.id,
+                                                carData: car,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      IconButton(
+                                        tooltip: context.t('delete'),
+                                        icon: const Icon(
+                                          Icons.delete,
+                                          color: Colors.red,
+                                        ),
+                                        onPressed: () => deleteCar(
+                                          context,
+                                          doc.id,
+                                          car['public_id'],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),

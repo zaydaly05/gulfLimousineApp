@@ -111,9 +111,13 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
       appBar: AppBar(
         title: Text(context.t('manageUsersTitle')),
         backgroundColor: Colors.black,
-        actions: const [LanguageToggleButton(dark: true), SizedBox(width: 8)],
+        actions: const [
+          LanguageToggleButton(dark: true, showText: false),
+          SizedBox(width: 4),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
+        tooltip: context.t('addUser'),
         backgroundColor: Colors.orange,
         child: const Icon(Icons.person_add, color: Colors.white),
         onPressed: () {
@@ -227,43 +231,56 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
                         ),
                       ],
                     ),
+                    // Actions sit under the details (as on Manage Bookings),
+                    // so the details get the card's full width.
                     subtitle: Padding(
                       padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        "${context.t('email')}: ${user['email'] ?? ''}\n"
-                        "${context.t('phone')}: ${_resolvePhone(user)}\n"
-                        "Role: ${user['role'] ?? ''}\n"
-                        "Created: $formattedDate",
-                        style: TextStyle(
-                          color: Colors.grey.shade400,
-                          height: 1.4,
-                        ),
-                      ),
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          tooltip: context.t('edit'),
-                          icon: const Icon(Icons.edit, color: Colors.blue),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => EditUserScreen(
-                                  userId: doc.id,
-                                  userData: user,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            "${context.t('email')}: ${user['email'] ?? ''}\n"
+                            "${context.t('phone')}: ${_resolvePhone(user)}\n"
+                            "Role: ${user['role'] ?? ''}\n"
+                            "Created: $formattedDate",
+                            style: TextStyle(
+                              color: Colors.grey.shade400,
+                              height: 1.4,
+                            ),
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              IconButton(
+                                tooltip: context.t('edit'),
+                                icon: const Icon(
+                                  Icons.edit,
+                                  color: Colors.blue,
                                 ),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => EditUserScreen(
+                                        userId: doc.id,
+                                        userData: user,
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
-                            );
-                          },
-                        ),
-                        IconButton(
-                          tooltip: context.t('delete'),
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => deleteUser(context, doc.id),
-                        ),
-                      ],
+                              IconButton(
+                                tooltip: context.t('delete'),
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color: Colors.red,
+                                ),
+                                onPressed: () => deleteUser(context, doc.id),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );
