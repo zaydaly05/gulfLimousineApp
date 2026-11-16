@@ -151,16 +151,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-        actions: [
-          IconButton(
-            tooltip: 'My location',
-            icon: const Icon(Icons.my_location),
-            onPressed: _useMyLocation,
-          ),
-        ],
-      ),
+      appBar: AppBar(title: Text(widget.title)),
       body: Column(
         children: [
           Padding(
@@ -222,16 +213,19 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
                   options: MapOptions(
                     initialCenter: _pin,
                     initialZoom: 13,
+                    interactionOptions: kAppMapInteraction,
                     onTap: (_, point) => _reverseGeocode(point),
                   ),
                   children: [
-                    appTileLayer(matrix: kLightMapMatrix),
+                    const AppTileLayer(dark: false),
                     MarkerLayer(
                       markers: [
                         Marker(
                           point: _pin,
                           width: 48,
                           height: 48,
+                          // The pin's tip, not its middle, marks the spot.
+                          alignment: Alignment.topCenter,
                           child: const Icon(
                             Icons.location_on,
                             color: AppTheme.accent,
@@ -240,6 +234,8 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
                         ),
                       ],
                     ),
+                    AppMapControls(dark: false, onMyLocation: _useMyLocation),
+                    const AppMapAttribution(),
                   ],
                 ),
                 if (_resolving)

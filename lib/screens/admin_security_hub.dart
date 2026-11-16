@@ -120,10 +120,11 @@ class _AdminSecurityHubState extends State<AdminSecurityHub> {
                 options: const MapOptions(
                   initialCenter: kCairoLatLng,
                   initialZoom: 10,
+                  interactionOptions: kAppMapInteraction,
                 ),
                 children: [
-                  appTileLayer(),
-                  MarkerLayer(markers: markers),
+                  const AppTileLayer(),
+                  // The safe zone sits under the cars, not over them.
                   CircleLayer(
                     circles: [
                       CircleMarker(
@@ -136,14 +137,20 @@ class _AdminSecurityHubState extends State<AdminSecurityHub> {
                       ),
                     ],
                   ),
+                  MarkerLayer(markers: markers),
+                  AppMapControls(fitPoints: [for (final m in markers) m.point]),
+                  const AppMapAttribution(),
                 ],
               ),
               Positioned(
-                bottom: 20,
-                left: 20,
-                right: 20,
+                top: 16,
+                left: 16,
+                right: 16,
                 child: Container(
-                  height: 100,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
@@ -154,12 +161,10 @@ class _AdminSecurityHubState extends State<AdminSecurityHub> {
                       ),
                     ],
                   ),
-                  child: Center(
-                    child: Text(
-                      'Monitoring ${docs.length} Active Trips\nSafe Zone: 100km radius from Cairo',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
+                  child: Text(
+                    'Monitoring ${docs.length} Active Trips\nSafe Zone: 100km radius from Cairo',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
