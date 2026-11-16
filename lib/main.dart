@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'core/error_handlers.dart';
 import 'firebase_options.dart';
 import 'screens/intro_screen.dart';
 import 'theme/app_theme.dart';
@@ -12,8 +13,10 @@ import 'services/auth_navigation.dart';
 import 'widgets/biometric_lock_screen.dart';
 import 'l10n/locale_service.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // First, so nothing below (locale, Firebase) can fail unseen.
+  installErrorHandlers();
 
   await LocaleService.instance.load();
 
