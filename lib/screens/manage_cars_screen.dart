@@ -9,6 +9,7 @@ import '../services/cloudinary_service.dart';
 import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
 import '../utils/live_refresh.dart';
+import '../utils/image_decode.dart';
 
 class ManageCarsScreen extends StatefulWidget {
   const ManageCarsScreen({super.key});
@@ -188,6 +189,7 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
                                 borderRadius: BorderRadius.circular(8),
                                 child: Image.network(
                                   car['image_url'],
+                                  cacheWidth: decodeWidth(context, 60 * 2),
                                   width: 60,
                                   height: 60,
                                   fit: BoxFit.cover,

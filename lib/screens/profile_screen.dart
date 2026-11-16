@@ -14,6 +14,7 @@ import '../widgets/biometric_settings_tile.dart';
 import '../widgets/language_picker.dart';
 import '../l10n/locale_service.dart';
 import '../services/user_profile_service.dart';
+import '../utils/image_decode.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -213,7 +214,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_profileImage != null) {
       avatar = MemoryImage(_profileImage!);
     } else if (_profileImageUrl != null && _profileImageUrl!.isNotEmpty) {
-      avatar = CachedNetworkImageProvider(_profileImageUrl!);
+      // Avatar is 100 px across (radius 50).
+      avatar = ResizeImage(
+        CachedNetworkImageProvider(_profileImageUrl!),
+        width: decodeWidth(context, 100),
+      );
     }
 
     return Scaffold(
@@ -426,6 +431,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       borderRadius: BorderRadius.circular(12),
                       child: CachedNetworkImage(
                         imageUrl: remoteUrl,
+                        memCacheWidth: screenDecodeWidth(context),
                         fit: BoxFit.cover,
                         placeholder: (context, url) =>
                             const Center(child: CircularProgressIndicator()),

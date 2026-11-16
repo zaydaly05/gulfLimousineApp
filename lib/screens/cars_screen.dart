@@ -11,6 +11,7 @@ import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
 import '../utils/live_refresh.dart';
 import '../theme/app_theme.dart';
+import '../utils/image_decode.dart';
 
 class CarsScreen extends StatefulWidget {
   const CarsScreen({super.key});
@@ -229,6 +230,7 @@ class _CarsScreenState extends State<CarsScreen> {
                             car['imageUrl'].toString().isNotEmpty
                         ? CachedNetworkImage(
                             imageUrl: car['imageUrl'],
+                            memCacheWidth: screenDecodeWidth(context),
                             height: 180,
                             width: double.infinity,
                             fit: BoxFit.cover,
@@ -337,6 +339,7 @@ class _CarsScreenState extends State<CarsScreen> {
 
   Widget _imageFallback() {
     return Image.network(
+      cacheWidth: screenDecodeWidth(context),
       'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80',
       height: 180,
       width: double.infinity,

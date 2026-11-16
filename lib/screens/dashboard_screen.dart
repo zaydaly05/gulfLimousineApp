@@ -23,6 +23,7 @@ import '../widgets/language_picker.dart';
 import '../widgets/user_charts.dart';
 import '../l10n/locale_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/image_decode.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -258,7 +259,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   backgroundColor: const Color(0xFF333333),
                   backgroundImage:
                       _profileImageUrl != null && _profileImageUrl!.isNotEmpty
-                      ? CachedNetworkImageProvider(_profileImageUrl!)
+                      ? ResizeImage(
+                          CachedNetworkImageProvider(_profileImageUrl!),
+                          // Drawer header avatar is 72 px across.
+                          width: decodeWidth(context, 72),
+                        )
                       : null,
                   child: _profileImageUrl == null || _profileImageUrl!.isEmpty
                       ? const Icon(Icons.person, color: Colors.white, size: 36)

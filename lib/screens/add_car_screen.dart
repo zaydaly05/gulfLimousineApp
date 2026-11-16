@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../services/cloudinary_service.dart';
+import '../utils/image_decode.dart';
 
 class AddCarScreen extends StatefulWidget {
   const AddCarScreen({super.key});
@@ -136,7 +137,10 @@ class _AddCarScreenState extends State<AddCarScreen> {
                       borderRadius: BorderRadius.circular(16),
                       image: imageUrl != null
                           ? DecorationImage(
-                              image: NetworkImage(imageUrl!),
+                              image: ResizeImage(
+                                NetworkImage(imageUrl!),
+                                width: screenDecodeWidth(context),
+                              ),
                               fit: BoxFit.cover,
                             )
                           : null,

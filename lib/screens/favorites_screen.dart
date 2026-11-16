@@ -7,6 +7,7 @@ import '../services/favorites_service.dart';
 import '../widgets/rent_bottom_sheet.dart';
 import '../l10n/locale_service.dart';
 import '../utils/live_refresh.dart';
+import '../utils/image_decode.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -68,6 +69,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                         ? ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: Image.network(
+                              cacheWidth: decodeWidth(context, 56 * 2),
                               data['image_url'],
                               width: 56,
                               height: 56,
