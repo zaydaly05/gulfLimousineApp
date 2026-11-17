@@ -9,6 +9,7 @@ Hobby plan. No card is needed, and Firebase stays on the free Spark plan.
 | `POST /api/create-intention` | the app | Checks the caller's Firebase ID token and that the booking is theirs and unpaid. Reads the price from Firestore (and checks it against the car's price), creates a Paymob intention, returns the hosted checkout link. |
 | `POST /api/paymob-webhook` | Paymob | Verifies Paymob's HMAC signature, then marks the booking paid and confirmed (or failed). Each Paymob transaction is recorded once in `paymob_events`, so retries are harmless. |
 | `GET /api/return` | the customer's browser | "Return to the app" page after checkout. Changes nothing. |
+| `GET /api/health` | you | Configuration check: which variables are set, whether the Firebase key matches the project and reaches Firestore, Paymob key modes, and whether `config/ai` holds a Gemini key that Google accepts. Never shows a value. |
 
 The app never sees the Paymob secret key and never decides the amount or the
 result. InstaPay transfers don't go through here: InstaPay has no merchant
