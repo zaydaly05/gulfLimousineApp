@@ -1,0 +1,3 @@
+# Release builds: shared outside git (too large, and regenerated per version).
+*.apk
+*.aab
