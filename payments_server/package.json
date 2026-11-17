@@ -1,0 +1,16 @@
+{
+  "name": "gulf-limousine-payments-server",
+  "private": true,
+  "description": "Paymob checkout for the Gulf Limousine app, deployed as Vercel serverless functions.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "test:emulators": "cd .. && firestore_tests/node_modules/.bin/firebase emulators:exec --only auth,firestore --project demo-gulf-limousine \"cd payments_server && node --test test/integration/*.test.js\""
+  },
+  "dependencies": {
+    "firebase-admin": "^14.5.1"
+  }
+}
