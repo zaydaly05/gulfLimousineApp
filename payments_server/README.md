@@ -8,6 +8,8 @@ Hobby plan. No card is needed, and Firebase stays on the free Spark plan.
 |---|---|---|
 | `POST /api/create-intention` | the app | Checks the caller's Firebase ID token and that the booking is theirs and unpaid. Reads the price from Firestore (and checks it against the car's price), creates a Paymob intention, returns the hosted checkout link. |
 | `POST /api/paymob-webhook` | Paymob | Verifies Paymob's HMAC signature, then marks the booking paid and confirmed (or failed). Each Paymob transaction is recorded once in `paymob_events`, so retries are harmless. |
+| `POST /api/end-trip` | the app | Records the customer's return km and closes the rental in one transaction: computes the extra-km bill (120 km/day, 5 EGP per extra km), completes the booking, writes the extra-km payment record, updates the car's odometer and notifies the customer and admins. |
+| `POST /api/pay-ticket` | the app | Settles the customer's own pending traffic ticket: records the method on the ticket and writes its payment record (one per ticket). Cash stays pending until an admin confirms it. |
 | `GET /api/return` | the customer's browser | "Return to the app" page after checkout. Changes nothing. |
 | `GET /api/health` | you | Configuration check: which variables are set, whether the Firebase key matches the project and reaches Firestore, Paymob key modes, and whether `config/ai` holds a Gemini key that Google accepts. Never shows a value. |
 
