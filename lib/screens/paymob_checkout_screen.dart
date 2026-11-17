@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/paymob_service.dart';
 import '../services/payments_server_client.dart';
 import '../theme/app_theme.dart';
+import '../utils/safe_insets.dart';
 import 'payment_success_screen.dart';
 
 /// Opens Paymob's hosted checkout for a booking and waits for the result.
@@ -118,7 +119,7 @@ class _PaymobCheckoutScreenState extends State<PaymobCheckoutScreen> {
       appBar: AppBar(title: const Text('Online Payment')),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24).withSafeBottom(context),
           children: [
             Icon(
               failed ? Icons.error_outline : Icons.lock_clock,

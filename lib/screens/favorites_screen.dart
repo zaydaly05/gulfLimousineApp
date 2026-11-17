@@ -9,6 +9,7 @@ import '../l10n/locale_service.dart';
 import '../utils/live_refresh.dart';
 import '../utils/image_decode.dart';
 import '../widgets/empty_state.dart';
+import '../utils/safe_insets.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -44,7 +45,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             }
             return ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16).withSafeBottom(context),
               itemCount: docs.length,
               itemBuilder: (context, index) {
                 final data = docs[index].data() as Map<String, dynamic>;
@@ -89,6 +90,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                         showModalBottomSheet(
                           context: context,
                           isScrollControlled: true,
+                          useSafeArea: true,
                           shape: const RoundedRectangleBorder(
                             borderRadius: BorderRadius.vertical(
                               top: Radius.circular(20),

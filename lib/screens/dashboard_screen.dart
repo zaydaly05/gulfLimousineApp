@@ -24,6 +24,7 @@ import '../widgets/user_charts.dart';
 import '../l10n/locale_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/image_decode.dart';
+import '../utils/safe_insets.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -222,10 +223,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Drawer(
       backgroundColor: Colors.white,
       child: ListView(
-        padding: EdgeInsets.zero,
+        padding: EdgeInsets.zero.withSafeBottom(context),
         children: [
+          // UserAccountsDrawerHeader already clears the status bar.
           Container(
-            padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 colors: [Color(0xFF000000), Color(0xFF1A1A1A)],

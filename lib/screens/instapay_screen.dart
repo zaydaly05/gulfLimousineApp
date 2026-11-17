@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/app_config_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/payment_validation.dart';
+import '../utils/safe_insets.dart';
 
 /// Pay by InstaPay transfer to the business's InstaPay address.
 ///
@@ -91,7 +92,7 @@ class _InstaPayScreenState extends State<InstaPayScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('InstaPay Payment')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24).withSafeBottom(context),
         child: Form(
           key: _formKey,
           child: Column(

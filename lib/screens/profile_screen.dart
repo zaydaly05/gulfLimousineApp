@@ -17,6 +17,7 @@ import '../widgets/language_picker.dart';
 import '../l10n/locale_service.dart';
 import '../services/user_profile_service.dart';
 import '../utils/image_decode.dart';
+import '../utils/safe_insets.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -240,7 +241,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         onRefresh: _loadUserData,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.all(20).withSafeBottom(context),
           child: Column(
             children: [
               Semantics(

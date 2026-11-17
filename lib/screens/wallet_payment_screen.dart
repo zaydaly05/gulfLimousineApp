@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../services/app_config_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/payment_validation.dart';
+import '../utils/safe_insets.dart';
 
 /// Pay by sending money from a mobile wallet (Vodafone Cash, Orange Cash,
 /// e& money, WE Pay) to the business's wallet number.
@@ -100,7 +101,7 @@ class _WalletPaymentScreenState extends State<WalletPaymentScreen> {
               ),
             )
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16).withSafeBottom(context),
               child: Form(
                 key: _formKey,
                 child: Column(

@@ -403,7 +403,10 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
         left: 20,
         right: 20,
         top: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+        bottom:
+            MediaQuery.viewInsetsOf(context).bottom +
+            MediaQuery.paddingOf(context).bottom +
+            20,
       ),
       child: SingleChildScrollView(
         child: Column(

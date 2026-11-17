@@ -12,6 +12,7 @@ import '../utils/live_refresh.dart';
 import '../utils/image_decode.dart';
 import '../widgets/empty_state.dart';
 import '../models/fleet.dart';
+import '../utils/safe_insets.dart';
 
 class ManageCarsScreen extends StatefulWidget {
   const ManageCarsScreen({super.key});
@@ -167,7 +168,12 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
                 return ListView.builder(
                   physics: const AlwaysScrollableScrollPhysics(),
                   // Bottom room so the + button never covers the last car.
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    16,
+                    16,
+                    88,
+                  ).withSafeBottom(context),
                   itemCount: snapshot.data!.docs.length,
                   itemBuilder: (context, index) {
                     final doc = snapshot.data!.docs[index];

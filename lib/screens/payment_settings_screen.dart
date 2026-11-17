@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../services/app_config_service.dart';
 import '../utils/payment_validation.dart';
+import '../utils/safe_insets.dart';
 
 /// Admin: switch each payment method on or off and set where manual
 /// transfers go. Saved to `config/payments`; checkout hides switched-off
@@ -149,7 +150,7 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
           : Form(
               key: _formKey,
               child: ListView(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(16).withSafeBottom(context),
                 children: [
                   const Text(
                     'Customers only see the methods that are on.',

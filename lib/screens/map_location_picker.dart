@@ -215,11 +215,12 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
               ],
             ),
           ),
+          // Chips are 48 px tall with their tap target; leave room for it.
           SizedBox(
-            height: 44,
+            height: 52,
             child: ListView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
               children: _presets.entries.map((e) {
                 return Padding(
                   padding: const EdgeInsetsDirectional.only(end: 8),

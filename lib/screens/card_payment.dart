@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../theme/app_theme.dart';
+import '../utils/safe_insets.dart';
 
 class CardPaymentScreen extends StatefulWidget {
   final double amount;
@@ -93,6 +94,7 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
       appBar: AppBar(title: const Text('Card Payment')),
       body: Center(
         child: SingleChildScrollView(
+          padding: EdgeInsets.zero.withSafeBottom(context),
           child: Card(
             margin: const EdgeInsets.all(16),
             child: Padding(

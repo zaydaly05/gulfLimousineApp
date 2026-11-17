@@ -7,6 +7,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../services/booking_service.dart';
 import '../services/whatsapp_service.dart';
+import '../utils/safe_insets.dart';
 import 'edit_booking_screen.dart';
 import '../models/geo_location.dart';
 import '../widgets/app_map.dart';
@@ -189,7 +190,7 @@ class _AdminSecurityHubState extends State<AdminSecurityHub> {
               security is Map && security['isImmobilized'] == true;
 
           return Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(20).withSafeBottom(sheetContext),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [

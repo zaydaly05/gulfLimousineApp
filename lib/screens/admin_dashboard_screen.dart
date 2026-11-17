@@ -24,6 +24,7 @@ import '../widgets/language_picker.dart';
 import '../l10n/locale_service.dart';
 import '../utils/live_refresh.dart';
 import '../services/complimentary_rental_service.dart';
+import '../utils/safe_insets.dart';
 import 'payment_settings_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
@@ -86,7 +87,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       drawer: Drawer(
         backgroundColor: Colors.black,
         child: ListView(
-          padding: EdgeInsets.zero,
+          padding: EdgeInsets.zero.withSafeBottom(context),
           children: [
             Container(
               padding: EdgeInsets.fromLTRB(

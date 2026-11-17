@@ -7,6 +7,7 @@ import 'package:video_player/video_player.dart';
 
 import '../services/booking_service.dart';
 import '../services/cloudinary_service.dart';
+import '../utils/safe_insets.dart';
 
 enum ConditionCaptureMode { pickup, returnMode }
 
@@ -149,7 +150,7 @@ class _CarConditionCaptureScreenState extends State<CarConditionCaptureScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(_title)),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16).withSafeBottom(context),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

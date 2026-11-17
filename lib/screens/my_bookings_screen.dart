@@ -20,6 +20,7 @@ import '../widgets/status_pill.dart';
 import '../widgets/action_button_row.dart';
 import 'paymob_checkout_screen.dart';
 import '../models/fleet.dart';
+import '../utils/safe_insets.dart';
 
 class MyBookingsScreen extends StatefulWidget {
   const MyBookingsScreen({super.key});
@@ -148,7 +149,7 @@ class _BookingsFallbackByEmailState extends State<_BookingsFallbackByEmail> {
           return const _EmptyBookings();
         }
         return ListView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(16).withSafeBottom(context),
           itemCount: docs.length,
           itemBuilder: (context, index) {
             final doc = docs[index];

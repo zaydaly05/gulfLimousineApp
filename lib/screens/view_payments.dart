@@ -6,6 +6,7 @@ import '../l10n/locale_service.dart';
 import '../services/booking_service.dart';
 import '../widgets/language_picker.dart';
 import '../widgets/empty_state.dart';
+import '../utils/safe_insets.dart';
 
 class ViewPaymentsScreen extends StatefulWidget {
   const ViewPaymentsScreen({super.key});
@@ -61,7 +62,8 @@ class _ViewPaymentsScreenState extends State<ViewPaymentsScreen> {
                   }
 
                   return ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: EdgeInsets.symmetric(horizontal: 16)
+                        .withSafeBottom(context),
                     itemCount: snapshot.data!.docs.length,
                     itemBuilder: (context, index) {
                       final doc = snapshot.data!.docs[index];

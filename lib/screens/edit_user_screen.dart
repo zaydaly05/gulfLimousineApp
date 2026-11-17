@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/user_profile_service.dart';
+import '../utils/safe_insets.dart';
 
 class EditUserScreen extends StatefulWidget {
   final String userId;
@@ -80,7 +81,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
         backgroundColor: Colors.black,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16).withSafeBottom(context),
         child: Column(
           // Full-width button, like the other admin forms.
           crossAxisAlignment: CrossAxisAlignment.stretch,

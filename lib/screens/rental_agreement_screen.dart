@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/booking_service.dart';
+import '../utils/safe_insets.dart';
 
 class RentalAgreementScreen extends StatefulWidget {
   final String? bookingId;
@@ -68,7 +69,7 @@ class _RentalAgreementScreenState extends State<RentalAgreementScreen> {
         foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(20).withSafeBottom(context),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

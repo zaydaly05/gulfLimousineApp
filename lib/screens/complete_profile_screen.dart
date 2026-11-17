@@ -7,6 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../services/cloudinary_service.dart';
 import '../services/auth_navigation.dart';
 import '../services/user_profile_service.dart';
+import '../utils/safe_insets.dart';
 
 class CompleteProfileScreen extends StatefulWidget {
   const CompleteProfileScreen({super.key});
@@ -115,7 +116,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
           backgroundColor: Colors.orange,
         ),
         body: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24).withSafeBottom(context),
           child: Form(
             key: _formKey,
             child: Column(

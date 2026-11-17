@@ -14,6 +14,7 @@ import '../services/auth_navigation.dart';
 import '../widgets/language_picker.dart';
 import '../l10n/locale_service.dart';
 import '../services/user_profile_service.dart';
+import '../utils/safe_insets.dart';
 
 class LoginScreen extends StatefulWidget {
   /// False when the user just chose "Use password instead", so the screen
@@ -253,7 +254,7 @@ class _LoginScreenState extends State<LoginScreen> {
       // through, so the page was white or dark grey depending on dark mode.
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
+        padding: EdgeInsets.symmetric(horizontal: 24).withSafeBottom(context),
         child: SizedBox(
           height: MediaQuery.of(context).size.height,
           child: Center(
