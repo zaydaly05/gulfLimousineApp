@@ -9,6 +9,7 @@ import '../services/payments_server_client.dart';
 import '../theme/app_theme.dart';
 import '../utils/safe_insets.dart';
 import 'payment_success_screen.dart';
+import '../l10n/locale_service.dart';
 
 /// Opens Paymob's hosted checkout for a booking and waits for the result.
 ///
@@ -50,7 +51,11 @@ class _PaymobCheckoutScreenState extends State<PaymobCheckoutScreen> {
         .listen(
           _onBooking,
           onError: (Object e) {
-            if (mounted) setState(() => _error = 'Could not load booking: $e');
+            if (mounted) {
+              setState(
+                () => _error = tr('couldNotLoadBooking', args: {'e': '$e'}),
+              );
+            }
           },
         );
     unawaited(_openCheckout());
@@ -70,11 +75,8 @@ class _PaymobCheckoutScreenState extends State<PaymobCheckoutScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => const PaymentSuccessScreen(
-              message:
-                  'Thank you for choosing Gulf Limousine Travel.\n'
-                  'Your payment was received and your car is booked.',
-            ),
+            builder: (_) =>
+                PaymentSuccessScreen(message: tr('thankYouForChoosingGulf')),
           ),
         ),
       );
@@ -101,12 +103,14 @@ class _PaymobCheckoutScreenState extends State<PaymobCheckoutScreen> {
         mode: LaunchMode.inAppBrowserView,
       );
       if (!opened && mounted) {
-        setState(() => _error = 'Could not open the payment page.');
+        setState(() => _error = tr('couldNotOpenPaymentPage'));
       }
     } on ServerException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (e) {
-      if (mounted) setState(() => _error = 'Payment could not be started: $e');
+      if (mounted) {
+        setState(() => _error = tr('paymentNotStarted', args: {'e': '$e'}));
+      }
     } finally {
       if (mounted) setState(() => _opening = false);
     }
@@ -116,7 +120,7 @@ class _PaymobCheckoutScreenState extends State<PaymobCheckoutScreen> {
   Widget build(BuildContext context) {
     final failed = _paymentStatus == 'failed';
     return Scaffold(
-      appBar: AppBar(title: const Text('Online Payment')),
+      appBar: AppBar(title: Text(tr('onlinePayment'))),
       body: SafeArea(
         child: ListView(
           padding: EdgeInsets.all(24).withSafeBottom(context),
@@ -128,15 +132,13 @@ class _PaymobCheckoutScreenState extends State<PaymobCheckoutScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              failed
-                  ? 'The payment did not go through'
-                  : 'Complete the payment on the Paymob page',
+              failed ? tr('paymentDidNotGoThrough') : tr('completeOnPaymob'),
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
-              'Amount: EGP ${widget.amount.toStringAsFixed(0)}',
+              egp(widget.amount),
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 18,
@@ -146,11 +148,7 @@ class _PaymobCheckoutScreenState extends State<PaymobCheckoutScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              failed
-                  ? 'No money was taken. You can try again or choose '
-                        'another payment method from My Bookings.'
-                  : 'This screen updates by itself once Paymob confirms '
-                        'the payment.',
+              failed ? tr('noMoneyTaken') : tr('screenUpdatesItself'),
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey.shade700),
             ),
@@ -162,12 +160,9 @@ class _PaymobCheckoutScreenState extends State<PaymobCheckoutScreen> {
               const SizedBox(height: 24),
               Card(
                 color: Colors.amber.shade50,
-                child: const Padding(
+                child: Padding(
                   padding: EdgeInsets.all(12),
-                  child: Text(
-                    'Test mode, no real money: pay with wallet 01010101010 '
-                    '(MPIN and OTP 123456) or a Paymob test card.',
-                  ),
+                  child: Text(tr('testModeNoRealMoney')),
                 ),
               ),
             ],
@@ -183,12 +178,12 @@ class _PaymobCheckoutScreenState extends State<PaymobCheckoutScreen> {
             ElevatedButton.icon(
               onPressed: _opening ? null : _openCheckout,
               icon: const Icon(Icons.open_in_new),
-              label: Text(failed ? 'Try Again' : 'Open Payment Page'),
+              label: Text(failed ? tr('tryAgain') : tr('openPaymentPage')),
             ),
             const SizedBox(height: 12),
             OutlinedButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Pay Later'),
+              child: Text(tr('payLater')),
             ),
           ],
         ),

@@ -6,6 +6,7 @@ import 'package:firebase_core/firebase_core.dart';
 
 import '../firebase_options.dart';
 import '../services/user_profile_service.dart';
+import '../l10n/locale_service.dart';
 
 class AddUserScreen extends StatefulWidget {
   const AddUserScreen({super.key});
@@ -81,10 +82,8 @@ class _AddUserScreenState extends State<AddUserScreen> {
       Navigator.pop(context);
 
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text(
-            "User created. A link to set their password was emailed to them.",
-          ),
+        SnackBar(
+          content: Text(tr('userCreatedALinkTo')),
           backgroundColor: Colors.green,
         ),
       );
@@ -92,14 +91,17 @@ class _AddUserScreenState extends State<AddUserScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e.message ?? "Failed to create user"),
+          content: Text(e.message ?? tr('failedCreateUser')),
           backgroundColor: Colors.red,
         ),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text(tr('error', args: {'e': '$e'})),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
       if (secondaryApp != null) {
@@ -114,23 +116,20 @@ class _AddUserScreenState extends State<AddUserScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: const Text("Add User"),
-      ),
+      appBar: AppBar(backgroundColor: Colors.black, title: Text(tr('addUser'))),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
           child: ListView(
             children: [
-              _input("Full Name", name),
-              _input("Email", email, type: TextInputType.emailAddress),
-              _input("Phone Number", phone, type: TextInputType.phone),
+              _input(tr('fullName'), name),
+              _input(tr('email'), email, type: TextInputType.emailAddress),
+              _input(tr('phoneNumber'), phone, type: TextInputType.phone),
 
               const SizedBox(height: 10),
 
-              const Text("User Role", style: TextStyle(color: Colors.white)),
+              Text(tr('userRole'), style: TextStyle(color: Colors.white)),
               const SizedBox(height: 5),
 
               DropdownButtonFormField<String>(
@@ -166,7 +165,7 @@ class _AddUserScreenState extends State<AddUserScreen> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text("Create User"),
+                    : Text(tr('createUser')),
               ),
             ],
           ),
@@ -185,7 +184,7 @@ class _AddUserScreenState extends State<AddUserScreen> {
       child: TextFormField(
         controller: controller,
         keyboardType: type,
-        validator: (v) => v == null || v.isEmpty ? "Required" : null,
+        validator: (v) => v == null || v.isEmpty ? tr('required') : null,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           labelText: label,

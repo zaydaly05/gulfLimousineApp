@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../screens/video_viewer_screen.dart';
+import '../l10n/locale_service.dart';
 
 /// "Pickup Video" / "Return Video" chips that open a booking's condition
 /// videos. Renders only the chips for videos the booking actually has.
@@ -36,17 +37,18 @@ class ConditionVideoChips extends StatelessWidget {
           Padding(
             padding: const EdgeInsetsDirectional.only(end: 8),
             child: ActionChip(
-              label: const Text('Pickup Video'),
+              label: Text(tr('pickupVideo')),
               avatar: const Icon(Icons.play_circle_fill, size: 16),
               onPressed: () =>
-                  _open(context, 'pickupVideo', 'Pickup Condition'),
+                  _open(context, 'pickupVideo', tr('pickupCondition')),
             ),
           ),
         if (hasReturn)
           ActionChip(
-            label: const Text('Return Video'),
+            label: Text(tr('returnVideo')),
             avatar: const Icon(Icons.play_circle_fill, size: 16),
-            onPressed: () => _open(context, 'returnVideo', 'Return Condition'),
+            onPressed: () =>
+                _open(context, 'returnVideo', tr('returnCondition')),
           ),
       ],
     );

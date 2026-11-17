@@ -7,6 +7,7 @@ import '../models/geo_location.dart';
 import '../services/maps_launcher.dart';
 import '../widgets/app_map.dart';
 import '../theme/app_theme.dart';
+import '../l10n/locale_service.dart';
 
 class TrackTripScreen extends StatelessWidget {
   final String bookingId;
@@ -22,12 +23,12 @@ class TrackTripScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final pickup = GeoLocation.tryParse(bookingData['pickupLocation']);
     final dropoff = GeoLocation.tryParse(bookingData['dropoffLocation']);
-    final chauffeurName = (bookingData['chauffeurName'] ?? 'Chauffeur')
+    final chauffeurName = (bookingData['chauffeurName'] ?? tr('chauffeur'))
         .toString();
     final chauffeurPhone = (bookingData['chauffeurPhone'] ?? '').toString();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Track Trip')),
+      appBar: AppBar(title: Text(tr('trackTrip2'))),
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance
             .collection('bookings')
@@ -108,8 +109,8 @@ class TrackTripScreen extends StatelessWidget {
                         color: Colors.black,
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: const Text(
-                        'YOUR RIDE',
+                      child: Text(
+                        tr('yourRide'),
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 8,
@@ -152,19 +153,24 @@ class TrackTripScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        'Status: ${tripStatus.replaceAll('_', ' ').toUpperCase()}',
+                        '${tr('status')}: ${statusLabel(tripStatus)}',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),
                       ),
                       const SizedBox(height: 6),
-                      Text('Chauffeur: $chauffeurName'),
+                      Text(
+                        tr(
+                          'chauffeur2',
+                          args: {'chauffeurName': chauffeurName},
+                        ),
+                      ),
                       if (!live.isValid)
                         Padding(
                           padding: const EdgeInsets.only(top: 8),
                           child: Text(
-                            'Live location will appear once your chauffeur starts the trip.',
+                            tr('liveLocationWillAppearOnce'),
                             style: TextStyle(color: Colors.grey.shade600),
                           ),
                         ),
@@ -177,7 +183,7 @@ class TrackTripScreen extends StatelessWidget {
                                 onPressed: () =>
                                     MapsLauncher.callPhone(chauffeurPhone),
                                 icon: const Icon(Icons.call),
-                                label: const Text('Call'),
+                                label: Text(tr('call')),
                               ),
                             ),
                           if (chauffeurPhone.isNotEmpty && pickup != null)
@@ -189,7 +195,7 @@ class TrackTripScreen extends StatelessWidget {
                                   destination: pickup,
                                 ),
                                 icon: const Icon(Icons.directions),
-                                label: const Text('Pickup'),
+                                label: Text(tr('pickup')),
                               ),
                             ),
                         ],

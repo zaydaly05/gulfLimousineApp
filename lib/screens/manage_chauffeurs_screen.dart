@@ -209,7 +209,7 @@ class _ManageChauffeursScreenState extends State<ManageChauffeursScreen> {
                       ),
                     ),
                     subtitle: Text(
-                      '${data['phone'] ?? ''}${active ? '' : ' · Inactive'}',
+                      '${data['phone'] ?? ''}${active ? '' : ' · ${tr('inactive')}'}',
                       style: TextStyle(color: Colors.grey.shade400),
                     ),
                     trailing: Row(

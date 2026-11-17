@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../utils/rental_dates.dart';
 import '../widgets/dark_form_fields.dart';
 import '../services/booking_service.dart';
+import '../l10n/locale_service.dart';
 
 class NewBookingScreen extends StatefulWidget {
   const NewBookingScreen({super.key});
@@ -55,8 +56,8 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
 
     if (selectedCarId == null || selectedCarName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a car'),
+        SnackBar(
+          content: Text(tr('pleaseSelectACar')),
           backgroundColor: Colors.red,
         ),
       );
@@ -65,8 +66,8 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
 
     if (pickupDate == null || returnDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select pickup and return dates'),
+        SnackBar(
+          content: Text(tr('selectPickupReturnDates')),
           backgroundColor: Colors.red,
         ),
       );
@@ -75,8 +76,8 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
 
     if (returnDate!.isBefore(pickupDate!)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Return date must be after pickup date'),
+        SnackBar(
+          content: Text(tr('returnAfterPickup')),
           backgroundColor: Colors.red,
         ),
       );
@@ -109,8 +110,8 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
       if (!mounted) return;
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Booking created successfully'),
+        SnackBar(
+          content: Text(tr('bookingCreatedSuccessfully')),
           backgroundColor: Colors.green,
         ),
       );
@@ -155,7 +156,7 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: const Text('New Booking'),
+        title: Text(tr('newBooking')),
       ),
       body: Form(
         key: _formKey,
@@ -167,16 +168,16 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
             24 + MediaQuery.viewPaddingOf(context).bottom,
           ),
           children: [
-            DarkTextFormField(name, 'Customer Name'),
+            DarkTextFormField(name, tr('customerName')),
             DarkTextFormField(
               email,
-              'Email',
+              tr('email'),
               type: TextInputType.emailAddress,
               required: false,
             ),
             DarkTextFormField(
               phone,
-              'Phone Number',
+              tr('phoneNumber'),
               type: TextInputType.phone,
               required: false,
             ),
@@ -193,10 +194,10 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
 
                 final cars = snapshot.data?.docs ?? [];
                 if (cars.isEmpty) {
-                  return const Padding(
+                  return Padding(
                     padding: EdgeInsets.only(bottom: 12),
                     child: Text(
-                      'No cars available. Add a car first.',
+                      tr('noCarsAvailableAddA'),
                       style: TextStyle(color: Colors.redAccent),
                     ),
                   );
@@ -206,33 +207,35 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
                   initialValue: selectedCarId,
                   dropdownColor: Colors.grey.shade900,
                   style: const TextStyle(color: Colors.white),
-                  decoration: darkInputDecoration('Car'),
-                  hint: const Text(
-                    'Select car',
+                  decoration: darkInputDecoration(tr('carFallback')),
+                  hint: Text(
+                    tr('selectCar'),
                     style: TextStyle(color: Colors.white70),
                   ),
                   items: cars.map((doc) {
                     final car = doc.data() as Map<String, dynamic>;
-                    final carName = (car['name'] ?? 'Car').toString();
+                    final carName = (car['name'] ?? tr('carFallback'))
+                        .toString();
                     final brand = (car['brand'] ?? '').toString();
                     final price =
                         (car['price_per_day'] as num?)?.toDouble() ?? 0;
                     return DropdownMenuItem(
                       value: doc.id,
                       child: Text(
-                        '$brand $carName · EGP ${price.toStringAsFixed(0)}/day'
+                        '$brand $carName · ${tr('egpPerDay', args: {'amount': price.toStringAsFixed(0)})}'
                             .trim(),
                       ),
                     );
                   }).toList(),
-                  validator: (v) => v == null ? 'Required' : null,
+                  validator: (v) => v == null ? tr('required') : null,
                   onChanged: (id) {
                     if (id == null) return;
                     final doc = cars.firstWhere((c) => c.id == id);
                     final car = doc.data() as Map<String, dynamic>;
                     setState(() {
                       selectedCarId = id;
-                      selectedCarName = (car['name'] ?? 'Car').toString();
+                      selectedCarName = (car['name'] ?? tr('carFallback'))
+                          .toString();
                       selectedBrand = (car['brand'] ?? '').toString();
                       pricePerDay =
                           (car['price_per_day'] as num?)?.toDouble() ?? 0;
@@ -246,13 +249,11 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
               initialValue: status,
               dropdownColor: Colors.grey.shade900,
               style: const TextStyle(color: Colors.white),
-              decoration: darkInputDecoration('Status'),
+              decoration: darkInputDecoration(tr('status')),
               items: _statuses
                   .map(
-                    (s) => DropdownMenuItem(
-                      value: s,
-                      child: Text(s.toUpperCase()),
-                    ),
+                    (s) =>
+                        DropdownMenuItem(value: s, child: Text(statusLabel(s))),
                   )
                   .toList(),
               onChanged: (v) {
@@ -261,19 +262,26 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
             ),
             const SizedBox(height: 16),
             _dateButton(
-              'Select Pickup Date',
+              tr('selectPickupDate'),
               pickupDate,
               () => _pickDate(isPickup: true),
             ),
             _dateButton(
-              'Select Return Date',
+              tr('selectReturnDate'),
               returnDate,
               () => _pickDate(isPickup: false),
             ),
             if (_days > 0 && pricePerDay > 0) ...[
               const SizedBox(height: 8),
               Text(
-                '$_days day(s) × EGP ${pricePerDay.toStringAsFixed(0)} = EGP ${_total.toStringAsFixed(0)}',
+                tr(
+                  'daySEgpEgp',
+                  args: {
+                    '_days': '$_days',
+                    'toStringAsFixed': pricePerDay.toStringAsFixed(0),
+                    'toStringAsFixed2': _total.toStringAsFixed(0),
+                  },
+                ),
                 style: const TextStyle(color: Colors.orange),
               ),
             ],
@@ -293,8 +301,8 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
                         color: Colors.white,
                       ),
                     )
-                  : const Text(
-                      'Confirm Booking',
+                  : Text(
+                      tr('confirmBooking'),
                       style: TextStyle(color: Colors.white),
                     ),
             ),

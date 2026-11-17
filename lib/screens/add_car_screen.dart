@@ -5,6 +5,7 @@ import '../services/cloudinary_service.dart';
 import '../utils/image_decode.dart';
 import '../models/fleet.dart';
 import '../widgets/fleet_colors_editor.dart';
+import '../l10n/locale_service.dart';
 
 class AddCarScreen extends StatefulWidget {
   const AddCarScreen({super.key});
@@ -36,15 +37,15 @@ class _AddCarScreenState extends State<AddCarScreen> {
     final colorProblem = Fleet.validate(_colors);
     if (colorProblem != null || _colors.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(colorProblem ?? 'Add at least one colour')),
+        SnackBar(content: Text(colorProblem ?? tr('addOneColour'))),
       );
       return;
     }
 
     if (imageUrl == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please upload a car image"),
+        SnackBar(
+          content: Text(tr('pleaseUploadACarImage')),
           backgroundColor: Colors.red,
         ),
       );
@@ -73,15 +74,18 @@ class _AddCarScreenState extends State<AddCarScreen> {
       Navigator.pop(context);
 
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text("Car added successfully"),
+        SnackBar(
+          content: Text(tr('carAddedSuccessfully')),
           backgroundColor: Colors.green,
         ),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text(tr('error', args: {'e': '$e'})),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -102,8 +106,8 @@ class _AddCarScreenState extends State<AddCarScreen> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Image uploaded successfully"),
+          SnackBar(
+            content: Text(tr('imageUploadedSuccessfully')),
             backgroundColor: Colors.green,
           ),
         );
@@ -112,7 +116,7 @@ class _AddCarScreenState extends State<AddCarScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Upload failed: $e"),
+          content: Text(tr('uploadFailed', args: {'e': '$e'})),
           backgroundColor: Colors.red,
         ),
       );
@@ -127,7 +131,7 @@ class _AddCarScreenState extends State<AddCarScreen> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: const Text("Add New Car"),
+        title: Text(tr('addCarTitle')),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -138,7 +142,7 @@ class _AddCarScreenState extends State<AddCarScreen> {
               /// 🖼 IMAGE UPLOAD
               Semantics(
                 button: true,
-                label: 'Upload car image',
+                label: tr('uploadCarImage'),
                 child: GestureDetector(
                   onTap: _uploadImage,
                   child: Container(
@@ -171,20 +175,23 @@ class _AddCarScreenState extends State<AddCarScreen> {
 
               const SizedBox(height: 20),
 
-              _input("Car Name", name),
-              _input("Brand", brand),
-              _input("Price per Day", price, type: TextInputType.number),
-              _input("Number of Seats", seats, type: TextInputType.number),
+              _input(tr('carName'), name),
+              _input(tr('brand'), brand),
+              _input(tr('pricePerDay'), price, type: TextInputType.number),
+              _input(tr('numberOfSeats'), seats, type: TextInputType.number),
 
               const SizedBox(height: 10),
-              const Text("Fuel Type", style: TextStyle(color: Colors.white)),
+              Text(tr('fuelType'), style: TextStyle(color: Colors.white)),
               const SizedBox(height: 5),
 
               DropdownButtonFormField<String>(
                 initialValue: fuelType,
                 dropdownColor: Colors.grey.shade900,
                 items: ["Petrol", "Diesel", "Electric"]
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .map(
+                      (e) =>
+                          DropdownMenuItem(value: e, child: Text(fuelLabel(e))),
+                    )
                     .toList(),
                 onChanged: (val) => setState(() => fuelType = val!),
                 decoration: InputDecoration(
@@ -219,7 +226,7 @@ class _AddCarScreenState extends State<AddCarScreen> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text("Add Car"),
+                    : Text(tr('addCar')),
               ),
             ],
           ),
@@ -238,7 +245,7 @@ class _AddCarScreenState extends State<AddCarScreen> {
       child: TextFormField(
         controller: controller,
         keyboardType: type,
-        validator: (v) => v!.isEmpty ? "Required" : null,
+        validator: (v) => v!.isEmpty ? tr('required') : null,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           labelText: label,

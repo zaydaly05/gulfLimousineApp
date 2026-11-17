@@ -102,7 +102,7 @@ class _ViewPaymentsScreenState extends State<ViewPaymentsScreen> {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    "${payment['amount']} EGP",
+                                    egp(payment['amount']),
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 18,
@@ -141,11 +141,11 @@ class _ViewPaymentsScreenState extends State<ViewPaymentsScreen> {
                                 style: TextStyle(color: Colors.grey.shade400),
                               ),
                               Text(
-                                "${context.t('paymentMethod')}: ${payment['method']}",
+                                "${context.t('paymentMethod')}: ${paymentMethodLabel('${payment['method']}')}",
                                 style: TextStyle(color: Colors.grey.shade400),
                               ),
                               Text(
-                                "Date: $formattedDate",
+                                '${tr('date')}: $formattedDate',
                                 style: TextStyle(color: Colors.grey.shade500),
                               ),
                               if (reference.isNotEmpty)
@@ -226,9 +226,11 @@ class _ViewPaymentsScreenState extends State<ViewPaymentsScreen> {
         ),
         content: Text(
           approved
-              ? 'Only confirm after you see EGP ${payment['amount']} '
-                    'in your InstaPay/wallet history with this transaction ID.'
-              : 'The customer will be told the transfer was not found.',
+              ? tr(
+                  'confirmOnlyAfterSee',
+                  args: {'amount': egp(payment['amount'])},
+                )
+              : tr('customerToldNotFound'),
         ),
         actions: [
           TextButton(
@@ -253,7 +255,9 @@ class _ViewPaymentsScreenState extends State<ViewPaymentsScreen> {
       );
       messenger.showSnackBar(
         SnackBar(
-          content: Text(approved ? 'Payment confirmed' : 'Payment rejected'),
+          content: Text(
+            approved ? tr('paymentConfirmed') : tr('paymentRejectedMsg'),
+          ),
         ),
       );
     } catch (e) {

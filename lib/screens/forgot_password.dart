@@ -43,7 +43,7 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
         SnackBar(content: Text(sentText), backgroundColor: Colors.green),
       );
     } on FirebaseAuthException catch (e) {
-      _showError(e.message ?? 'Failed to send reset email');
+      _showError(e.message ?? tr('failedSendReset'));
     } catch (e) {
       _showError(e.toString());
     } finally {

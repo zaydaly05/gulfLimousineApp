@@ -9,6 +9,7 @@ import '../services/app_config_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/payment_validation.dart';
 import '../utils/safe_insets.dart';
+import '../l10n/locale_service.dart';
 
 /// Pay by InstaPay transfer to the business's InstaPay address.
 ///
@@ -90,7 +91,7 @@ class _InstaPayScreenState extends State<InstaPayScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('InstaPay Payment')),
+      appBar: AppBar(title: Text(tr('instapayPayment'))),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(24).withSafeBottom(context),
         child: Form(
@@ -98,8 +99,8 @@ class _InstaPayScreenState extends State<InstaPayScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Scan QR or Copy Username',
+              Text(
+                tr('scanQrOrCopyUsername'),
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
@@ -134,7 +135,10 @@ class _InstaPayScreenState extends State<InstaPayScreen> {
               ),
               const SizedBox(height: 24),
               Text(
-                'Amount: EGP ${widget.amount.toStringAsFixed(0)}',
+                tr(
+                  'amountEgp',
+                  args: {'toStringAsFixed': widget.amount.toStringAsFixed(0)},
+                ),
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 22,
@@ -160,8 +164,8 @@ class _InstaPayScreenState extends State<InstaPayScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Receiver Username',
+                            Text(
+                              tr('receiverUsername'),
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey,
@@ -178,8 +182,8 @@ class _InstaPayScreenState extends State<InstaPayScreen> {
                         ),
                       ),
                       if (_copied)
-                        const Text(
-                          'Copied!',
+                        Text(
+                          tr('copied'),
                           style: TextStyle(color: Colors.green, fontSize: 12),
                         ),
                     ],
@@ -190,8 +194,8 @@ class _InstaPayScreenState extends State<InstaPayScreen> {
               TextFormField(
                 controller: _referenceController,
                 decoration: InputDecoration(
-                  labelText: 'Transaction ID / Reference',
-                  hintText: 'Enter the 12-digit number from InstaPay',
+                  labelText: tr('transactionIdReference'),
+                  hintText: tr('enterThe12DigitNumber'),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -200,14 +204,14 @@ class _InstaPayScreenState extends State<InstaPayScreen> {
                 keyboardType: TextInputType.number,
                 validator: (v) => isValidPaymentReference(v ?? '')
                     ? null
-                    : 'Enter the transaction ID from InstaPay',
+                    : tr('enterTxnInstapay'),
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _phoneController,
                 decoration: InputDecoration(
-                  labelText: 'Your InstaPay mobile number',
-                  hintText: '01XXXXXXXXX',
+                  labelText: tr('yourInstapayMobileNumber'),
+                  hintText: tr('t01xxxxxxxxx'),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -215,12 +219,15 @@ class _InstaPayScreenState extends State<InstaPayScreen> {
                 ),
                 keyboardType: TextInputType.phone,
                 validator: (v) => normalizeEgyptianMobile(v ?? '') == null
-                    ? 'Enter the Egyptian mobile number you paid from'
+                    ? tr('enterPaidFromNumber')
                     : null,
               ),
               const SizedBox(height: 16),
               Text(
-                'How to pay:\n1. Open InstaPay app\n2. Transfer to IPA: $instapayUsername\n3. Enter the exact amount\n4. Copy the Transaction ID and paste it above\n\nYour booking is confirmed once we check the transfer.',
+                tr(
+                  'howToPay1Open',
+                  args: {'instapayUsername': instapayUsername},
+                ),
                 style: TextStyle(
                   color: Colors.black54,
                   fontSize: 13,
@@ -231,7 +238,7 @@ class _InstaPayScreenState extends State<InstaPayScreen> {
               OutlinedButton.icon(
                 onPressed: _openInstaPay,
                 icon: const Icon(Icons.open_in_new),
-                label: const Text('Open InstaPay App'),
+                label: Text(tr('openInstapayApp')),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
@@ -250,7 +257,7 @@ class _InstaPayScreenState extends State<InstaPayScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text('Submit for Confirmation'),
+                child: Text(tr('submitForConfirmation')),
               ),
               const SizedBox(height: 20),
             ],

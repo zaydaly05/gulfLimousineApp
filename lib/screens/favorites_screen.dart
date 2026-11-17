@@ -78,7 +78,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                         : const Icon(Icons.directions_car),
                     title: Text(car['name'] as String),
                     subtitle: Text(
-                      '${car['brand']} · EGP ${price.toStringAsFixed(0)}${context.t('perDay')}',
+                      '${car['brand']} · ${tr('egpPerDay', args: {'amount': price.toStringAsFixed(0)})}',
                     ),
                     trailing: IconButton(
                       tooltip: context.t('favorites'),

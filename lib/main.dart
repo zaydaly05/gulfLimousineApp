@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 import 'core/error_handlers.dart';
 import 'firebase_options.dart';
@@ -21,6 +22,8 @@ Future<void> main() async {
   // First, so nothing below (locale, Firebase) can fail unseen.
   installErrorHandlers();
 
+  // Month and day names for English and Arabic dates.
+  await initializeDateFormatting();
   await LocaleService.instance.load();
   LocaleService.instance.addListener(_rebuildForNewLanguage);
 

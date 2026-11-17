@@ -7,6 +7,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
+import '../l10n/locale_service.dart';
+
 /// Converts a Firestore date field (Timestamp, DateTime or ISO string).
 DateTime? parseFirestoreDate(dynamic value) {
   if (value == null) return null;
@@ -31,11 +33,11 @@ String resolveBookingName(Map<String, dynamic> data) {
   return data['userName'] ??
       data['customerName'] ??
       data['user_email'] ??
-      'Unknown';
+      tr('unknown');
 }
 
 String resolveBookingCar(Map<String, dynamic> data) {
-  return data['carName'] ?? data['car_name'] ?? 'Car';
+  return data['carName'] ?? data['car_name'] ?? tr('carFallback');
 }
 
 String resolveBookingDateLabel(Map<String, dynamic> data) {
@@ -66,11 +68,11 @@ String extraKmPaymentStatusLabel(Map<String, dynamic> booking) {
   final status = (booking['extraKmPaymentStatus'] ?? '').toString();
   switch (status) {
     case 'paid':
-      return 'Paid';
+      return tr('paidLabel');
     case 'pending':
-      return 'Pending payment';
+      return tr('pendingPayment');
     case 'not_applicable':
-      return 'No extra km';
+      return tr('noExtraKm');
     default:
       return status.isEmpty ? 'N/A' : status;
   }

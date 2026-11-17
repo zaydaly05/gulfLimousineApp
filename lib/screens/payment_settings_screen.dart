@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../services/app_config_service.dart';
 import '../utils/payment_validation.dart';
 import '../utils/safe_insets.dart';
+import '../l10n/locale_service.dart';
 
 /// Admin: switch each payment method on or off and set where manual
 /// transfers go. Saved to `config/payments`; checkout hides switched-off
@@ -18,24 +19,17 @@ class PaymentSettingsScreen extends StatefulWidget {
 }
 
 class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
+  // Title and subtitle are translation keys.
   static const _labels = <String, (String, String, IconData)>{
-    'card': ('Credit / Debit Card', 'Online through Paymob', Icons.credit_card),
-    'walletOnline': (
-      'Mobile Wallet (instant)',
-      'Online through Paymob',
-      Icons.bolt,
-    ),
+    'card': ('card', 'onlineViaPaymob', Icons.credit_card),
+    'walletOnline': ('walletInstant', 'onlineViaPaymob', Icons.bolt),
     'walletTransfer': (
-      'Mobile Wallet Transfer',
-      'Customer sends to your wallet; you confirm it',
+      'walletTransfer',
+      'walletTransferHint',
       Icons.account_balance_wallet,
     ),
-    'instapay': (
-      'InstaPay',
-      'Customer sends to your InstaPay address; you confirm it',
-      Icons.phone_android,
-    ),
-    'cash': ('Cash on Pickup', 'Paid when the car is collected', Icons.money),
+    'instapay': ('instapay', 'instapayAdminHint', Icons.phone_android),
+    'cash': ('cashPickup', 'cashCollectedHint', Icons.money),
   };
 
   final _doc = FirebaseFirestore.instance.collection('config').doc('payments');
@@ -79,16 +73,17 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
         _loading = false;
       });
     } catch (e) {
-      if (mounted) setState(() => _error = 'Could not load settings: $e');
+      if (mounted) {
+        setState(() => _error = tr('couldNotLoadSettings', args: {'e': '$e'}));
+      }
     }
   }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (!_enabled.values.any((on) => on)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Keep at least one payment method on')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(tr('keepAtLeastOnePayment'))));
       return;
     }
     final messenger = ScaffoldMessenger.of(context);
@@ -103,7 +98,7 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
       }, SetOptions(merge: true));
       AppConfigService.instance.refresh();
       messenger.showSnackBar(
-        const SnackBar(content: Text('Payment settings saved')),
+        SnackBar(content: Text(tr('paymentSettingsSaved'))),
       );
     } catch (e) {
       messenger.showSnackBar(
@@ -133,7 +128,7 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: const Text('Payment Methods'),
+        title: Text(tr('paymentMethods')),
       ),
       body: _error != null
           ? Center(
@@ -152,8 +147,8 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
               child: ListView(
                 padding: EdgeInsets.all(16).withSafeBottom(context),
                 children: [
-                  const Text(
-                    'Customers only see the methods that are on.',
+                  Text(
+                    tr('customersOnlySeeTheMethods'),
                     style: TextStyle(color: Colors.white70),
                   ),
                   const SizedBox(height: 12),
@@ -167,18 +162,18 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
                         activeThumbColor: Colors.orange,
                         secondary: Icon(_labels[key]!.$3, color: Colors.orange),
                         title: Text(
-                          _labels[key]!.$1,
+                          tr(_labels[key]!.$1),
                           style: const TextStyle(color: Colors.white),
                         ),
                         subtitle: Text(
-                          _labels[key]!.$2,
+                          tr(_labels[key]!.$2),
                           style: TextStyle(color: Colors.grey.shade400),
                         ),
                       ),
                     ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Where manual transfers go',
+                  Text(
+                    tr('whereManualTransfersGo'),
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -189,12 +184,12 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
                     controller: _instapay,
                     style: const TextStyle(color: Colors.white),
                     decoration: _decoration(
-                      'InstaPay address',
-                      hint: 'name@instapay',
+                      tr('instapayAddress'),
+                      hint: tr('nameInstapay'),
                     ),
                     validator: (v) =>
                         _enabled['instapay']! && (v ?? '').trim().isEmpty
-                        ? 'Needed while InstaPay is on'
+                        ? tr('neededInstapayOn')
                         : null,
                   ),
                   const SizedBox(height: 12),
@@ -203,18 +198,18 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
                     keyboardType: TextInputType.phone,
                     style: const TextStyle(color: Colors.white),
                     decoration: _decoration(
-                      'Wallet number',
-                      hint: '01XXXXXXXXX',
+                      tr('walletNumber'),
+                      hint: tr('t01xxxxxxxxx'),
                     ),
                     validator: (v) {
                       final value = (v ?? '').trim();
                       if (value.isEmpty) {
                         return _enabled['walletTransfer']!
-                            ? 'Needed while wallet transfers are on'
+                            ? tr('neededWalletOn')
                             : null;
                       }
                       return normalizeEgyptianMobile(value) == null
-                          ? 'Enter an Egyptian mobile number'
+                          ? tr('enterEgyptianMobile')
                           : null;
                     },
                   ),
@@ -222,7 +217,7 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
                   TextFormField(
                     controller: _walletName,
                     style: const TextStyle(color: Colors.white),
-                    decoration: _decoration('Name on the wallet (optional)'),
+                    decoration: _decoration(tr('walletNameOptional')),
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton(
@@ -236,7 +231,7 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
                               color: Colors.white,
                             ),
                           )
-                        : const Text('Save'),
+                        : Text(tr('save')),
                   ),
                 ],
               ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/locale_service.dart';
+
 // Form inputs for the admin screens' dark (black) forms.
 
 /// Outlined input decoration: grey border, orange when focused.
@@ -43,7 +45,7 @@ class DarkTextFormField extends StatelessWidget {
         keyboardType: type,
         style: const TextStyle(color: Colors.white),
         validator: required
-            ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null
+            ? (v) => (v == null || v.trim().isEmpty) ? tr('required') : null
             : null,
         decoration: darkInputDecoration(label),
       ),

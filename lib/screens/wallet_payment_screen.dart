@@ -7,6 +7,7 @@ import '../services/app_config_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/payment_validation.dart';
 import '../utils/safe_insets.dart';
+import '../l10n/locale_service.dart';
 
 /// Pay by sending money from a mobile wallet (Vodafone Cash, Orange Cash,
 /// e& money, WE Pay) to the business's wallet number.
@@ -60,14 +61,13 @@ class _WalletPaymentScreenState extends State<WalletPaymentScreen> {
     await Clipboard.setData(ClipboardData(text: number));
     if (!mounted) return;
     ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Wallet number copied')));
+        .showSnackBar(SnackBar(content: Text(tr('walletNumberCopied'))));
   }
 
   void _submit() {
     if (_selectedWallet == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Choose the wallet you paid from')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(tr('chooseTheWalletYouPaid'))));
       return;
     }
     if (!_formKey.currentState!.validate()) return;
@@ -86,16 +86,15 @@ class _WalletPaymentScreenState extends State<WalletPaymentScreen> {
     final amount = widget.amount.toStringAsFixed(0);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Wallet Payment')),
+      appBar: AppBar(title: Text(tr('walletPayment'))),
       body: config == null
           ? const Center(child: CircularProgressIndicator())
           : !config.hasWalletTransfer
-          ? const Center(
+          ? Center(
               child: Padding(
                 padding: EdgeInsets.all(32),
                 child: Text(
-                  'Wallet transfers are not set up yet. '
-                  'Please choose another payment method.',
+                  tr('walletTransfersAreNotSet'),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -108,14 +107,14 @@ class _WalletPaymentScreenState extends State<WalletPaymentScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      'Pay EGP $amount',
+                      tr('payEgp', args: {'amount': amount}),
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text('Choose your mobile wallet:'),
+                    Text(tr('chooseYourMobileWallet')),
                     const SizedBox(height: 16),
                     for (final wallet in wallets)
                       Card(
@@ -147,11 +146,14 @@ class _WalletPaymentScreenState extends State<WalletPaymentScreen> {
                         title: Text(config.walletNumber),
                         subtitle: Text(
                           config.walletName.isEmpty
-                              ? 'Send the money to this wallet'
-                              : 'Send to ${config.walletName}',
+                              ? tr('sendToThisWallet')
+                              : tr(
+                                  'sendToName',
+                                  args: {'name': config.walletName},
+                                ),
                         ),
                         trailing: IconButton(
-                          tooltip: 'Copy number',
+                          tooltip: tr('copyNumber'),
                           icon: const Icon(Icons.copy),
                           onPressed: () => _copyNumber(config.walletNumber),
                         ),
@@ -161,36 +163,38 @@ class _WalletPaymentScreenState extends State<WalletPaymentScreen> {
                     TextFormField(
                       controller: _phoneController,
                       keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(
-                        labelText: 'Wallet number you paid from',
-                        hintText: '01XXXXXXXXX',
+                      decoration: InputDecoration(
+                        labelText: tr('walletNumberYouPaidFrom'),
+                        hintText: tr('t01xxxxxxxxx'),
                         prefixIcon: Icon(Icons.phone_android),
                         border: OutlineInputBorder(),
                       ),
                       validator: (v) => normalizeEgyptianMobile(v ?? '') == null
-                          ? 'Enter an Egyptian mobile number (01XXXXXXXXX)'
+                          ? tr('enterEgyptianMobileFmt')
                           : null,
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _referenceController,
-                      decoration: const InputDecoration(
-                        labelText: 'Transaction ID',
-                        hintText: 'From the confirmation SMS',
+                      decoration: InputDecoration(
+                        labelText: tr('transactionId'),
+                        hintText: tr('fromTheConfirmationSms'),
                         prefixIcon: Icon(Icons.receipt_long),
                         border: OutlineInputBorder(),
                       ),
                       validator: (v) => isValidPaymentReference(v ?? '')
                           ? null
-                          : 'Enter the transaction ID from the SMS',
+                          : tr('enterTxnFromSms'),
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'How to pay:\n'
-                      '1. Open your wallet app or dial its menu\n'
-                      '2. Send exactly EGP $amount to ${config.walletNumber}\n'
-                      '3. Enter your number and the transaction ID above\n\n'
-                      'Your booking is confirmed once we check the transfer.',
+                      tr(
+                        'howToPay1Open2',
+                        args: {
+                          'amount': amount,
+                          'walletNumber': config.walletNumber,
+                        },
+                      ),
                       style: const TextStyle(
                         color: Colors.black54,
                         fontSize: 13,
@@ -200,7 +204,7 @@ class _WalletPaymentScreenState extends State<WalletPaymentScreen> {
                     const SizedBox(height: 20),
                     ElevatedButton(
                       onPressed: _submit,
-                      child: const Text('Submit for Confirmation'),
+                      child: Text(tr('submitForConfirmation')),
                     ),
                   ],
                 ),

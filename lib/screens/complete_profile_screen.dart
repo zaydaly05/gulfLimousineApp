@@ -8,6 +8,7 @@ import '../services/cloudinary_service.dart';
 import '../services/auth_navigation.dart';
 import '../services/user_profile_service.dart';
 import '../utils/safe_insets.dart';
+import '../l10n/locale_service.dart';
 
 class CompleteProfileScreen extends StatefulWidget {
   const CompleteProfileScreen({super.key});
@@ -57,18 +58,15 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_nationalIdImage == null || _licenseIdImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please upload both ID and License images'),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(tr('pleaseUploadBothIdAnd'))));
       return;
     }
 
     setState(() => _isLoading = true);
     try {
       final user = FirebaseAuth.instance.currentUser;
-      if (user == null) throw Exception('No user found');
+      if (user == null) throw Exception(tr('notSignedIn'));
 
       // Upload images to Cloudinary
       final nationalIdUpload = await _cloudinary.uploadBytes(
@@ -81,7 +79,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       );
 
       if (nationalIdUpload == null || licenseIdUpload == null) {
-        throw Exception('Failed to upload images');
+        throw Exception(tr('failedUploadImages'));
       }
 
       await UserProfileService.completeProfile(
@@ -97,7 +95,10 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(tr('error', args: {'e': '$e'})),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -111,7 +112,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       canPop: false,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Complete Your Profile'),
+          title: Text(tr('completeYourProfile')),
           automaticallyImplyLeading: false,
           backgroundColor: Colors.orange,
         ),
@@ -122,37 +123,37 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
-                  'We need a few more details to get you started.',
+                Text(
+                  tr('weNeedAFewMore'),
                   style: TextStyle(fontSize: 16, color: Colors.grey),
                 ),
                 const SizedBox(height: 24),
                 TextFormField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
-                  decoration: _inputDecoration('Phone Number', Icons.phone),
+                  decoration: _inputDecoration(tr('phoneNumber'), Icons.phone),
                   validator: (v) =>
-                      (v ?? '').trim().isEmpty ? 'Required' : null,
+                      (v ?? '').trim().isEmpty ? tr('required') : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _nationalIdController,
                   decoration: _inputDecoration(
-                    'National ID Number',
+                    tr('nationalIdNumber'),
                     Icons.badge,
                   ),
                   validator: (v) =>
-                      (v ?? '').trim().isEmpty ? 'Required' : null,
+                      (v ?? '').trim().isEmpty ? tr('required') : null,
                 ),
                 const SizedBox(height: 16),
                 _imagePickerTile(
-                  'National ID Photo',
+                  tr('nationalIdPhoto'),
                   _nationalIdImage,
                   () => _pickImage(true),
                 ),
                 const SizedBox(height: 16),
                 _imagePickerTile(
-                  'Driver License Photo',
+                  tr('driverLicensePhoto'),
                   _licenseIdImage,
                   () => _pickImage(false),
                 ),
@@ -168,8 +169,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                   ),
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          'Complete Registration',
+                      : Text(
+                          tr('completeRegistration'),
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -182,8 +183,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                   onPressed: _isLoading
                       ? null
                       : () => AuthNavigation.signOut(context),
-                  child: const Text(
-                    'Cancel & Logout',
+                  child: Text(
+                    tr('cancelLogout'),
                     style: TextStyle(color: Colors.red),
                   ),
                 ),
@@ -230,13 +231,13 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                         width: double.infinity,
                       ),
                     )
-                  : const Center(
+                  : Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.add_a_photo, size: 40, color: Colors.grey),
                           Text(
-                            'Tap to upload image',
+                            tr('tapToUploadImage'),
                             style: TextStyle(color: Colors.grey),
                           ),
                         ],

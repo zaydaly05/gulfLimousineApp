@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import '../l10n/locale_service.dart';
+
 /// How many cars of one model the company has in one colour.
 @immutable
 class FleetColor {
@@ -52,7 +54,7 @@ class Fleet {
     if (colors.isEmpty) return '';
     final total = totalOf(car);
     final parts = colors.map((c) => '${c.name} ${c.count}').join(', ');
-    return '$total ${total == 1 ? 'car' : 'cars'} · $parts';
+    return '${carCount(total)} · $parts';
   }
 
   /// "2 cars: White 2" / "3 cars: Black 1, White 2" for a booking, or empty
@@ -64,7 +66,7 @@ class Fleet {
         ? raw.map(FleetColor.fromMap).whereType<FleetColor>().toList()
         : const <FleetColor>[];
     if (quantity <= 1 && colors.isEmpty) return '';
-    final cars = '$quantity ${quantity == 1 ? 'car' : 'cars'}';
+    final cars = carCount(quantity);
     if (colors.isEmpty) return cars;
     return '$cars: ${colors.map((c) => '${c.name} ${c.count}').join(', ')}';
   }
@@ -73,11 +75,11 @@ class Fleet {
   static String? validate(List<FleetColor> colors) {
     final seen = <String>{};
     for (final c in colors) {
-      if (c.name.trim().isEmpty) return 'Every colour needs a name';
+      if (c.name.trim().isEmpty) return tr('colourNeedsName');
       if (!seen.add(c.name.trim().toLowerCase())) {
-        return 'Colour "${c.name}" is listed twice';
+        return tr('colourListedTwice', args: {'name': c.name});
       }
-      if (c.count < 0) return 'Counts can\'t be negative';
+      if (c.count < 0) return tr('countsNotNegative');
     }
     return null;
   }

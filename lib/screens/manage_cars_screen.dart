@@ -81,11 +81,7 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
                     // The car is gone; only the stored file is left behind.
                     debugPrint('Car image delete failed: $e');
                     messenger.showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Car deleted, but its image file was not removed.',
-                        ),
-                      ),
+                      SnackBar(content: Text(tr('carDeletedButItsImage'))),
                     );
                   }
                 }
@@ -116,8 +112,9 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Upload failed: $e")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(tr('uploadFailed', args: {'e': '$e'}))),
+      );
     } finally {
       if (mounted) setState(() => isUploading = false);
     }
@@ -227,7 +224,7 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    car['name'] ?? 'No Name',
+                                    car['name'] ?? tr('noName'),
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 16,
@@ -240,7 +237,13 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
                                         child: Text(
                                           [
                                             car['brand'] ?? '',
-                                            "${car['price_per_day'] ?? ''} EGP${context.t('perDay')}",
+                                            tr(
+                                              'egpPerDay',
+                                              args: {
+                                                'amount':
+                                                    '${car['price_per_day'] ?? ''}',
+                                              },
+                                            ),
                                             Fleet.summary(car),
                                           ].where((l) => l.isNotEmpty).join('\n'),
                                           style: TextStyle(
@@ -254,7 +257,7 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
                                           Icons.image,
                                           color: Colors.orange,
                                         ),
-                                        tooltip: 'Upload Image',
+                                        tooltip: tr('uploadImage'),
                                         onPressed: () =>
                                             pickAndUploadCarImage(doc.id),
                                       ),

@@ -37,7 +37,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
       return email.split('@').first;
     }
 
-    return 'No Name';
+    return tr('noName');
   }
 
   static String _resolvePhone(Map<String, dynamic> user) {
@@ -49,7 +49,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     if (user['createdAt'] != null && user['created_at'] == null) {
       return 'Google';
     }
-    return 'Email';
+    return tr('email');
   }
 
   static Timestamp? _resolveCreatedAt(Map<String, dynamic> user) {
@@ -239,10 +239,17 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
-                            "${context.t('email')}: ${user['email'] ?? ''}\n"
-                            "${context.t('phone')}: ${_resolvePhone(user)}\n"
-                            "Role: ${user['role'] ?? ''}\n"
-                            "Created: $formattedDate",
+                            tr(
+                              'roleCreated',
+                              args: {
+                                't': context.t('email'),
+                                'useremail': '${user['email'] ?? ''}',
+                                't2': context.t('phone'),
+                                'v3': _resolvePhone(user),
+                                'userrole': '${user['role'] ?? ''}',
+                                'formattedDate': formattedDate,
+                              },
+                            ),
                             style: TextStyle(
                               color: Colors.grey.shade400,
                               height: 1.4,

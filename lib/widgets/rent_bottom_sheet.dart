@@ -430,7 +430,7 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
             ),
             const SizedBox(height: 4),
             Text(
-              '${widget.car['brand'] ?? ''} · EGP ${_pricePerDay.toStringAsFixed(0)} ${context.t('perDay')}',
+              '${widget.car['brand'] ?? ''} · ${tr('egpPerDay', args: {'amount': _pricePerDay.toStringAsFixed(0)})}',
               style: TextStyle(color: Colors.grey.shade600),
             ),
             const SizedBox(height: 20),
@@ -481,11 +481,11 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
                       child: Text(
                         '$_days ${context.t('days')}'
                         '${_quantity > 1 ? ' × $_quantity ${context.t('carsCount')}' : ''}'
-                        ' × EGP ${_pricePerDay.toStringAsFixed(0)}',
+                        ' × ${egp(_pricePerDay)}',
                       ),
                     ),
                     Text(
-                      'EGP ${_total.toStringAsFixed(0)}',
+                      egp(_total),
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,

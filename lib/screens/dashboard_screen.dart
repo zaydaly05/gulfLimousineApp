@@ -37,7 +37,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
 
-  String _userName = 'Guest';
+  String _userName = tr('guest');
   String? _profileImageUrl;
 
   @override

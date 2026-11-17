@@ -33,7 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _isLoading = false;
   bool _biometricHardwareAvailable = false;
-  String _biometricLabel = 'Fingerprint';
+  String _biometricLabel = tr('fingerprint');
 
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
 
@@ -76,7 +76,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
     if (email.isEmpty || password.isEmpty) {
-      _showError("Please enter email and password");
+      _showError(tr('enterEmailPassword'));
       return;
     }
 
@@ -99,9 +99,9 @@ class _LoginScreenState extends State<LoginScreen> {
         password: password,
       );
     } on FirebaseAuthException catch (e) {
-      _showError(e.message ?? "Login failed");
+      _showError(e.message ?? tr('loginFailed'));
     } catch (e) {
-      _showError("An unexpected error occurred: $e");
+      _showError(tr('unexpectedError', args: {'e': '$e'}));
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -139,7 +139,7 @@ class _LoginScreenState extends State<LoginScreen> {
           // Silent if user just cancelled
           return;
         }
-        _showError("Google Sign-In failed: $e");
+        _showError(tr('googleSignInFailed', args: {'e': '$e'}));
       }
     } finally {
       if (mounted) {
@@ -161,11 +161,13 @@ class _LoginScreenState extends State<LoginScreen> {
         await _handleUserNavigation(user, offerBiometrics: false);
       } else if (emailInput.isNotEmpty && passwordInput.isNotEmpty) {
         final ok = await BiometricService.authenticate(
-          reason: 'Authenticate $_biometricLabel to save login credentials',
+          reason: tr('authToSaveLogin', args: {'method': _biometricLabel}),
         );
         if (!ok) {
           if (mounted) {
-            _showError('$_biometricLabel authentication failed or cancelled');
+            _showError(
+              tr('authFailedCancelled', args: {'method': _biometricLabel}),
+            );
           }
           return;
         }
@@ -184,7 +186,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       } else {
         final ok = await BiometricService.authenticate(
-          reason: 'Authenticate $_biometricLabel for login',
+          reason: tr('authForLogin', args: {'method': _biometricLabel}),
         );
         if (ok && mounted) {
           _showError(

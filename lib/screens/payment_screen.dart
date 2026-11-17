@@ -15,6 +15,7 @@ import 'rental_agreement_screen.dart';
 import 'wallet_payment_screen.dart';
 import '../widgets/payment_method_tile.dart';
 import '../theme/app_theme.dart';
+import '../l10n/locale_service.dart';
 
 class PaymentScreen extends StatefulWidget {
   final RentalDetails rental;
@@ -45,9 +46,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   bool _ensureSigned() {
     if (_signatureUrl != null) return true;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Please sign the rental agreement first')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(tr('pleaseSignTheRentalAgreement'))));
     return false;
   }
 
@@ -124,18 +125,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
       );
       if (!mounted) return;
       final (title, message) = switch (method) {
-        'cash' => (
-          'Order Confirmed',
-          'Thank you for choosing Gulf Limousine Travel.\nPay cash when you collect the car.',
-        ),
-        'instapay' || 'wallet' => (
-          'Payment Submitted',
-          'Thank you for choosing Gulf Limousine Travel.\nWe will confirm your booking as soon as we check your transfer.',
-        ),
-        _ => (
-          'Payment Successful',
-          'Thank you for choosing Gulf Limousine Travel.\nYour car has been successfully booked.',
-        ),
+        'cash' => (tr('orderConfirmed'), tr('thanksCash')),
+        'instapay' ||
+        'wallet' => (tr('paymentSubmitted'), tr('thanksTransfer')),
+        _ => (tr('paymentSuccessful'), tr('thanksBooked')),
       };
       Navigator.pushAndRemoveUntil(
         context,
@@ -160,7 +153,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     final dateFmt = DateFormat('dd MMM yyyy');
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Checkout')),
+      appBar: AppBar(title: Text(tr('checkout'))),
       body: _isProcessing
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -173,54 +166,68 @@ class _PaymentScreenState extends State<PaymentScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Booking Summary',
+                  Text(
+                    tr('bookingSummary'),
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
                   _SummaryCard(
                     children: [
-                      _summaryRow('Car', rental.carName),
+                      _summaryRow(tr('carFallback'), rental.carName),
                       if (rental.brand.isNotEmpty)
-                        _summaryRow('Brand', rental.brand),
-                      _summaryRow('Pickup', dateFmt.format(rental.pickupDate)),
-                      _summaryRow('Return', dateFmt.format(rental.returnDate)),
+                        _summaryRow(tr('brand'), rental.brand),
+                      _summaryRow(
+                        tr('pickup'),
+                        dateFmt.format(rental.pickupDate),
+                      ),
+                      _summaryRow(
+                        tr('returnDate'),
+                        dateFmt.format(rental.returnDate),
+                      ),
                       if (rental.pickupLocation != null)
                         ExpandableAddressRow(
-                          label: 'Pickup location',
+                          label: tr('pickupLocation2'),
                           address: rental.pickupLocation!.address,
                           icon: Icons.place,
                         ),
                       if (rental.dropoffLocation != null)
                         ExpandableAddressRow(
-                          label: 'Drop-off location',
+                          label: tr('dropOffLocation'),
                           address: rental.dropoffLocation!.address,
                           icon: Icons.flag,
                           iconColor: Colors.blue,
                         ),
-                      _summaryRow('Duration', '${rental.days} day(s)'),
-                      _summaryRow('Cars', '${rental.quantity}'),
+                      _summaryRow(
+                        tr('duration'),
+                        tr('daysCount', args: {'n': '${rental.days}'}),
+                      ),
+                      _summaryRow(tr('carsLabel'), '${rental.quantity}'),
                       if (rental.colorPreferences.isNotEmpty)
                         _summaryRow(
-                          'Colours (preferred first)',
+                          tr('coloursPreferredFirst'),
                           rental.colorPreferences.join(' › '),
                         ),
                       _summaryRow(
-                        'Rate',
-                        'EGP ${rental.pricePerDay.toStringAsFixed(0)} / day'
-                            '${rental.quantity > 1 ? ' per car' : ''}',
+                        tr('rate'),
+                        tr(
+                              'egpPerDay',
+                              args: {
+                                'amount': rental.pricePerDay.toStringAsFixed(0),
+                              },
+                            ) +
+                            (rental.quantity > 1 ? ' ${tr('perCar')}' : ''),
                       ),
                       const Divider(height: 24),
                       _summaryRow(
-                        'Total',
-                        'EGP ${rental.totalAmount.toStringAsFixed(0)}',
+                        tr('total'),
+                        egp(rental.totalAmount),
                         bold: true,
                       ),
                     ],
                   ),
                   const SizedBox(height: 24),
-                  const Text(
-                    'Legal Agreement',
+                  Text(
+                    tr('legalAgreement'),
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
@@ -239,8 +246,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       ),
                       title: Text(
                         _signatureUrl != null
-                            ? 'Rental Agreement Signed'
-                            : 'Sign Rental Agreement',
+                            ? tr('agreementSignedTitle')
+                            : tr('signAgreement'),
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: _signatureUrl != null
@@ -250,8 +257,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       ),
                       subtitle: Text(
                         _signatureUrl != null
-                            ? 'A copy will be sent to your email.'
-                            : 'Mandatory before booking confirmation',
+                            ? tr('copySentEmail')
+                            : tr('mandatoryBeforeBooking'),
                       ),
                       trailing: _signatureUrl != null
                           ? const Icon(Icons.check_circle, color: Colors.green)
@@ -271,8 +278,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     ),
                   ),
                   const SizedBox(height: 28),
-                  const Text(
-                    'Payment Method',
+                  Text(
+                    tr('paymentMethod'),
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
@@ -300,8 +307,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
       if (config.isEnabled('card'))
         PaymentMethodTile(
           icon: Icons.credit_card,
-          title: 'Credit / Debit Card',
-          subtitle: online ? 'Secure checkout by Paymob' : null,
+          title: tr('card'),
+          subtitle: online ? tr('secureCheckoutPaymob') : null,
           onTap: () => online
               ? _payOnline('card')
               : _payWithMethod(
@@ -312,15 +319,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
       if (online && config.isEnabled('walletOnline'))
         PaymentMethodTile(
           icon: Icons.bolt,
-          title: 'Mobile Wallet (instant)',
-          subtitle: 'Vodafone Cash, Orange, e&, WE via Paymob',
+          title: tr('mobileWalletInstant'),
+          subtitle: tr('vodafoneCashOrangeEWe'),
           onTap: () => _payOnline('wallet'),
         ),
       if (config.isEnabled('walletTransfer'))
         PaymentMethodTile(
           icon: Icons.account_balance_wallet,
-          title: 'Mobile Wallet Transfer',
-          subtitle: 'Send to our wallet, we confirm it',
+          title: tr('mobileWalletTransfer'),
+          subtitle: tr('sendToOurWalletWe'),
           onTap: () => _payWithMethod(
             'wallet',
             WalletPaymentScreen(amount: rental.totalAmount),
@@ -329,8 +336,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
       if (config.isEnabled('instapay'))
         PaymentMethodTile(
           icon: Icons.phone_android,
-          title: 'InstaPay',
-          subtitle: 'Transfer to our InstaPay address',
+          title: tr('instapay'),
+          subtitle: tr('transferToOurInstapayAddress'),
           onTap: () => _payWithMethod(
             'instapay',
             InstaPayScreen(amount: rental.totalAmount),
@@ -339,16 +346,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
       if (config.isEnabled('cash'))
         PaymentMethodTile(
           icon: Icons.money,
-          title: 'Cash on Pickup',
-          subtitle: 'Pay when you collect the car',
+          title: tr('cashPickup'),
+          subtitle: tr('cashPickupHint'),
           onTap: () => _completePayment('cash'),
         ),
     ];
     if (tiles.isEmpty) {
-      return const Padding(
+      return Padding(
         padding: EdgeInsets.all(16),
         child: Text(
-          'No payment methods are available right now. Please contact us.',
+          tr('noPaymentMethodsAreAvailable'),
           textAlign: TextAlign.center,
         ),
       );

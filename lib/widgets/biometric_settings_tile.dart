@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../services/biometric_service.dart';
+import '../l10n/locale_service.dart';
 
 class BiometricSettingsTile extends StatefulWidget {
   final bool dark;
@@ -22,7 +23,7 @@ class BiometricSettingsTileState extends State<BiometricSettingsTile> {
   bool _available = false;
   bool _enabled = false;
   bool _loading = true;
-  String _label = 'Biometrics';
+  String _label = tr('biometrics');
 
   Color get _textColor => widget.dark ? Colors.white : Colors.black87;
 
@@ -67,7 +68,9 @@ class BiometricSettingsTileState extends State<BiometricSettingsTile> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            ok ? '$_label login is on' : 'Could not enable $_label',
+            ok
+                ? tr('biometricOn', args: {'method': _label})
+                : tr('couldNotEnableBiometric'),
           ),
         ),
       );
@@ -81,13 +84,13 @@ class BiometricSettingsTileState extends State<BiometricSettingsTile> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const ListTile(
+      return ListTile(
         leading: SizedBox(
           width: 24,
           height: 24,
           child: CircularProgressIndicator(strokeWidth: 2),
         ),
-        title: Text('Biometric login'),
+        title: Text(tr('biometricLogin')),
       );
     }
 
@@ -97,9 +100,9 @@ class BiometricSettingsTileState extends State<BiometricSettingsTile> {
           Icons.fingerprint,
           color: widget.dark ? Colors.orange : null,
         ),
-        title: Text('Biometric login', style: TextStyle(color: _textColor)),
+        title: Text(tr('biometricLogin'), style: TextStyle(color: _textColor)),
         subtitle: Text(
-          'Not available on this device',
+          tr('biometricNotAvailable'),
           style: TextStyle(color: widget.dark ? Colors.white54 : Colors.grey),
         ),
       );
@@ -107,11 +110,14 @@ class BiometricSettingsTileState extends State<BiometricSettingsTile> {
 
     return SwitchListTile(
       secondary: const Icon(Icons.fingerprint, color: Colors.orange),
-      title: Text('$_label login', style: TextStyle(color: _textColor)),
+      title: Text(
+        tr('login2', args: {'_label': _label}),
+        style: TextStyle(color: _textColor),
+      ),
       subtitle: Text(
         widget.commitImmediately
-            ? 'Use fingerprint or Face ID to log in'
-            : 'Turn on, then tap Save Changes',
+            ? tr('biometricHint')
+            : tr('biometricHintSave'),
         style: TextStyle(
           color: widget.dark ? Colors.white70 : Colors.grey.shade700,
         ),

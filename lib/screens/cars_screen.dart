@@ -166,7 +166,7 @@ class _CarsScreenState extends State<CarsScreen> {
         'fuel_type': (data['fuel_type'] ?? '').toString(),
         'seats': data['seats'],
         'pricePerDay': price,
-        'price': 'EGP ${price.toStringAsFixed(0)} ${context.t('perDay')}',
+        'price': tr('egpPerDay', args: {'amount': price.toStringAsFixed(0)}),
         'imageUrl': data['image_url'],
         'available': data['available'] != false,
         'avgRating': data['avgRating'],
@@ -279,7 +279,7 @@ class _CarsScreenState extends State<CarsScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '${car['brand']} · ${car['fuel_type']} · ${car['seats'] ?? '-'} ${context.t('seats')}',
+                            '${car['brand']} · ${fuelLabel('${car['fuel_type']}')} · ${car['seats'] ?? '-'} ${context.t('seats')}',
                             style: TextStyle(
                               color: Colors.grey.shade600,
                               fontSize: 13,

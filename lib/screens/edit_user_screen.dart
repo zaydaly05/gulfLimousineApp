@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/user_profile_service.dart';
 import '../utils/safe_insets.dart';
+import '../l10n/locale_service.dart';
 
 class EditUserScreen extends StatefulWidget {
   final String userId;
@@ -65,7 +66,10 @@ class _EditUserScreenState extends State<EditUserScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text(tr('error', args: {'e': '$e'})),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -77,7 +81,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text("Edit User"),
+        title: Text(tr('editUserTitle')),
         backgroundColor: Colors.black,
       ),
       body: SingleChildScrollView(
@@ -86,14 +90,14 @@ class _EditUserScreenState extends State<EditUserScreen> {
           // Full-width button, like the other admin forms.
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            buildField(nameController, "Name"),
-            buildField(emailController, "Email"),
-            buildField(phoneController, "Phone Number"),
+            buildField(nameController, tr('name')),
+            buildField(emailController, tr('email')),
+            buildField(phoneController, tr('phoneNumber')),
             DropdownButtonFormField<String>(
               initialValue: _role,
               dropdownColor: Colors.grey.shade900,
               style: const TextStyle(color: Colors.white),
-              decoration: _decoration("Role"),
+              decoration: _decoration(tr('role')),
               items: _roles
                   .map((r) => DropdownMenuItem(value: r, child: Text(r)))
                   .toList(),
@@ -110,7 +114,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text("Update User"),
+                  : Text(tr('updateUser')),
             ),
           ],
         ),

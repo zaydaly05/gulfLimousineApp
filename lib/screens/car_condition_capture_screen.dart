@@ -8,6 +8,7 @@ import 'package:video_player/video_player.dart';
 import '../services/booking_service.dart';
 import '../services/cloudinary_service.dart';
 import '../utils/safe_insets.dart';
+import '../l10n/locale_service.dart';
 
 enum ConditionCaptureMode { pickup, returnMode }
 
@@ -37,9 +38,8 @@ class _CarConditionCaptureScreenState extends State<CarConditionCaptureScreen> {
 
   bool get _isPickup => widget.mode == ConditionCaptureMode.pickup;
 
-  String get _title => _isPickup
-      ? 'Record Car Condition (Pickup)'
-      : 'Record Car Condition (Return)';
+  String get _title =>
+      _isPickup ? tr('recordConditionPickup') : tr('recordConditionReturn');
 
   @override
   void dispose() {
@@ -65,7 +65,9 @@ class _CarConditionCaptureScreenState extends State<CarConditionCaptureScreen> {
       await controller.initialize();
     } catch (e) {
       await controller.dispose();
-      if (mounted) setState(() => _error = 'Could not open video: $e');
+      if (mounted) {
+        setState(() => _error = tr('couldNotOpenVideo', args: {'e': '$e'}));
+      }
       return;
     }
     if (!mounted) {
@@ -89,7 +91,7 @@ class _CarConditionCaptureScreenState extends State<CarConditionCaptureScreen> {
             children: [
               ListTile(
                 leading: const Icon(Icons.videocam),
-                title: const Text('Record video'),
+                title: Text(tr('recordVideo')),
                 onTap: () {
                   Navigator.pop(sheetContext);
                   unawaited(_captureVideo(ImageSource.camera));
@@ -97,7 +99,7 @@ class _CarConditionCaptureScreenState extends State<CarConditionCaptureScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.video_library),
-                title: const Text('Choose from gallery'),
+                title: Text(tr('chooseFromGallery')),
                 onTap: () {
                   Navigator.pop(sheetContext);
                   unawaited(_captureVideo(ImageSource.gallery));
@@ -112,7 +114,7 @@ class _CarConditionCaptureScreenState extends State<CarConditionCaptureScreen> {
 
   Future<void> _submit() async {
     if (_videoFile == null) {
-      setState(() => _error = 'Please record or select a video first');
+      setState(() => _error = tr('recordVideoFirst'));
       return;
     }
 
@@ -124,7 +126,7 @@ class _CarConditionCaptureScreenState extends State<CarConditionCaptureScreen> {
     try {
       final upload = await _cloudinary.uploadVideo(_videoFile!);
       if (upload == null) {
-        throw Exception('Failed to upload video');
+        throw Exception(tr('failedUploadVideo'));
       }
 
       await BookingService.recordConditionVideo(
@@ -155,13 +157,13 @@ class _CarConditionCaptureScreenState extends State<CarConditionCaptureScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Please record a video around the car to document its current condition.',
+              tr('pleaseRecordAVideoAround'),
               style: TextStyle(color: Colors.grey.shade700),
             ),
             const SizedBox(height: 16),
             Semantics(
               button: true,
-              label: 'Record or select video',
+              label: tr('recordOrSelectVideo'),
               child: GestureDetector(
                 onTap: _processing ? null : _showCaptureOptions,
                 child: Container(
@@ -184,8 +186,8 @@ class _CarConditionCaptureScreenState extends State<CarConditionCaptureScreen> {
                             ),
                             IconButton(
                               tooltip: _videoController!.value.isPlaying
-                                  ? 'Pause'
-                                  : 'Play',
+                                  ? tr('pause')
+                                  : tr('play'),
                               icon: Icon(
                                 _videoController!.value.isPlaying
                                     ? Icons.pause
@@ -215,7 +217,7 @@ class _CarConditionCaptureScreenState extends State<CarConditionCaptureScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Tap to record or select video',
+                              tr('tapToRecordOrSelect'),
                               style: TextStyle(color: Colors.grey.shade600),
                             ),
                           ],
@@ -237,7 +239,7 @@ class _CarConditionCaptureScreenState extends State<CarConditionCaptureScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.cloud_upload),
-              label: const Text('Submit Video'),
+              label: Text(tr('submitVideo')),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),

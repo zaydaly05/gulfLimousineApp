@@ -10,12 +10,13 @@ import '../screens/dashboard_screen.dart';
 import '../screens/complete_profile_screen.dart';
 import '../screens/login_screen.dart';
 import 'notification_service.dart';
+import '../l10n/locale_service.dart';
 
 class AuthNavigation {
   static Future<Widget> homeForCurrentUser() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      throw Exception('Not signed in');
+      throw Exception(tr('notSignedIn'));
     }
     // Not awaited: notification setup (including the permission prompt)
     // must not hold up showing the home screen. initialize() handles its

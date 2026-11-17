@@ -272,10 +272,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _input(context.t('fullName'), nameController),
               _input(context.t('email'), emailController, enabled: false),
               _input(context.t('phone'), phoneController),
-              _input('National ID', nationalIdController),
+              _input(tr('nationalId'), nationalIdController),
 
               const SizedBox(height: 24),
-              _sectionHeader(Icons.security, 'Security & Privacy'),
+              _sectionHeader(Icons.security, tr('securityPrivacy')),
               const SizedBox(height: 12),
               Card(
                 elevation: 0,
@@ -295,8 +295,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Icons.lock_reset,
                         color: Colors.orange,
                       ),
-                      title: const Text('Change Password'),
-                      subtitle: const Text('Send reset link to your email'),
+                      title: Text(tr('changePassword')),
+                      subtitle: Text(tr('sendResetLinkToYour')),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: _sendPasswordReset,
                     ),
@@ -306,8 +306,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Icons.privacy_tip_outlined,
                         color: Colors.orange,
                       ),
-                      title: const Text('Privacy Policy'),
-                      subtitle: const Text('What we collect and why'),
+                      title: Text(tr('privacyPolicy')),
+                      subtitle: Text(tr('whatWeCollectAndWhy')),
                       trailing: const Icon(Icons.open_in_new),
                       onTap: _openPrivacyPolicy,
                     ),
@@ -317,13 +317,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Icons.delete_forever_outlined,
                         color: Colors.red,
                       ),
-                      title: const Text(
-                        'Delete Account',
+                      title: Text(
+                        tr('deleteAccount'),
                         style: TextStyle(color: Colors.red),
                       ),
-                      subtitle: const Text(
-                        'Permanently remove your profile and sign-in',
-                      ),
+                      subtitle: Text(tr('permanentlyRemoveYourProfileAnd')),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: _deleting ? null : _confirmDeleteAccount,
                     ),
@@ -332,23 +330,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
 
               const SizedBox(height: 24),
-              _sectionHeader(Icons.document_scanner, 'Verification Documents'),
+              _sectionHeader(
+                Icons.document_scanner,
+                tr('verificationDocuments'),
+              ),
               const SizedBox(height: 12),
               _imagePreviewTile(
-                'National ID Photo',
+                tr('nationalIdPhoto'),
                 _nationalIdImage,
                 _nationalIdImageUrl,
                 () => _pickImageForField(true),
               ),
               const SizedBox(height: 14),
               _imagePreviewTile(
-                'Driver License Photo',
+                tr('driverLicensePhoto'),
                 _licenseIdImage,
                 _licenseIdImageUrl,
                 () => _pickImageForField(false),
               ),
               const SizedBox(height: 24),
-              _sectionHeader(Icons.language, 'Regional Settings'),
+              _sectionHeader(Icons.language, tr('regionalSettings')),
               const SizedBox(height: 12),
               const LanguagePicker(),
               const SizedBox(height: 32),
@@ -417,27 +418,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete your account?'),
+        title: Text(tr('deleteYourAccount')),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'This permanently deletes your profile, documents, favorites, '
-                'notifications and chat history, and you will be signed out. '
-                'It cannot be undone.\n\n'
-                'Booking and payment records are kept, as the law requires '
-                'for invoices.',
-              ),
+              Text(tr('thisPermanentlyDeletesYourProfile')),
               if (needsPassword) ...[
                 const SizedBox(height: 16),
                 TextField(
                   controller: passwordController,
                   obscureText: true,
                   autofocus: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Enter your password to confirm',
+                  decoration: InputDecoration(
+                    labelText: tr('enterYourPasswordToConfirm'),
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -448,12 +443,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
+            child: Text(tr('cancel')),
           ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+            child: Text(tr('delete')),
           ),
         ],
       ),
@@ -468,7 +463,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await AccountDeletionService.reauthenticate(password: password);
       await AccountDeletionService.deleteAccount();
       messenger.showSnackBar(
-        const SnackBar(content: Text('Your account has been deleted')),
+        SnackBar(content: Text(tr('yourAccountHasBeenDeleted'))),
       );
       if (!mounted) return;
       await AuthNavigation.signOut(context, autoPromptBiometrics: false);
@@ -490,7 +485,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Password reset email sent to $email'),
+          content: Text(tr('passwordResetEmailSentTo', args: {'email': email})),
           backgroundColor: Colors.green,
         ),
       );

@@ -113,9 +113,8 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     } catch (e) {
       debugPrint('Chat reply failed: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not get a reply. Try again.')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(tr('couldNotGetAReply'))));
       }
     } finally {
       // Always re-enable input, even when the reply failed.
@@ -183,7 +182,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
         actions: [
           const LanguageToggleButton(dark: true, showText: false),
           IconButton(
-            tooltip: 'Clear chat',
+            tooltip: tr('clearChat'),
             onPressed: _clearChat,
             icon: const Icon(Icons.delete_outline),
           ),

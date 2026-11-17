@@ -6,6 +6,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../config/api_keys.dart';
 import 'biometric_service.dart';
 import 'notification_service.dart';
+import '../l10n/locale_service.dart';
 
 /// Deletes the signed-in customer's account, as App Store and Google Play
 /// require for apps with sign-up.
@@ -36,7 +37,7 @@ class AccountDeletionService {
   static Future<void> reauthenticate({String? password}) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      throw const AccountDeletionException('Please sign in again.');
+      throw AccountDeletionException(tr('pleaseSignInAgain'));
     }
 
     try {
@@ -66,14 +67,13 @@ class AccountDeletionService {
       }
     } on FirebaseAuthException catch (e) {
       throw AccountDeletionException(switch (e.code) {
-        'wrong-password' ||
-        'invalid-credential' => 'That password is not correct.',
-        'user-mismatch' => 'Sign in with the same account you are deleting.',
-        'too-many-requests' => 'Too many attempts. Try again later.',
-        _ => 'Could not confirm it is you. Try again.',
+        'wrong-password' || 'invalid-credential' => tr('passwordNotCorrect'),
+        'user-mismatch' => tr('sameAccountDeleting'),
+        'too-many-requests' => tr('tooManyAttempts'),
+        _ => tr('couldNotConfirmYou'),
       });
     } on GoogleSignInException {
-      throw const AccountDeletionException('Google sign-in was cancelled.');
+      throw AccountDeletionException(tr('googleCancelled'));
     }
   }
 
@@ -81,7 +81,7 @@ class AccountDeletionService {
   static Future<void> deleteAccount() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      throw const AccountDeletionException('Please sign in again.');
+      throw AccountDeletionException(tr('pleaseSignInAgain'));
     }
     final userDoc = FirebaseFirestore.instance
         .collection('users')
@@ -99,13 +99,11 @@ class AccountDeletionService {
     } on FirebaseAuthException catch (e) {
       throw AccountDeletionException(
         e.code == 'requires-recent-login'
-            ? 'Please confirm it is you again, then retry.'
-            : 'Could not delete the account. Try again.',
+            ? tr('confirmAgainRetry')
+            : tr('couldNotDeleteAccount'),
       );
     } on FirebaseException {
-      throw const AccountDeletionException(
-        'Could not delete your data. Check your connection and try again.',
-      );
+      throw AccountDeletionException(tr('couldNotDeleteData'));
     }
 
     try {

@@ -138,7 +138,7 @@ class _UserViolationsListState extends State<_UserViolationsList> {
                             ),
                             Text(
                               awaitingCash
-                                  ? 'CASH PENDING'
+                                  ? tr('cashPending')
                                   : pending
                                   ? context.t('unpaid').toUpperCase()
                                   : context
@@ -154,7 +154,7 @@ class _UserViolationsListState extends State<_UserViolationsList> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'EGP ${amount.toStringAsFixed(0)}'
+                          '${egp(amount)}'
                           '${dateLabel.isEmpty ? '' : ' · $dateLabel'}',
                           style: const TextStyle(
                             fontWeight: FontWeight.w600,
@@ -162,16 +162,14 @@ class _UserViolationsListState extends State<_UserViolationsList> {
                           ),
                         ),
                         if ((data['ticketNumber'] ?? '').toString().isNotEmpty)
-                          Text('Ticket: ${data['ticketNumber']}'),
+                          Text('${tr('ticket')}: ${data['ticketNumber']}'),
                         if ((data['description'] ?? '').toString().isNotEmpty)
                           Text('${data['description']}'),
                         if ((data['location'] ?? '').toString().isNotEmpty)
                           Text('${context.t('location')}: ${data['location']}'),
                         if (awaitingCash) ...[
                           const SizedBox(height: 8),
-                          const Text(
-                            'Cash payment submitted. Waiting for office confirmation.',
-                          ),
+                          Text(tr('cashPaymentSubmittedWaitingFor')),
                         ],
                         if (pending && !awaitingCash) ...[
                           const SizedBox(height: 12),
@@ -256,10 +254,10 @@ class _ViolationPaymentScreenState extends State<ViolationPaymentScreen> {
         context,
         MaterialPageRoute(
           builder: (_) => PaymentSuccessScreen(
-            title: paid ? 'Ticket paid' : 'Cash payment recorded',
+            title: paid ? tr('ticketPaid') : tr('cashRecorded'),
             message: paid
-                ? 'Your traffic violation of EGP ${_amount.toStringAsFixed(0)} has been paid.'
-                : 'Pay cash at the office. An admin will confirm your traffic ticket payment.',
+                ? tr('violationPaidMsg', args: {'amount': egp(_amount)})
+                : tr('payCashAtOffice'),
           ),
         ),
         (route) => false,
@@ -268,7 +266,7 @@ class _ViolationPaymentScreenState extends State<ViolationPaymentScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Payment failed: $e'),
+          content: Text(tr('paymentFailed2', args: {'e': '$e'})),
           backgroundColor: Colors.red,
         ),
       );
@@ -317,7 +315,7 @@ class _ViolationPaymentScreenState extends State<ViolationPaymentScreen> {
                             .toString()
                             .isNotEmpty)
                           _row(
-                            'Ticket',
+                            tr('ticket'),
                             widget.data['ticketNumber'].toString(),
                           ),
                         if ((widget.data['description'] ?? '')
@@ -328,11 +326,7 @@ class _ViolationPaymentScreenState extends State<ViolationPaymentScreen> {
                             widget.data['description'].toString(),
                           ),
                         const Divider(height: 24),
-                        _row(
-                          context.t('amountDue'),
-                          'EGP ${_amount.toStringAsFixed(0)}',
-                          bold: true,
-                        ),
+                        _row(context.t('amountDue'), egp(_amount), bold: true),
                       ],
                     ),
                   ),
