@@ -1,0 +1,76 @@
+# Deploys firestore.rules to the live Firebase project.
+#
+# Runs when a change to firestore.rules lands on main, or by hand from
+# Actions > "Deploy Firestore rules" > Run workflow. The rules tests run
+# first; if any fail, nothing is deployed.
+#
+# Setup (once):
+#   1. Google Cloud console > IAM > Service accounts, in project
+#      gulf-limousine-travel-1d4c7: create an account with the roles
+#      "Firebase Rules Admin" and "Service Usage Consumer", and download
+#      a JSON key for it.
+#   2. GitHub repo > Settings > Secrets and variables > Actions: add the
+#      whole JSON file as the secret FIREBASE_DEPLOY_SERVICE_ACCOUNT.
+#   3. Optional: Settings > Environments > "firebase-production" > add
+#      yourself as a required reviewer, so each deploy waits for your OK.
+#
+# Rules that tighten access can break app builds already on phones (e.g.
+# bookings must now go through payments_server), so ship the app first.
+name: Deploy Firestore rules
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - firestore.rules
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-firestore-rules
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Test and deploy rules
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: firebase-production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: firestore_tests/package-lock.json
+      - uses: actions/setup-java@v4 # the emulator needs Java
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install firebase-tools and test deps (locked versions)
+        working-directory: firestore_tests
+        run: npm ci
+
+      - name: Rules tests (emulator)
+        working-directory: firestore_tests
+        run: npm test
+
+      - name: Deploy rules
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_DEPLOY_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$SERVICE_ACCOUNT" ]; then
+            echo "::error::Secret FIREBASE_DEPLOY_SERVICE_ACCOUNT is not set (see the setup notes at the top of this workflow)."
+            exit 1
+          fi
+          key="$RUNNER_TEMP/firebase-sa.json"
+          printf '%s' "$SERVICE_ACCOUNT" > "$key"
+          trap 'rm -f "$key"' EXIT
+          GOOGLE_APPLICATION_CREDENTIALS="$key" \
+            firestore_tests/node_modules/.bin/firebase deploy \
+              --only firestore:rules \
+              --project gulf-limousine-travel-1d4c7 \
+              --non-interactive
