@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../services/cloudinary_service.dart';
 import '../utils/image_decode.dart';
+import '../models/fleet.dart';
+import '../widgets/fleet_colors_editor.dart';
 
 class AddCarScreen extends StatefulWidget {
   const AddCarScreen({super.key});
@@ -26,10 +28,18 @@ class _AddCarScreenState extends State<AddCarScreen> {
 
   String? imageUrl;
   String? publicId;
+  List<FleetColor> _colors = const [];
 
   /// 🚗 ADD CAR
   Future<void> _addCar() async {
     if (!_formKey.currentState!.validate()) return;
+    final colorProblem = Fleet.validate(_colors);
+    if (colorProblem != null || _colors.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(colorProblem ?? 'Add at least one colour')),
+      );
+      return;
+    }
 
     if (imageUrl == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -50,6 +60,7 @@ class _AddCarScreenState extends State<AddCarScreen> {
         'price_per_day': double.parse(price.text.trim()),
         'seats': int.parse(seats.text.trim()),
         'fuel_type': fuelType,
+        'colors': [for (final c in _colors) c.toMap()],
         'image_url': imageUrl,
         'public_id': publicId,
         'available': true,
@@ -183,6 +194,12 @@ class _AddCarScreenState extends State<AddCarScreen> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
+              ),
+
+              const SizedBox(height: 16),
+              FleetColorsEditor(
+                initial: const [],
+                onChanged: (colors) => _colors = colors,
               ),
 
               const SizedBox(height: 20),

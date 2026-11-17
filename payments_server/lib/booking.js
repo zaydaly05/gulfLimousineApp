@@ -27,7 +27,8 @@ export function payableProblem(booking, uid, car) {
   const total = Number(booking.total_amount);
   if (!Number.isFinite(total) || total <= 0) return 'Booking has no amount';
   if (car) {
-    const expected = Number(car.price_per_day) * Number(booking.days);
+    const quantity = Math.max(1, Number(booking.quantity) || 1);
+    const expected = Number(car.price_per_day) * Number(booking.days) * quantity;
     if (Number.isFinite(expected) && Math.abs(expected - total) > 0.005) {
       return 'The price has changed. Please make a new booking.';
     }

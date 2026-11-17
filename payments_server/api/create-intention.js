@@ -8,6 +8,7 @@
 import { auth, db } from '../lib/firebase.js';
 import { applyCors, requireEnv, selfOrigin } from '../lib/http.js';
 import { checkoutUrl, createIntention } from '../lib/paymob.js';
+import { holdsCars, stillAvailable } from '../lib/fleet.js';
 import {
   integrationIdsFor, payableProblem, specialReferenceFor, splitName, toCents,
 } from '../lib/booking.js';
@@ -46,6 +47,18 @@ export default async function handler(req, res) {
     const problem = payableProblem(booking, uid, car);
     if (problem) return res.status(409).json({ error: problem });
 
+    // An unpaid booking holds its cars for a while; after that someone else
+    // may have taken them, so check before taking the money.
+    if (!holdsCars(booking) && carId) {
+      const others = await db().collection('bookings').where('car_id', '==', carId).get();
+      const all = others.docs.map((d) => ({ id: d.id, ...d.data() }));
+      if (!stillAvailable(car, all, { id: bookingId, ...booking })) {
+        return res.status(409).json({
+          error: 'These cars were booked by someone else while this payment was pending. Please make a new booking.',
+        });
+      }
+    }
+
     const user = (await db().collection('users').doc(uid).get()).data() || {};
     const phone = String(booking.phone || user.phone || user.phone_number || '').trim();
     if (!phone) {
@@ -75,6 +88,7 @@ export default async function handler(req, res) {
 
     await bookingRef.update({
       paymob: { intentionId: id, specialReference, amountCents, startedAt: new Date() },
+      heldAt: new Date(), // the cars stay held while the customer pays
     });
 
     return res.status(200).json({
