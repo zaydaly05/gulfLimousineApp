@@ -59,6 +59,7 @@ class AppConfig {
 
   bool get hasGemini =>
       geminiApiKey.isNotEmpty && !geminiApiKey.startsWith('YOUR_');
+
   /// Whether payments_server is set up (bookings and online payment go
   /// through it). A local http address is accepted for development.
   bool get hasPaymob =>
