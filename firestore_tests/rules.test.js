@@ -19,6 +19,8 @@ import {
   getDoc,
   collection,
   serverTimestamp,
+  writeBatch,
+  Timestamp,
 } from 'firebase/firestore';
 
 let env;
@@ -572,3 +574,46 @@ test('config: signed-in users read it, only admins change it', async () => {
   await seed('users/admin', { role: 'admin' });
   await assertSucceeds(setDoc(doc(admin(), 'config/ai'), { geminiModel: 'gemini-flash-latest' }));
 });
+
+// ---------------------------------------- the app's checkout, field for field
+// Mirrors BookingService.completeRental: booking + payment in ONE batch.
+function checkoutBatch(db, { method, paymentStatus, reference = null, payerPhone }) {
+  const batch = writeBatch(db);
+  const booking = doc(collection(db, 'bookings'));
+  const payment = doc(collection(db, 'payments'));
+  const status = paymentStatus === 'paid' ? 'confirmed' : 'pending';
+  batch.set(booking, {
+    userId: 'u1', user_email: EMAIL, userName: 'Ali', customerName: 'Ali', phone: '01012345678',
+    car_id: 'c1', car_name: 'Fortuner', carName: 'Fortuner', brand: 'Toyota',
+    pickupDate: Timestamp.fromDate(new Date('2026-11-17')),
+    returnDate: Timestamp.fromDate(new Date('2026-11-27')),
+    startDate: Timestamp.fromDate(new Date('2026-11-17')),
+    days: 11, price_per_day: 1350, total_amount: 14850,
+    status, payment_method: method, payment_reference: reference,
+    payment_status: paymentStatus,
+    ...(payerPhone ? { payer_phone: payerPhone } : {}),
+    tripStatus: 'pending',
+    pickupLocation: { lat: 30.05, lng: 31.25, address: 'Bab El Sharia, Cairo' },
+    dropoffLocation: { lat: 30.0, lng: 31.2, address: 'Oula, Giza' },
+    createdAt: serverTimestamp(),
+    agreement: { isSigned: true, signedAt: serverTimestamp(), signatureUrl: 'https://res.cloudinary.com/x/sig.png', signedBy: 'u1' },
+  });
+  batch.set(payment, {
+    userId: 'u1', user_email: EMAIL, booking_id: booking.id, car_name: 'Fortuner',
+    amount: 14850, method, reference,
+    ...(payerPhone ? { payer_phone: payerPhone } : {}),
+    status: paymentStatus, payment_date: serverTimestamp(),
+  });
+  return batch.commit();
+}
+for (const [method, paymentStatus, reference, payerPhone] of [
+  ['instapay', 'awaiting_verification', '123456789012', '01012345678'],
+  ['wallet', 'awaiting_verification', '123456789012', '01012345678'],
+  ['cash', 'pending', null, undefined],
+  ['card', 'paid', null, undefined],
+  ['paymob', 'unpaid', null, undefined],
+]) {
+  test(`app: full checkout batch via ${method}`, async () => {
+    await assertSucceeds(checkoutBatch(customer(), { method, paymentStatus, reference, payerPhone }));
+  });
+}
