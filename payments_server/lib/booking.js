@@ -70,3 +70,22 @@ export function integrationIdsFor(method, env) {
     .filter((id) => /^\d+$/.test(id))
     .map(Number);
 }
+
+/**
+ * Which Paymob method ('card', 'wallet' or null for both) a checkout may
+ * offer, given the admin switches from enabledMethods(). [requested] is the
+ * app's choice, [stored] the booking's paymob_method. Returns `{ method }`
+ * or `{ error }` when the method has been switched off since booking.
+ */
+export function paymobMethodFor(requested, stored, enabled) {
+  const on = { card: enabled.card !== false, wallet: enabled.walletOnline !== false };
+  const pick = ['card', 'wallet'].includes(requested) ? requested
+    : ['card', 'wallet'].includes(stored) ? stored : null;
+  if (pick) {
+    return on[pick] ? { method: pick } : { error: 'This payment method is not available right now. Make a new booking with another method.' };
+  }
+  if (on.card && on.wallet) return { method: null };
+  if (on.card) return { method: 'card' };
+  if (on.wallet) return { method: 'wallet' };
+  return { error: 'Online payment is switched off right now. Make a new booking with another method.' };
+}

@@ -10,8 +10,9 @@ import { applyCors, requireEnv, selfOrigin } from '../lib/http.js';
 import { checkoutUrl, createIntention } from '../lib/paymob.js';
 import { holdsCars, stillAvailable } from '../lib/fleet.js';
 import {
-  integrationIdsFor, payableProblem, specialReferenceFor, splitName, toCents,
+  integrationIdsFor, payableProblem, paymobMethodFor, specialReferenceFor, splitName, toCents,
 } from '../lib/booking.js';
+import { enabledMethods } from '../lib/booking-request.js';
 
 export default async function handler(req, res) {
   applyCors(req, res);
@@ -65,7 +66,11 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Add your phone number in Profile first.' });
     }
 
-    const method = ['card', 'wallet'].includes(req.body?.method) ? req.body.method : null;
+    // The admin may have switched this method off since the booking was made.
+    const config = (await db().collection('config').doc('payments').get()).data();
+    const choice = paymobMethodFor(req.body?.method, booking.paymob_method, enabledMethods(config));
+    if (choice.error) return res.status(409).json({ error: choice.error });
+    const { method } = choice;
     const integrationIds = integrationIdsFor(method, process.env);
     const specialReference = specialReferenceFor(bookingId);
     const origin = selfOrigin(req);

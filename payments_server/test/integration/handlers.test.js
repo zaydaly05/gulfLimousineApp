@@ -113,6 +113,19 @@ test('create-intention: refuses strangers, bad tokens and paid bookings', { skip
   assert.equal((await call(createIntention, { headers: auth, body: { bookingId: 'BookingAAAA0003' } })).status, 409);
 });
 
+test('create-intention: refuses a method the admin switched off', { skip: !ready }, async () => {
+  await seedBooking('BookingAAAA0004', { paymob_method: 'card' });
+  const auth = { authorization: `Bearer ${idToken}` };
+  await db().collection('config').doc('payments').set({ methods: { card: false } }, { merge: true });
+  try {
+    const res = await call(createIntention, { headers: auth, body: { bookingId: 'BookingAAAA0004' } });
+    assert.equal(res.status, 409);
+    assert.match(res.body.error, /not available/);
+  } finally {
+    await db().collection('config').doc('payments').set({ methods: { card: true } }, { merge: true });
+  }
+});
+
 test('webhook: a signed success confirms the booking exactly once', { skip: !ready }, async () => {
   await seedBooking('BookingBBBB0001');
   const { obj, hmac } = callback('BookingBBBB0001');
