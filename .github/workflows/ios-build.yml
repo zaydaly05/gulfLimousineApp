@@ -1,0 +1,53 @@
+# Checks the iOS app still compiles. It builds without code signing, so it
+# needs no Apple certificates or secrets, and the result can't be installed
+# on a phone: it only proves the Swift/Objective-C side, CocoaPods and the
+# Flutter plugins build for iOS.
+#
+# macOS runners use GitHub Actions minutes at 10x the Linux rate on private
+# repositories, so this runs only when files that affect the iOS build
+# change, or by hand from Actions > "iOS build" > Run workflow.
+name: iOS build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - lib/**
+      - ios/**
+      - pubspec.yaml
+      - pubspec.lock
+      - .github/workflows/ios-build.yml
+  pull_request:
+    paths:
+      - lib/**
+      - ios/**
+      - pubspec.yaml
+      - pubspec.lock
+      - .github/workflows/ios-build.yml
+  workflow_dispatch:
+
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ios:
+    name: iOS (compile, no codesign)
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.9' # keep in step with ci.yml and local builds
+          cache: true
+      - run: flutter pub get
+
+      # Contract: the iOS app builds in release mode, plugins and pods
+      # included.
+      - name: Build iOS (no codesign)
+        run: flutter build ios --release --no-codesign

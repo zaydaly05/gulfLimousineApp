@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  bookingIdFromReference, integrationIdsFor, payableProblem, specialReferenceFor, splitName, toCents,
+  bookingIdFromReference, integrationIdsFor, payableProblem, paymobMethodFor, specialReferenceFor, splitName, toCents,
 } from '../lib/booking.js';
 
 const booking = {
@@ -58,4 +58,16 @@ test('checkout offers only the chosen method when its ID is configured', () => {
 test('the expected price includes how many cars were booked', () => {
   assert.equal(payableProblem({ ...booking, quantity: 2, total_amount: 9000 }, 'u1', car), null);
   assert.match(payableProblem({ ...booking, quantity: 2, total_amount: 4500 }, 'u1', car), /price has changed/);
+});
+
+test('paymobMethodFor follows the admin switches', () => {
+  const all = { card: true, walletOnline: true };
+  assert.deepEqual(paymobMethodFor('wallet', 'card', all), { method: 'wallet' });
+  assert.deepEqual(paymobMethodFor(undefined, 'card', all), { method: 'card' });
+  assert.deepEqual(paymobMethodFor(undefined, undefined, all), { method: null });
+  assert.deepEqual(paymobMethodFor(undefined, undefined, { card: false, walletOnline: true }), { method: 'wallet' });
+  assert.deepEqual(paymobMethodFor(undefined, undefined, { card: true, walletOnline: false }), { method: 'card' });
+  assert.ok(paymobMethodFor('card', null, { card: false, walletOnline: true }).error);
+  assert.ok(paymobMethodFor(undefined, 'wallet', { card: true, walletOnline: false }).error);
+  assert.ok(paymobMethodFor(undefined, undefined, { card: false, walletOnline: false }).error);
 });

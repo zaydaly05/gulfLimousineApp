@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 
 import '../utils/booking_fields.dart';
+import 'payments_server_client.dart';
 
 class TrafficViolationService {
   TrafficViolationService._();
@@ -154,44 +155,17 @@ class TrafficViolationService {
     });
   }
 
+  /// Pays the signed-in customer's own ticket through payments_server
+  /// (/api/pay-ticket), which updates the ticket and writes its payment
+  /// record. Cash leaves the ticket pending until an admin confirms it.
+  /// Throws [ServerException] with a message to show.
   static Future<void> pay({
     required String violationId,
     required String paymentMethod,
-    String paymentStatus = 'paid',
   }) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) throw Exception('Not signed in');
-
-    final ref = collection.doc(violationId);
-    final doc = await ref.get();
-    if (!doc.exists) throw Exception('Violation not found');
-    final data = doc.data()!;
-    if (!belongsToUser(data, userId: user.uid, email: user.email)) {
-      throw Exception('Not allowed');
-    }
-    if ((data['status'] ?? '') != 'pending') {
-      throw Exception('This ticket is already settled');
-    }
-
-    final amount = amountOf(data);
-    await ref.update({
-      'status': paymentStatus == 'paid' ? 'paid' : 'pending',
-      'payment_method': paymentMethod,
-      'paidBy': user.uid,
-      if (paymentStatus == 'paid') 'paidAt': FieldValue.serverTimestamp(),
-    });
-
-    await _db.collection('payments').add({
-      'userId': user.uid,
-      'user_email': user.email ?? data['user_email'],
-      'booking_id': data['rentalId'],
-      'violation_id': violationId,
-      'car_name': data['car_name'],
-      'amount': amount,
-      'method': paymentMethod,
-      'status': paymentStatus,
-      'type': 'traffic_violation',
-      'payment_date': FieldValue.serverTimestamp(),
+    await PaymentsServerClient.post('/api/pay-ticket', {
+      'violationId': violationId,
+      'paymentMethod': paymentMethod,
     });
   }
 

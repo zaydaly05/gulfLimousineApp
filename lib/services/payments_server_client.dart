@@ -29,7 +29,7 @@ class PaymentsServerClient {
     final config = await AppConfigService.instance.load();
     if (!config.hasPaymob) {
       throw const ServerException(
-        'Booking is not available right now. Please try again later.',
+        'This is not available right now. Please try again later.',
       );
     }
     final user = FirebaseAuth.instance.currentUser;
