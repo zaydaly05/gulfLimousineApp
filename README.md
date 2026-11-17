@@ -15,6 +15,34 @@ flutter analyze
 flutter test
 ```
 
+### AI features (free Gemini key)
+
+The odometer reader (photo of the dashboard → km reading for the bill) and the
+AI assistant use Google Gemini. A free key from Google AI Studio is enough: no
+card, no Firebase upgrade.
+
+1. Open <https://aistudio.google.com/apikey> and click **Create API key**.
+2. In Google Cloud console → **APIs & Services → Credentials**, open the key
+   and under **API restrictions** allow only the *Generative Language API*.
+3. In the Firebase console → Firestore, create the document **`config/ai`**
+   with a string field `geminiApiKey` holding the key. Optionally add
+   `geminiModel` (default `gemini-flash-latest`, which always points at
+   Google's current Flash model).
+
+Any signed-in user can read `config/ai`, just as they could extract a key
+built into the app, so use a key restricted to Gemini only. Firestore rules
+let only admins change it. Without a key, the app falls back to manual km
+entry and the built-in FAQ assistant.
+
+### Payments
+
+- **InstaPay and wallet transfers**: customers send money to the InstaPay
+  address / wallet number in `config/payments` and enter the transaction ID.
+  Admins confirm or reject each one on the **Payments** screen.
+- **Card and instant wallet (Paymob)**: see
+  [payments_server/README.md](payments_server/README.md). Until it's set up,
+  the card option is the simulated demo checkout.
+
 ### Running against local emulators
 
 To try changes without touching the live project, start the Auth and
