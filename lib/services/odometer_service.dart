@@ -2,19 +2,18 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import '../config/api_keys.dart';
+import 'app_config_service.dart';
 
 class OdometerService {
-  static const _model = 'gemini-2.0-flash';
-
   /// Reads an odometer photo and returns the km reading, or null if OCR fails.
   static Future<int?> extractKmFromImage(List<int> imageBytes) async {
-    if (!ApiKeys.hasGeminiKey) return null;
+    final config = await AppConfigService.instance.load();
+    if (!config.hasGemini) return null;
 
     try {
       final base64Image = base64Encode(imageBytes);
       final uri = Uri.parse(
-        'https://generativelanguage.googleapis.com/v1beta/models/$_model:generateContent',
+        'https://generativelanguage.googleapis.com/v1beta/models/${config.geminiModel}:generateContent',
       );
 
       final body = {
@@ -43,7 +42,7 @@ class OdometerService {
             // Key in a header, not the URL, so it stays out of proxy/server logs.
             headers: {
               'Content-Type': 'application/json',
-              'x-goog-api-key': ApiKeys.gemini,
+              'x-goog-api-key': config.geminiApiKey,
             },
             body: jsonEncode(body),
           )
