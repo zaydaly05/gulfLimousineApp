@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../config/api_keys.dart';
 import 'dashboard_screen.dart';
 import 'forgot_password.dart';
 import 'signup_screen.dart';
@@ -60,7 +61,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _initializeGoogleSignIn() async {
     try {
       await _googleSignIn.initialize(
-        serverClientId: '671779610901-3ifha330389vg8bg9rdmjjtnalvrnjjg.apps.googleusercontent.com',
+        serverClientId: ApiKeys.googleServerClientId,
       );
 
       debugPrint('Google Sign-In initialized successfully');

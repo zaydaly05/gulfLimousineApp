@@ -9,4 +9,8 @@ class ApiKeys {
 
   static bool get hasGeminiKey =>
       gemini.isNotEmpty && !gemini.startsWith('YOUR_');
+
+  /// Google sign-in's web OAuth client (public, not a secret).
+  static const googleServerClientId =
+      '671779610901-3ifha330389vg8bg9rdmjjtnalvrnjjg.apps.googleusercontent.com';
 }

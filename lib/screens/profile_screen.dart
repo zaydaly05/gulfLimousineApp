@@ -7,7 +7,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../services/account_deletion_service.dart';
 import '../services/cloudinary_service.dart';
 import '../services/auth_navigation.dart';
 import '../widgets/biometric_settings_tile.dart';
@@ -297,6 +299,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       trailing: const Icon(Icons.chevron_right),
                       onTap: _sendPasswordReset,
                     ),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(
+                        Icons.privacy_tip_outlined,
+                        color: Colors.orange,
+                      ),
+                      title: const Text('Privacy Policy'),
+                      subtitle: const Text('What we collect and why'),
+                      trailing: const Icon(Icons.open_in_new),
+                      onTap: _openPrivacyPolicy,
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(
+                        Icons.delete_forever_outlined,
+                        color: Colors.red,
+                      ),
+                      title: const Text(
+                        'Delete Account',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                      subtitle: const Text(
+                        'Permanently remove your profile and sign-in',
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: _deleting ? null : _confirmDeleteAccount,
+                    ),
                   ],
                 ),
               ),
@@ -361,6 +390,94 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _licenseIdImage = bytes;
       }
     });
+  }
+
+  static final _privacyPolicyUrl = Uri.parse(
+    'https://gulf-limousine-travel-1d4c7.web.app/privacy.html',
+  );
+
+  void _openPrivacyPolicy() {
+    unawaited(
+      launchUrl(
+        _privacyPolicyUrl,
+        mode: LaunchMode.externalApplication,
+      ).catchError((Object e) {
+        debugPrint('Could not open privacy policy: $e');
+        return false;
+      }),
+    );
+  }
+
+  bool _deleting = false;
+
+  Future<void> _confirmDeleteAccount() async {
+    final passwordController = TextEditingController();
+    final needsPassword = AccountDeletionService.usesPassword;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete your account?'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'This permanently deletes your profile, documents, favorites, '
+                'notifications and chat history, and you will be signed out. '
+                'It cannot be undone.\n\n'
+                'Booking and payment records are kept, as the law requires '
+                'for invoices.',
+              ),
+              if (needsPassword) ...[
+                const SizedBox(height: 16),
+                TextField(
+                  controller: passwordController,
+                  obscureText: true,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Enter your password to confirm',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    final password = passwordController.text;
+    passwordController.dispose();
+    if (confirmed != true || !mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _deleting = true);
+    try {
+      await AccountDeletionService.reauthenticate(password: password);
+      await AccountDeletionService.deleteAccount();
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Your account has been deleted')),
+      );
+      if (!mounted) return;
+      await AuthNavigation.signOut(context, autoPromptBiometrics: false);
+    } on AccountDeletionException catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) setState(() => _deleting = false);
+    }
   }
 
   Future<void> _sendPasswordReset() async {

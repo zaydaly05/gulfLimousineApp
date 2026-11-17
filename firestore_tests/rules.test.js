@@ -82,6 +82,10 @@ beforeEach(async () => {
 });
 
 // ---------------------------------------------------------------- users
+test('app: a user deletes their own profile, not someone else\'s', async () => {
+  await assertFails(deleteDoc(doc(customer(), 'users/u2')));
+  await assertSucceeds(deleteDoc(doc(customer(), 'users/u1')));
+});
 test('a user cannot make themselves admin', async () => {
   await assertFails(updateDoc(doc(customer(), 'users/u1'), { role: 'admin' }));
 });
