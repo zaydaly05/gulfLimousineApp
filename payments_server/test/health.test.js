@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { configReport } from '../lib/health.js';
 
-const sa = JSON.stringify({ project_id: 'p1', private_key: 'KEY', client_email: 'x@p1' });
+const sa = JSON.stringify({ project_id: 'p1', private_key: 'PRIVATE-9f3a', client_email: 'x@p1' });
 const good = {
   PAYMOB_SECRET_KEY: 'sk_test_abc', PAYMOB_PUBLIC_KEY: 'pk_test_def',
   PAYMOB_HMAC_SECRET: 'h', PAYMOB_INTEGRATION_IDS: '111, 222', FIREBASE_SERVICE_ACCOUNT: sa,
@@ -21,7 +21,7 @@ test('problems are reported without echoing values', () => {
   assert.equal(r.paymob.modesMatch, false);
   assert.equal(r.serviceAccount.error, 'not valid JSON');
   assert.equal(JSON.stringify(r).includes('sk_test_abc'), false);
-  assert.equal(JSON.stringify(r).includes('KEY'), false);
+  assert.equal(JSON.stringify(r).includes('PRIVATE-9f3a'), false);
 });
 
 test('wrong Firebase project and bad IDs are caught', () => {
