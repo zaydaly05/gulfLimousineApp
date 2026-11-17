@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../services/auth_navigation.dart';
 import '../services/biometric_service.dart';
+import '../l10n/locale_service.dart';
 
 class BiometricLockScreen extends StatefulWidget {
   final Widget child;
@@ -17,7 +18,7 @@ class BiometricLockScreen extends StatefulWidget {
 class _BiometricLockScreenState extends State<BiometricLockScreen> {
   bool _unlocked = false;
   bool _busy = false;
-  String _label = 'Biometrics';
+  String _label = tr('biometrics');
 
   @override
   void initState() {
@@ -30,7 +31,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen> {
     final label = await BiometricService.methodLabel();
     if (mounted) setState(() => _label = label);
     final ok = await BiometricService.authenticate(
-      reason: 'Unlock with $label',
+      reason: tr('biometricUnlock', args: {'method': label}),
     );
     if (!mounted) return;
     setState(() {
@@ -56,8 +57,8 @@ class _BiometricLockScreenState extends State<BiometricLockScreen> {
             children: [
               const Icon(Icons.fingerprint, color: Colors.orange, size: 88),
               const SizedBox(height: 24),
-              const Text(
-                'Gulf Limousine',
+              Text(
+                tr('appName'),
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 24,
@@ -66,7 +67,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Unlock with $_label',
+                tr('unlockWith', args: {'_label': _label}),
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.white70),
               ),
@@ -85,12 +86,12 @@ class _BiometricLockScreenState extends State<BiometricLockScreen> {
                   ),
                   onPressed: _unlock,
                   icon: const Icon(Icons.fingerprint),
-                  label: const Text('Try again'),
+                  label: Text(tr('retry')),
                 ),
               const SizedBox(height: 12),
               TextButton(
                 onPressed: _usePassword,
-                child: const Text('Use password instead'),
+                child: Text(tr('usePassword')),
               ),
             ],
           ),

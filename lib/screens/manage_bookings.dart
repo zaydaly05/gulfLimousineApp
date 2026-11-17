@@ -18,6 +18,7 @@ import '../widgets/condition_video_chips.dart';
 import '../widgets/status_pill.dart';
 import '../services/booking_service.dart';
 import '../models/fleet.dart';
+import '../widgets/app_feedback.dart';
 
 class ManageBookingsScreen extends StatefulWidget {
   const ManageBookingsScreen({super.key});
@@ -56,12 +57,7 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                   await BookingService.deleteBooking(id);
                 } catch (e) {
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('$e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
+                    ScaffoldMessenger.of(context).showError(e);
                   }
                 }
                 if (dialogContext.mounted) Navigator.pop(dialogContext);
@@ -107,25 +103,15 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
         child: StreamBuilder<QuerySnapshot>(
           stream: _bookingsStream,
           builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return ErrorView(
+                error: snapshot.error,
+                message: tr('errorLoadingBookings'),
+                dark: true,
+              );
+            }
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
-            }
-
-            if (snapshot.hasError) {
-              return ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                children: [
-                  SizedBox(
-                    height: 400,
-                    child: Center(
-                      child: Text(
-                        'Error loading bookings',
-                        style: TextStyle(color: Colors.red.shade300),
-                      ),
-                    ),
-                  ),
-                ],
-              );
             }
 
             final docs = sortedByCreatedAtDesc(
@@ -210,7 +196,7 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                         ),
                         if (email.isNotEmpty)
                           Text(
-                            '${context.t('email')}: $email',
+                            '${context.t('email')}: ${ltr(email)}',
                             style: TextStyle(color: Colors.grey.shade400),
                           ),
                         if (Fleet.bookingSummary(booking) case final fleet
@@ -254,12 +240,18 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                           ),
                         if ((booking['tripStatus'] ?? '').toString().isNotEmpty)
                           Text(
-                            '${context.t('trip')}: ${booking['tripStatus'].toString().replaceAll('_', ' ')}',
+                            '${context.t('trip')}: ${statusLabel(booking['tripStatus'].toString())}',
                             style: TextStyle(color: Colors.grey.shade400),
                           ),
                         if (total != null)
                           Text(
-                            'Base rental: EGP ${(total as num).toStringAsFixed(0)}',
+                            tr(
+                              'baseRentalEgp',
+                              args: {
+                                'toStringAsFixed': (total as num)
+                                    .toStringAsFixed(0),
+                              },
+                            ),
                             style: TextStyle(color: Colors.grey.shade400),
                           ),
                         if (finalAmount != null &&
@@ -267,7 +259,7 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                             booking['odometer'] is Map &&
                             (booking['odometer'] as Map)['endKm'] != null)
                           Text(
-                            '${context.t('finalTotal')}: EGP ${(finalAmount as num).toStringAsFixed(0)}',
+                            '${context.t('finalTotal')}: ${egp(finalAmount as num)}',
                             style: const TextStyle(
                               color: Colors.orange,
                               fontWeight: FontWeight.w600,
@@ -313,8 +305,8 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                         const SizedBox(height: 8),
                         if (booking['pickupVideo'] != null ||
                             booking['returnVideo'] != null) ...[
-                          const Text(
-                            'Condition Videos:',
+                          Text(
+                            tr('conditionVideos'),
                             style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -351,8 +343,8 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                                 color: Colors.orange,
                                 size: 18,
                               ),
-                              label: const Text(
-                                'LIVE SECURITY TRACKING',
+                              label: Text(
+                                tr('liveSecurityTracking'),
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 12,
@@ -368,7 +360,7 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                           children: [
                             if ((booking['phone'] ?? '').toString().isNotEmpty)
                               IconButton(
-                                tooltip: 'WhatsApp Customer',
+                                tooltip: tr('whatsappCustomer'),
                                 icon: const Icon(
                                   Icons.chat_bubble_outline,
                                   color: Color(0xFF25D366),
@@ -381,7 +373,7 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                                     ),
                               ),
                             IconButton(
-                              tooltip: 'Edit',
+                              tooltip: tr('edit'),
                               icon: const Icon(Icons.edit, color: Colors.blue),
                               onPressed: () {
                                 Navigator.push(
@@ -396,7 +388,7 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                               },
                             ),
                             IconButton(
-                              tooltip: 'Delete',
+                              tooltip: tr('delete'),
                               icon: const Icon(Icons.delete, color: Colors.red),
                               onPressed: () => _deleteBooking(context, doc.id),
                             ),

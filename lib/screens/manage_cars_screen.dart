@@ -12,6 +12,8 @@ import '../utils/live_refresh.dart';
 import '../utils/image_decode.dart';
 import '../widgets/empty_state.dart';
 import '../models/fleet.dart';
+import '../utils/safe_insets.dart';
+import '../widgets/app_feedback.dart';
 
 class ManageCarsScreen extends StatefulWidget {
   const ManageCarsScreen({super.key});
@@ -65,9 +67,7 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
                       .doc(id)
                       .delete();
                 } catch (e) {
-                  messenger.showSnackBar(
-                    SnackBar(content: Text('$e'), backgroundColor: Colors.red),
-                  );
+                  messenger.showError(e);
                   if (dialogContext.mounted) Navigator.pop(dialogContext);
                   return;
                 }
@@ -79,13 +79,7 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
                   } catch (e) {
                     // The car is gone; only the stored file is left behind.
                     debugPrint('Car image delete failed: $e');
-                    messenger.showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Car deleted, but its image file was not removed.',
-                        ),
-                      ),
-                    );
+                    messenger.showInfo(tr('carDeletedButItsImage'));
                   }
                 }
               },
@@ -110,13 +104,11 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
         });
 
         if (!mounted) return;
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(context.t('changesSaved'))));
+        ScaffoldMessenger.of(context).showInfo(context.t('changesSaved'));
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Upload failed: $e")));
+      ScaffoldMessenger.of(context).showError(e, title: tr('uploadFailed'));
     } finally {
       if (mounted) setState(() => isUploading = false);
     }
@@ -152,6 +144,9 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
             child: StreamBuilder<QuerySnapshot>(
               stream: _carsStream,
               builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return ErrorView(error: snapshot.error, dark: true);
+                }
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
@@ -167,7 +162,12 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
                 return ListView.builder(
                   physics: const AlwaysScrollableScrollPhysics(),
                   // Bottom room so the + button never covers the last car.
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    16,
+                    16,
+                    88,
+                  ).withSafeBottom(context),
                   itemCount: snapshot.data!.docs.length,
                   itemBuilder: (context, index) {
                     final doc = snapshot.data!.docs[index];
@@ -221,7 +221,7 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    car['name'] ?? 'No Name',
+                                    car['name'] ?? tr('noName'),
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 16,
@@ -234,7 +234,13 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
                                         child: Text(
                                           [
                                             car['brand'] ?? '',
-                                            "${car['price_per_day'] ?? ''} EGP${context.t('perDay')}",
+                                            tr(
+                                              'egpPerDay',
+                                              args: {
+                                                'amount':
+                                                    '${car['price_per_day'] ?? ''}',
+                                              },
+                                            ),
                                             Fleet.summary(car),
                                           ].where((l) => l.isNotEmpty).join('\n'),
                                           style: TextStyle(
@@ -248,7 +254,7 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
                                           Icons.image,
                                           color: Colors.orange,
                                         ),
-                                        tooltip: 'Upload Image',
+                                        tooltip: tr('uploadImage'),
                                         onPressed: () =>
                                             pickAndUploadCarImage(doc.id),
                                       ),

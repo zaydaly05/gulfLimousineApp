@@ -24,6 +24,7 @@ import '../widgets/language_picker.dart';
 import '../l10n/locale_service.dart';
 import '../utils/live_refresh.dart';
 import '../services/complimentary_rental_service.dart';
+import '../utils/safe_insets.dart';
 import 'payment_settings_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
@@ -86,7 +87,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       drawer: Drawer(
         backgroundColor: Colors.black,
         child: ListView(
-          padding: EdgeInsets.zero,
+          padding: EdgeInsets.zero.withSafeBottom(context),
           children: [
             Container(
               padding: EdgeInsets.fromLTRB(
@@ -123,7 +124,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     ),
                   ),
                   Text(
-                    'System Control Center',
+                    tr('systemControlCenter'),
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.6),
                       fontSize: 14,
@@ -182,7 +183,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             _drawerItem(
               context,
               Icons.security,
-              'Security & GPS',
+              tr('securityGps'),
               const AdminSecurityHub(),
             ),
             _drawerItem(
@@ -194,7 +195,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             _drawerItem(
               context,
               Icons.toggle_on,
-              'Payment Methods',
+              tr('paymentMethods'),
               const PaymentSettingsScreen(),
             ),
             _drawerItem(
@@ -350,7 +351,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         }
         return DashboardCard(
           title: context.t('revenuePaid'),
-          value: "EGP ${total.toStringAsFixed(0)}",
+          value: egp(total),
           icon: Icons.attach_money,
         );
       },
@@ -413,7 +414,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Widget _extraKmCollectedCard(ExtraKmDashboardStats stats) {
     return DashboardCard(
       title: context.t('extraKmCollected'),
-      value: "EGP ${stats.paidAmount.toStringAsFixed(0)}",
+      value: egp(stats.paidAmount),
       icon: Icons.add_road,
     );
   }
@@ -480,10 +481,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
               title: Text(resolveBookingName(data)),
               subtitle: Text(
                 '${resolveBookingCar(data)} · '
-                '${km?['extraKm'] ?? 0} extra km',
+                '${tr('extraKmCount', args: {'n': '${km?['extraKm'] ?? 0}'})}',
               ),
               trailing: Text(
-                'EGP ${charge.toStringAsFixed(0)}',
+                egp(charge),
                 style: const TextStyle(
                   color: Colors.orange,
                   fontWeight: FontWeight.bold,
@@ -567,9 +568,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 ],
               ),
               Text(
-                '${context.t('thisMonthGifted')}: EGP ${monthTotal.toStringAsFixed(0)} · '
-                '${context.t('thisYear')}: EGP ${yearTotal.toStringAsFixed(0)}'
-                '${active.isEmpty ? '' : ' · ${active.length} car(s) out'}',
+                '${context.t('thisMonthGifted')}: ${egp(monthTotal)} · '
+                '${context.t('thisYear')}: ${egp(yearTotal)}'
+                '${active.isEmpty ? '' : ' · ${tr('carsOut', args: {'n': '${active.length}'})}'}',
                 style: TextStyle(color: Colors.grey.shade700),
               ),
               const SizedBox(height: 8),
@@ -614,10 +615,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         data['recipientName']?.toString() ?? context.t('guest'),
                       ),
                       subtitle: Text(
-                        '$label · until ${formatBookingDate(data['endDate'])}',
+                        '$label · ${tr('untilDate', args: {'date': formatBookingDate(data['endDate'])})}',
                       ),
                       trailing: Text(
-                        'EGP ${ComplimentaryRentalService.giftedValue(data).toStringAsFixed(0)}',
+                        egp(ComplimentaryRentalService.giftedValue(data)),
                         style: const TextStyle(
                           color: Colors.orange,
                           fontWeight: FontWeight.w600,
@@ -746,7 +747,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         '${isGift ? context.t('gift') : context.t('rental')} · ${data['car_name'] ?? context.t('cars')}',
                       ),
                       trailing: Text(
-                        'EGP ${TrafficViolationService.amountOf(data).toStringAsFixed(0)}',
+                        egp(TrafficViolationService.amountOf(data)),
                         style: const TextStyle(
                           color: Colors.orange,
                           fontWeight: FontWeight.w600,

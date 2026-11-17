@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../config/app_info.dart';
 import '../models/geo_location.dart';
+import '../l10n/locale_service.dart';
 
 /// Shared map setup: one place for the tile source, the map controls and the
 /// default centre, instead of a copy in every map screen.
@@ -177,13 +178,13 @@ class AppMapControls extends StatelessWidget {
                 if (onMyLocation != null)
                   button(
                     icon: Icons.my_location,
-                    tooltip: 'My location',
+                    tooltip: tr('myLocation'),
                     onPressed: onMyLocation!,
                   ),
                 if (fitPoints.isNotEmpty)
                   button(
                     icon: Icons.center_focus_strong,
-                    tooltip: 'Show all',
+                    tooltip: tr('showAll'),
                     onPressed: () => _fit(context),
                   ),
               ]),
@@ -192,7 +193,7 @@ class AppMapControls extends StatelessWidget {
             group([
               button(
                 icon: Icons.add,
-                tooltip: 'Zoom in',
+                tooltip: tr('zoomIn'),
                 onPressed: () => _zoomBy(context, 1),
               ),
               Container(
@@ -202,7 +203,7 @@ class AppMapControls extends StatelessWidget {
               ),
               button(
                 icon: Icons.remove,
-                tooltip: 'Zoom out',
+                tooltip: tr('zoomOut'),
                 onPressed: () => _zoomBy(context, -1),
               ),
             ]),

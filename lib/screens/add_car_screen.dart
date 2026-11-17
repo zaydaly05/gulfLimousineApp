@@ -5,6 +5,8 @@ import '../services/cloudinary_service.dart';
 import '../utils/image_decode.dart';
 import '../models/fleet.dart';
 import '../widgets/fleet_colors_editor.dart';
+import '../l10n/locale_service.dart';
+import '../widgets/app_feedback.dart';
 
 class AddCarScreen extends StatefulWidget {
   const AddCarScreen({super.key});
@@ -17,6 +19,7 @@ class _AddCarScreenState extends State<AddCarScreen> {
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController name = TextEditingController();
+  final TextEditingController nameAr = TextEditingController();
   final TextEditingController brand = TextEditingController();
   final TextEditingController price = TextEditingController();
   final TextEditingController seats = TextEditingController();
@@ -35,19 +38,13 @@ class _AddCarScreenState extends State<AddCarScreen> {
     if (!_formKey.currentState!.validate()) return;
     final colorProblem = Fleet.validate(_colors);
     if (colorProblem != null || _colors.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(colorProblem ?? 'Add at least one colour')),
-      );
+      ScaffoldMessenger.of(context)
+          .showInfo(colorProblem ?? tr('addOneColour'));
       return;
     }
 
     if (imageUrl == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please upload a car image"),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showError(tr('pleaseUploadACarImage'));
       return;
     }
 
@@ -56,6 +53,7 @@ class _AddCarScreenState extends State<AddCarScreen> {
 
       await FirebaseFirestore.instance.collection('cars').add({
         'name': name.text.trim(),
+        if (nameAr.text.trim().isNotEmpty) 'name_ar': nameAr.text.trim(),
         'brand': brand.text.trim(),
         'price_per_day': double.parse(price.text.trim()),
         'seats': int.parse(seats.text.trim()),
@@ -72,17 +70,10 @@ class _AddCarScreenState extends State<AddCarScreen> {
       final messenger = ScaffoldMessenger.of(context);
       Navigator.pop(context);
 
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text("Car added successfully"),
-          backgroundColor: Colors.green,
-        ),
-      );
+      messenger.showSuccess(tr('carAddedSuccessfully'));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context).showError(e);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -101,21 +92,12 @@ class _AddCarScreenState extends State<AddCarScreen> {
           publicId = imageData['public_id'];
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Image uploaded successfully"),
-            backgroundColor: Colors.green,
-          ),
-        );
+        ScaffoldMessenger.of(context)
+            .showSuccess(tr('imageUploadedSuccessfully'));
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Upload failed: $e"),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showError(e, title: tr('uploadFailed'));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -127,7 +109,7 @@ class _AddCarScreenState extends State<AddCarScreen> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: const Text("Add New Car"),
+        title: Text(tr('addCarTitle')),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -138,7 +120,7 @@ class _AddCarScreenState extends State<AddCarScreen> {
               /// 🖼 IMAGE UPLOAD
               Semantics(
                 button: true,
-                label: 'Upload car image',
+                label: tr('uploadCarImage'),
                 child: GestureDetector(
                   onTap: _uploadImage,
                   child: Container(
@@ -171,20 +153,24 @@ class _AddCarScreenState extends State<AddCarScreen> {
 
               const SizedBox(height: 20),
 
-              _input("Car Name", name),
-              _input("Brand", brand),
-              _input("Price per Day", price, type: TextInputType.number),
-              _input("Number of Seats", seats, type: TextInputType.number),
+              _input(tr('carName'), name),
+              _input(tr('carNameArOptional'), nameAr, required: false),
+              _input(tr('brand'), brand),
+              _input(tr('pricePerDay'), price, type: TextInputType.number),
+              _input(tr('numberOfSeats'), seats, type: TextInputType.number),
 
               const SizedBox(height: 10),
-              const Text("Fuel Type", style: TextStyle(color: Colors.white)),
+              Text(tr('fuelType'), style: TextStyle(color: Colors.white)),
               const SizedBox(height: 5),
 
               DropdownButtonFormField<String>(
                 initialValue: fuelType,
                 dropdownColor: Colors.grey.shade900,
                 items: ["Petrol", "Diesel", "Electric"]
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .map(
+                      (e) =>
+                          DropdownMenuItem(value: e, child: Text(fuelLabel(e))),
+                    )
                     .toList(),
                 onChanged: (val) => setState(() => fuelType = val!),
                 decoration: InputDecoration(
@@ -219,7 +205,7 @@ class _AddCarScreenState extends State<AddCarScreen> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text("Add Car"),
+                    : Text(tr('addCar')),
               ),
             ],
           ),
@@ -232,13 +218,20 @@ class _AddCarScreenState extends State<AddCarScreen> {
     String label,
     TextEditingController controller, {
     TextInputType type = TextInputType.text,
+    bool required = true,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextFormField(
         controller: controller,
         keyboardType: type,
-        validator: (v) => v!.isEmpty ? "Required" : null,
+        // Phone numbers and emails read left to right in Arabic too.
+        textDirection:
+            type == TextInputType.phone || type == TextInputType.emailAddress
+            ? TextDirection.ltr
+            : null,
+        validator: (v) =>
+            required && (v ?? '').trim().isEmpty ? tr('required') : null,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           labelText: label,

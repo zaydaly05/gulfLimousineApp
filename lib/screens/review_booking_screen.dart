@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../services/review_service.dart';
 import '../theme/app_theme.dart';
+import '../l10n/locale_service.dart';
+import '../widgets/app_feedback.dart';
 
 class ReviewBookingScreen extends StatefulWidget {
   final String bookingId;
@@ -42,14 +44,10 @@ class _ReviewBookingScreenState extends State<ReviewBookingScreen> {
       if (!mounted) return;
       final messenger = ScaffoldMessenger.of(context);
       Navigator.pop(context);
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Thanks for your review!')),
-      );
+      messenger.showInfo(tr('thanksForYourReview'));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$e'), backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context).showError(e);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -60,11 +58,11 @@ class _ReviewBookingScreenState extends State<ReviewBookingScreen> {
     final car =
         (widget.bookingData['carName'] ??
                 widget.bookingData['car_name'] ??
-                'Car')
+                tr('carFallback'))
             .toString();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Rate your trip')),
+      appBar: AppBar(title: Text(tr('rateYourTrip'))),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -75,13 +73,13 @@ class _ReviewBookingScreenState extends State<ReviewBookingScreen> {
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            const Text('How was your experience?'),
+            Text(tr('howWasYourExperience')),
             const SizedBox(height: 8),
             Row(
               children: List.generate(5, (i) {
                 final star = i + 1;
                 return IconButton(
-                  tooltip: star == 1 ? '1 star' : '$star stars',
+                  tooltip: tr('starsCount', args: {'n': '$star'}),
                   onPressed: () => setState(() => _rating = star),
                   icon: Icon(
                     star <= _rating ? Icons.star : Icons.star_border,
@@ -95,8 +93,8 @@ class _ReviewBookingScreenState extends State<ReviewBookingScreen> {
             TextField(
               controller: _comment,
               maxLines: 4,
-              decoration: const InputDecoration(
-                labelText: 'Comment (optional)',
+              decoration: InputDecoration(
+                labelText: tr('commentOptional'),
                 border: OutlineInputBorder(),
               ),
             ),
@@ -111,7 +109,7 @@ class _ReviewBookingScreenState extends State<ReviewBookingScreen> {
                         height: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Submit review'),
+                    : Text(tr('submitReview')),
               ),
             ),
           ],

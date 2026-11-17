@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../utils/booking_fields.dart';
 import '../theme/app_theme.dart';
+import '../l10n/locale_service.dart';
 
 export '../utils/booking_fields.dart';
 export 'status_colors.dart';
@@ -22,8 +23,8 @@ class AdminAnalyticsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Analytics',
+        Text(
+          tr('analytics'),
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
@@ -118,8 +119,8 @@ class RevenueTrendChart extends StatelessWidget {
       stream: firestore.collection('payments').snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const _ChartCard(
-            title: 'Revenue (Last 6 Months)',
+          return _ChartCard(
+            title: tr('revenueLast6Months'),
             child: Center(
               child: CircularProgressIndicator(color: AppTheme.accent),
             ),
@@ -129,12 +130,18 @@ class RevenueTrendChart extends StatelessWidget {
         final monthly = _lastSixMonthsRevenue(snapshot.data?.docs ?? []);
 
         return _ChartCard(
-          title: 'Revenue (Last 6 Months)',
-          subtitle:
-              'Total: EGP ${monthly.values.fold<double>(0, (a, b) => a + b).toStringAsFixed(0)}',
+          title: tr('revenueLast6Months'),
+          subtitle: tr(
+            'totalEgp',
+            args: {
+              'toStringAsFixed': monthly.values
+                  .fold<double>(0, (a, b) => a + b)
+                  .toStringAsFixed(0),
+            },
+          ),
           height: 240,
           child: monthly.values.every((v) => v == 0)
-              ? const _EmptyChart(message: 'No payment data yet')
+              ? _EmptyChart(message: tr('noPaymentDataYet'))
               : LineChart(
                   LineChartData(
                     gridData: FlGridData(
@@ -258,8 +265,8 @@ class BookingStatusChart extends StatelessWidget {
       stream: firestore.collection('bookings').snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const _ChartCard(
-            title: 'Bookings by Status',
+          return _ChartCard(
+            title: tr('bookingsByStatus'),
             height: 200,
             child: Center(
               child: CircularProgressIndicator(color: AppTheme.accent),
@@ -275,10 +282,10 @@ class BookingStatusChart extends StatelessWidget {
         }
 
         if (counts.isEmpty) {
-          return const _ChartCard(
-            title: 'Bookings by Status',
+          return _ChartCard(
+            title: tr('bookingsByStatus'),
             height: 200,
-            child: _EmptyChart(message: 'No bookings'),
+            child: _EmptyChart(message: tr('noBookings')),
           );
         }
 
@@ -286,7 +293,7 @@ class BookingStatusChart extends StatelessWidget {
           ..sort((a, b) => b.value.compareTo(a.value));
 
         return _ChartCard(
-          title: 'Bookings by Status',
+          title: tr('bookingsByStatus'),
           height: 200,
           child: Column(
             children: [
@@ -347,8 +354,8 @@ class FleetAvailabilityChart extends StatelessWidget {
       stream: firestore.collection('cars').snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const _ChartCard(
-            title: 'Fleet Availability',
+          return _ChartCard(
+            title: tr('fleetAvailability'),
             height: 200,
             child: Center(
               child: CircularProgressIndicator(color: AppTheme.accent),
@@ -368,16 +375,19 @@ class FleetAvailabilityChart extends StatelessWidget {
         }
 
         if (available + unavailable == 0) {
-          return const _ChartCard(
-            title: 'Fleet Availability',
+          return _ChartCard(
+            title: tr('fleetAvailability'),
             height: 200,
-            child: _EmptyChart(message: 'No cars in fleet'),
+            child: _EmptyChart(message: tr('noCarsInFleet')),
           );
         }
 
         return _ChartCard(
-          title: 'Fleet Availability',
-          subtitle: '$available available · $unavailable unavailable',
+          title: tr('fleetAvailability'),
+          subtitle: tr(
+            'availableUnavailable',
+            args: {'available': '$available', 'unavailable': '$unavailable'},
+          ),
           height: 200,
           child: PieChart(
             PieChartData(
@@ -426,8 +436,8 @@ class MonthlyBookingsChart extends StatelessWidget {
       stream: firestore.collection('bookings').snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const _ChartCard(
-            title: 'Bookings per Month',
+          return _ChartCard(
+            title: tr('bookingsPerMonth'),
             child: Center(
               child: CircularProgressIndicator(color: AppTheme.accent),
             ),
@@ -440,10 +450,10 @@ class MonthlyBookingsChart extends StatelessWidget {
             : monthly.values.reduce((a, b) => a > b ? a : b).toDouble() + 1;
 
         return _ChartCard(
-          title: 'Bookings per Month',
+          title: tr('bookingsPerMonth'),
           height: 220,
           child: monthly.values.every((v) => v == 0)
-              ? const _EmptyChart(message: 'No bookings in the last 6 months')
+              ? _EmptyChart(message: tr('noBookingsInTheLast'))
               : BarChart(
                   BarChartData(
                     alignment: BarChartAlignment.spaceAround,

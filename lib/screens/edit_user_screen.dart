@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../services/user_profile_service.dart';
+import '../utils/safe_insets.dart';
+import '../l10n/locale_service.dart';
+import '../widgets/app_feedback.dart';
 
 class EditUserScreen extends StatefulWidget {
   final String userId;
@@ -63,9 +66,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context).showError(e);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -76,25 +77,28 @@ class _EditUserScreenState extends State<EditUserScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text("Edit User"),
+        title: Text(tr('editUserTitle')),
         backgroundColor: Colors.black,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16).withSafeBottom(context),
         child: Column(
           // Full-width button, like the other admin forms.
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            buildField(nameController, "Name"),
-            buildField(emailController, "Email"),
-            buildField(phoneController, "Phone Number"),
+            buildField(nameController, tr('name')),
+            buildField(emailController, tr('email'), ltr: true),
+            buildField(phoneController, tr('phoneNumber'), ltr: true),
             DropdownButtonFormField<String>(
               initialValue: _role,
               dropdownColor: Colors.grey.shade900,
               style: const TextStyle(color: Colors.white),
-              decoration: _decoration("Role"),
+              decoration: _decoration(tr('role')),
               items: _roles
-                  .map((r) => DropdownMenuItem(value: r, child: Text(r)))
+                  .map(
+                    (r) =>
+                        DropdownMenuItem(value: r, child: Text(roleLabel(r))),
+                  )
                   .toList(),
               onChanged: (v) {
                 if (v != null) setState(() => _role = v);
@@ -109,7 +113,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text("Update User"),
+                  : Text(tr('updateUser')),
             ),
           ],
         ),
@@ -127,11 +131,16 @@ class _EditUserScreenState extends State<EditUserScreen> {
     );
   }
 
-  Widget buildField(TextEditingController controller, String label) {
+  Widget buildField(
+    TextEditingController controller,
+    String label, {
+    bool ltr = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: TextField(
         controller: controller,
+        textDirection: ltr ? TextDirection.ltr : null,
         style: const TextStyle(color: Colors.white),
         decoration: _decoration(label),
       ),

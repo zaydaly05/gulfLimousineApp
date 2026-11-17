@@ -87,8 +87,8 @@ class _UserBookingStatusChartState extends State<UserBookingStatusChart> {
       stream: _stream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const _ChartCard(
-            title: 'Booking Status',
+          return _ChartCard(
+            title: tr('bookingStatus'),
             child: Center(
               child: CircularProgressIndicator(
                 color: AppTheme.accent,
@@ -106,9 +106,9 @@ class _UserBookingStatusChartState extends State<UserBookingStatusChart> {
         }
 
         if (counts.isEmpty) {
-          return const _ChartCard(
-            title: 'Booking Status',
-            child: _EmptyChart(message: 'No bookings'),
+          return _ChartCard(
+            title: tr('bookingStatus'),
+            child: _EmptyChart(message: tr('noBookings')),
           );
         }
 
@@ -170,8 +170,8 @@ class _UserMonthlyBookingsChartState extends State<UserMonthlyBookingsChart> {
       stream: _stream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const _ChartCard(
-            title: 'Monthly Activity',
+          return _ChartCard(
+            title: tr('monthlyActivity'),
             child: Center(
               child: CircularProgressIndicator(
                 color: AppTheme.accent,
@@ -189,7 +189,7 @@ class _UserMonthlyBookingsChartState extends State<UserMonthlyBookingsChart> {
         return _ChartCard(
           title: context.t('trip'),
           child: monthly.values.every((v) => v == 0)
-              ? const _EmptyChart(message: 'No data')
+              ? _EmptyChart(message: tr('noData'))
               : BarChart(
                   BarChartData(
                     alignment: BarChartAlignment.spaceAround,

@@ -13,6 +13,8 @@ import '../utils/rental_dates.dart';
 import '../utils/booking_fields.dart';
 import '../widgets/condition_video_chips.dart';
 import '../widgets/dark_form_fields.dart';
+import '../l10n/locale_service.dart';
+import '../widgets/app_feedback.dart';
 
 class EditBookingScreen extends StatefulWidget {
   final String bookingId;
@@ -142,7 +144,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => MapLocationPicker(
-          title: isPickup ? 'Pickup Location' : 'Drop-off Location',
+          title: isPickup ? tr('pickupLocation') : tr('dropoffLocation'),
           initial: isPickup ? pickupLocation : dropoffLocation,
         ),
       ),
@@ -160,21 +162,11 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
   Future<void> _updateBooking() async {
     if (!_formKey.currentState!.validate()) return;
     if (selectedCarName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a car'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showError(tr('pleaseSelectACar'));
       return;
     }
     if (pickupDate == null || returnDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select pickup and return dates'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showError(tr('selectPickupReturnDates'));
       return;
     }
 
@@ -235,17 +227,10 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
       if (!mounted) return;
       final messenger = ScaffoldMessenger.of(context);
       Navigator.pop(context);
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Booking updated successfully'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      messenger.showSuccess(tr('bookingUpdatedSuccessfully'));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context).showError(e);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -282,7 +267,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('Edit Booking'),
+        title: Text(tr('editBookingTitle')),
         backgroundColor: Colors.black,
       ),
       body: Form(
@@ -295,16 +280,16 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
             24 + MediaQuery.viewPaddingOf(context).bottom,
           ),
           children: [
-            DarkTextFormField(nameController, 'Customer Name'),
+            DarkTextFormField(nameController, tr('customerName')),
             DarkTextFormField(
               emailController,
-              'Email',
+              tr('email'),
               type: TextInputType.emailAddress,
               required: false,
             ),
             DarkTextFormField(
               phoneController,
-              'Phone',
+              tr('phone'),
               type: TextInputType.phone,
               required: false,
             ),
@@ -321,14 +306,16 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                       : null,
                   dropdownColor: Colors.grey.shade900,
                   style: const TextStyle(color: Colors.white),
-                  decoration: darkInputDecoration('Car'),
+                  decoration: darkInputDecoration(tr('carFallback')),
                   hint: Text(
-                    selectedCarName.isNotEmpty ? selectedCarName : 'Select car',
+                    selectedCarName.isNotEmpty
+                        ? selectedCarName
+                        : tr('selectCar'),
                     style: const TextStyle(color: Colors.white70),
                   ),
                   items: cars.map((doc) {
                     final car = doc.data() as Map<String, dynamic>;
-                    final name = (car['name'] ?? 'Car').toString();
+                    final name = (car['name'] ?? tr('carFallback')).toString();
                     final brand = (car['brand'] ?? '').toString();
                     return DropdownMenuItem(
                       value: doc.id,
@@ -342,7 +329,8 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                     setState(() {
                       _pricingChanged = true;
                       selectedCarId = id;
-                      selectedCarName = (car['name'] ?? 'Car').toString();
+                      selectedCarName = (car['name'] ?? tr('carFallback'))
+                          .toString();
                       selectedBrand = (car['brand'] ?? '').toString();
                       pricePerDay =
                           (car['price_per_day'] as num?)?.toDouble() ?? 0;
@@ -356,13 +344,11 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
               initialValue: status,
               dropdownColor: Colors.grey.shade900,
               style: const TextStyle(color: Colors.white),
-              decoration: darkInputDecoration('Status'),
+              decoration: darkInputDecoration(tr('status')),
               items: _statuses
                   .map(
-                    (s) => DropdownMenuItem(
-                      value: s,
-                      child: Text(s.toUpperCase()),
-                    ),
+                    (s) =>
+                        DropdownMenuItem(value: s, child: Text(statusLabel(s))),
                   )
                   .toList(),
               onChanged: (v) {
@@ -374,13 +360,11 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
               initialValue: tripStatus,
               dropdownColor: Colors.grey.shade900,
               style: const TextStyle(color: Colors.white),
-              decoration: darkInputDecoration('Trip Status'),
+              decoration: darkInputDecoration(tr('tripStatus')),
               items: _tripStatuses
                   .map(
-                    (s) => DropdownMenuItem(
-                      value: s,
-                      child: Text(s.replaceAll('_', ' ').toUpperCase()),
-                    ),
+                    (s) =>
+                        DropdownMenuItem(value: s, child: Text(statusLabel(s))),
                   )
                   .toList(),
               onChanged: (v) {
@@ -400,20 +384,20 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                       : null,
                   dropdownColor: Colors.grey.shade900,
                   style: const TextStyle(color: Colors.white),
-                  decoration: darkInputDecoration('Chauffeur'),
+                  decoration: darkInputDecoration(tr('chauffeur')),
                   hint: Text(
                     chauffeurName.isNotEmpty
                         ? chauffeurName
-                        : 'Assign chauffeur',
+                        : tr('assignChauffeur'),
                     style: const TextStyle(color: Colors.white70),
                   ),
                   items: [
-                    const DropdownMenuItem(value: '', child: Text('None')),
+                    DropdownMenuItem(value: '', child: Text(tr('none'))),
                     ...chauffeurs.map((doc) {
                       final c = doc.data() as Map<String, dynamic>;
                       return DropdownMenuItem(
                         value: doc.id,
-                        child: Text('${c['name']} · ${c['phone'] ?? ''}'),
+                        child: Text('${c['name']} · ${ltr(c['phone'] ?? '')}'),
                       );
                     }),
                   ],
@@ -441,37 +425,44 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
             ),
             const SizedBox(height: 16),
             _locationButton(
-              'Pickup Location',
+              tr('pickupLocation'),
               pickupLocation?.address,
               () => _pickLocation(isPickup: true),
             ),
             _locationButton(
-              'Drop-off Location',
+              tr('dropoffLocation'),
               dropoffLocation?.address,
               () => _pickLocation(isPickup: false),
             ),
             _dateButton(
-              'Pickup Date',
+              tr('pickupDate'),
               pickupDate,
               () => _pickDate(isPickup: true),
             ),
             _dateButton(
-              'Return Date',
+              tr('returnDateLabel'),
               returnDate,
               () => _pickDate(isPickup: false),
             ),
             if (_days > 0 && pricePerDay > 0) ...[
               const SizedBox(height: 8),
               Text(
-                '$_days day(s) × EGP ${pricePerDay.toStringAsFixed(0)} = EGP ${_total.toStringAsFixed(0)}',
+                tr(
+                  'daySEgpEgp',
+                  args: {
+                    '_days': '$_days',
+                    'toStringAsFixed': pricePerDay.toStringAsFixed(0),
+                    'toStringAsFixed2': _total.toStringAsFixed(0),
+                  },
+                ),
                 style: const TextStyle(color: Colors.orange),
               ),
             ],
             const SizedBox(height: 16),
             if (widget.bookingData['pickupVideo'] != null ||
                 widget.bookingData['returnVideo'] != null) ...[
-              const Text(
-                'Condition Videos:',
+              Text(
+                tr('conditionVideos'),
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -516,8 +507,8 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                 );
               },
               icon: const Icon(Icons.gps_fixed, color: Colors.orange),
-              label: const Text(
-                'Update live location',
+              label: Text(
+                tr('updateLiveLocation'),
                 style: TextStyle(color: Colors.white),
               ),
             ),
@@ -537,8 +528,8 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                         color: Colors.white,
                       ),
                     )
-                  : const Text(
-                      'Update Booking',
+                  : Text(
+                      tr('updateBooking'),
                       style: TextStyle(color: Colors.white),
                     ),
             ),
@@ -558,9 +549,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
       if (mounted) setState(() => _isImmobilized = value);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$e'), backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context).showError(e);
     } finally {
       if (mounted) setState(() => _togglingSecurity = false);
     }
@@ -581,12 +570,12 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
               Icon(Icons.security, color: Colors.orange, size: 20),
               SizedBox(width: 8),
               Text(
-                'SECURITY & ANTI-THEFT',
+                tr('securityAntiTheft'),
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -604,15 +593,17 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      isImmobilized ? 'VEHICLE IMMOBILIZED' : 'VEHICLE ACTIVE',
+                      isImmobilized
+                          ? tr('vehicleImmobilized')
+                          : tr('vehicleActive'),
                       style: TextStyle(
                         color: isImmobilized ? Colors.red : Colors.green,
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
                     ),
-                    const Text(
-                      'Remote engine kill switch status',
+                    Text(
+                      tr('remoteEngineKillSwitchStatus'),
                       style: TextStyle(color: Colors.white70, fontSize: 12),
                     ),
                   ],
@@ -645,12 +636,12 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
               Icon(Icons.payment, color: Colors.orange, size: 20),
               SizedBox(width: 8),
               Text(
-                'PAYMENT INFORMATION',
+                tr('paymentInformation'),
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -660,10 +651,10 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          _infoRow('Method', method.toUpperCase()),
+          _infoRow(tr('method'), paymentMethodLabel(method)),
           if (ref.isNotEmpty) ...[
             const SizedBox(height: 8),
-            _infoRow('Reference / Transaction ID', ref, color: Colors.orange),
+            _infoRow(tr('referenceTxn'), ref, color: Colors.orange),
           ],
         ],
       ),

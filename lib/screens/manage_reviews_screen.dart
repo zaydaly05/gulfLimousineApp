@@ -5,6 +5,7 @@ import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
 import '../utils/live_refresh.dart';
 import '../widgets/empty_state.dart';
+import '../utils/safe_insets.dart';
 
 class ManageReviewsScreen extends StatefulWidget {
   const ManageReviewsScreen({super.key});
@@ -80,7 +81,7 @@ class _ManageReviewsScreenState extends State<ManageReviewsScreen> {
   Widget _list(BuildContext context, List<QueryDocumentSnapshot> docs) {
     return ListView.builder(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16).withSafeBottom(context),
       itemCount: docs.length,
       itemBuilder: (context, index) {
         final doc = docs[index];

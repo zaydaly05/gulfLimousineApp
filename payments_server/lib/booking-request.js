@@ -3,6 +3,9 @@
 
 import { addDays, cairoDay, isDay, rentalDays } from './fleet.js';
 
+/** What the app sends once the customer ticks "I have read and agree". */
+export const ACCEPTED_BY_CHECKBOX = 'digital_signature_accepted';
+
 /** Admin switches in config/payments.methods; missing means on. */
 export const METHOD_SWITCHES = ['card', 'walletOnline', 'walletTransfer', 'instapay', 'cash'];
 
@@ -65,12 +68,14 @@ export function parseBookRequest(body, { now = new Date(), paymobConfigured }) {
   const dropoffLocation = location(b.dropoffLocation);
   if (!pickupLocation || !dropoffLocation) return { error: 'Choose the pickup and drop-off locations.' };
 
+  // The app records agreement as a ticked checkbox ('digital_signature_accepted');
+  // a drawn signature uploaded to Cloudinary is accepted too.
   const signatureUrl = String(b.signatureUrl ?? '');
-  let sigOk = false;
+  let sigOk = signatureUrl === ACCEPTED_BY_CHECKBOX;
   try {
     const u = new URL(signatureUrl);
-    sigOk = u.protocol === 'https:' && u.hostname === 'res.cloudinary.com';
-  } catch { /* invalid */ }
+    sigOk ||= u.protocol === 'https:' && u.hostname === 'res.cloudinary.com';
+  } catch { /* not a URL */ }
   if (!sigOk) return { error: 'Please sign the rental agreement first.' };
 
   let paymentMethod = String(b.paymentMethod ?? '');

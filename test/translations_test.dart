@@ -29,4 +29,32 @@ void main() {
     expect(en.difference(ar), isEmpty, reason: 'missing in Arabic');
     expect(ar.difference(en), isEmpty, reason: 'missing in English');
   });
+
+  // Notifications store keys the reader's app translates
+  // (lib/l10n/notification_text.dart), written by the app and the server.
+  test('every notification key exists in English and Arabic', () {
+    final key = RegExp(r"""['"](n[A-Z][A-Za-z]+)['"]""");
+    final missing = <String>{};
+    final files =
+        [
+          ...Directory('lib').listSync(recursive: true),
+          ...Directory('payments_server/api').listSync(),
+        ].whereType<File>().where(
+          (f) => f.path.endsWith('.dart') || f.path.endsWith('.js'),
+        );
+    var found = 0;
+    for (final file in files) {
+      if (file.path.contains('l10n/translations.dart')) continue;
+      for (final m in key.allMatches(file.readAsStringSync())) {
+        found++;
+        for (final lang in ['en', 'ar']) {
+          if (!translations[lang]!.containsKey(m.group(1))) {
+            missing.add('${file.path}: ${m.group(1)} ($lang)');
+          }
+        }
+      }
+    }
+    expect(found, greaterThan(20));
+    expect(missing, isEmpty, reason: missing.join('\n'));
+  });
 }

@@ -8,6 +8,9 @@ import '../services/booking_service.dart';
 import '../services/cloudinary_service.dart';
 import '../services/km_billing_service.dart';
 import '../services/odometer_service.dart';
+import '../l10n/locale_service.dart';
+import '../utils/friendly_error.dart';
+import '../widgets/app_feedback.dart';
 
 enum OdometerCaptureMode { start, end }
 
@@ -43,7 +46,7 @@ class _OdometerCaptureScreenState extends State<OdometerCaptureScreen> {
   bool get _isStart => widget.mode == OdometerCaptureMode.start;
 
   String get _title =>
-      _isStart ? 'Record pickup odometer' : 'Record return odometer';
+      _isStart ? tr('recordPickupOdometer') : tr('recordReturnOdometer');
 
   int get _rentalDays {
     final days = widget.bookingData['days'];
@@ -98,13 +101,8 @@ class _OdometerCaptureScreenState extends State<OdometerCaptureScreen> {
     });
 
     if (detected == null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Could not read odometer automatically. Enter the km manually.',
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+          .showInfo(tr('couldNotReadOdometerAutomatically'));
     }
   }
 
@@ -117,7 +115,7 @@ class _OdometerCaptureScreenState extends State<OdometerCaptureScreen> {
             children: [
               ListTile(
                 leading: const Icon(Icons.camera_alt),
-                title: const Text('Take photo'),
+                title: Text(tr('takePhoto2')),
                 onTap: () {
                   Navigator.pop(context);
                   unawaited(_capturePhoto(ImageSource.camera));
@@ -125,7 +123,7 @@ class _OdometerCaptureScreenState extends State<OdometerCaptureScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library),
-                title: const Text('Choose from gallery'),
+                title: Text(tr('chooseFromGallery')),
                 onTap: () {
                   Navigator.pop(context);
                   unawaited(_capturePhoto(ImageSource.gallery));
@@ -142,19 +140,19 @@ class _OdometerCaptureScreenState extends State<OdometerCaptureScreen> {
     final kmText = _kmController.text.trim().replaceAll(',', '');
     final km = int.tryParse(kmText);
     if (km == null || km <= 0) {
-      setState(() => _error = 'Enter a valid odometer reading in km');
+      setState(() => _error = tr('enterValidOdometer'));
       return;
     }
 
     if (_imageFile == null) {
-      setState(() => _error = 'Take a photo of the odometer first');
+      setState(() => _error = tr('photoOdometerFirst'));
       return;
     }
 
     if (!_isStart) {
       final start = _startKm;
       if (start != null && km < start) {
-        setState(() => _error = 'Return reading must be at least $start km');
+        setState(() => _error = tr('returnReadingMin', args: {'km': '$start'}));
         return;
       }
     }
@@ -175,7 +173,7 @@ class _OdometerCaptureScreenState extends State<OdometerCaptureScreen> {
           filename: 'odometer_${widget.bookingId}.jpg',
         );
         if (upload == null) {
-          throw Exception('Failed to upload photo');
+          throw Exception(tr('failedUploadPhoto'));
         }
         photoUrl = upload['secure_url']?.toString() ?? '';
         photoPublicId = upload['public_id']?.toString() ?? '';
@@ -203,7 +201,7 @@ class _OdometerCaptureScreenState extends State<OdometerCaptureScreen> {
       if (!mounted) return;
       setState(() {
         _processing = false;
-        _error = e.toString();
+        _error = friendlyError(e);
       });
     }
   }
@@ -217,9 +215,16 @@ class _OdometerCaptureScreenState extends State<OdometerCaptureScreen> {
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
-          'Allowance: ${KmBillingService.allowedKm(_rentalDays)} km '
-          '(${KmBillingService.kmPerDay} km × $_rentalDays day(s)). '
-          'Extra km charged at ${KmBillingService.extraKmRateEgp.toStringAsFixed(0)} EGP/km.',
+          tr(
+            'allowanceKmKmDayS',
+            args: {
+              'allowedKm': '${KmBillingService.allowedKm(_rentalDays)}',
+              'kmPerDay': '${KmBillingService.kmPerDay}',
+              '_rentalDays': '$_rentalDays',
+              'toStringAsFixed': KmBillingService.extraKmRateEgp
+                  .toStringAsFixed(0),
+            },
+          ),
           style: TextStyle(color: Colors.blue.shade900, fontSize: 13),
         ),
       );
@@ -254,12 +259,18 @@ class _OdometerCaptureScreenState extends State<OdometerCaptureScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Driven: ${billing.drivenKm} km'),
-          Text('Allowed: ${billing.allowedKm} km'),
+          Text(tr('drivenKm', args: {'drivenKm': '${billing.drivenKm}'})),
+          Text(tr('allowedKm', args: {'allowedKm': '${billing.allowedKm}'})),
           Text(
-            'Extra km: ${billing.extraKm} × '
-            '${KmBillingService.extraKmRateEgp.toStringAsFixed(0)} EGP = '
-            'EGP ${billing.extraKmChargeEgp.toStringAsFixed(0)}',
+            tr(
+              'extraKmEgpEgp',
+              args: {
+                'extraKm': '${billing.extraKm}',
+                'toStringAsFixed': KmBillingService.extraKmRateEgp
+                    .toStringAsFixed(0),
+                'toStringAsFixed2': billing.extraKmChargeEgp.toStringAsFixed(0),
+              },
+            ),
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: billing.extraKm > 0
@@ -269,8 +280,13 @@ class _OdometerCaptureScreenState extends State<OdometerCaptureScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Final total: EGP ${finalAmount.toStringAsFixed(0)} '
-            '(base EGP ${base.toStringAsFixed(0)} + extra)',
+            tr(
+              'finalTotalEgpBaseEgp',
+              args: {
+                'toStringAsFixed': finalAmount.toStringAsFixed(0),
+                'toStringAsFixed1': base.toStringAsFixed(0),
+              },
+            ),
             style: const TextStyle(fontWeight: FontWeight.w600),
           ),
         ],
@@ -293,15 +309,13 @@ class _OdometerCaptureScreenState extends State<OdometerCaptureScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              _isStart
-                  ? 'Photograph the odometer when you receive the car.'
-                  : 'Photograph the odometer when you return the car.',
+              _isStart ? tr('photoOdometerReceive') : tr('photoOdometerReturn'),
               style: TextStyle(color: Colors.grey.shade700),
             ),
             const SizedBox(height: 16),
             Semantics(
               button: true,
-              label: 'Capture odometer photo',
+              label: tr('captureOdometerPhoto'),
               child: GestureDetector(
                 onTap: _processing ? null : _showCaptureOptions,
                 child: Container(
@@ -320,7 +334,7 @@ class _OdometerCaptureScreenState extends State<OdometerCaptureScreen> {
                             if (_ocrRunning)
                               Container(
                                 color: Colors.black45,
-                                child: const Center(
+                                child: Center(
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
@@ -329,7 +343,7 @@ class _OdometerCaptureScreenState extends State<OdometerCaptureScreen> {
                                       ),
                                       SizedBox(height: 8),
                                       Text(
-                                        'Reading odometer…',
+                                        tr('readingOdometer'),
                                         style: TextStyle(color: Colors.white),
                                       ),
                                     ],
@@ -348,7 +362,7 @@ class _OdometerCaptureScreenState extends State<OdometerCaptureScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Tap to capture odometer photo',
+                              tr('tapToCaptureOdometerPhoto'),
                               style: TextStyle(color: Colors.grey.shade600),
                             ),
                           ],
@@ -361,7 +375,7 @@ class _OdometerCaptureScreenState extends State<OdometerCaptureScreen> {
               controller: _kmController,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                labelText: 'Odometer reading (km)',
+                labelText: tr('odometerReadingKm'),
                 hintText: _isStart ? 'e.g. 45230' : 'e.g. 45450',
                 border: const OutlineInputBorder(),
                 suffixText: 'km',
@@ -371,7 +385,7 @@ class _OdometerCaptureScreenState extends State<OdometerCaptureScreen> {
             if (!_isStart && _startKm != null) ...[
               const SizedBox(height: 8),
               Text(
-                'Pickup reading: $_startKm km',
+                tr('pickupReadingKm', args: {'_startKm': '$_startKm'}),
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
               ),
             ],
@@ -391,7 +405,9 @@ class _OdometerCaptureScreenState extends State<OdometerCaptureScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : Icon(_isStart ? Icons.login : Icons.logout),
-              label: Text(_isStart ? 'Confirm pickup km' : 'Confirm return km'),
+              label: Text(
+                _isStart ? tr('confirmPickupKm') : tr('confirmReturnKm'),
+              ),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),

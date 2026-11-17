@@ -20,6 +20,8 @@ import '../widgets/status_pill.dart';
 import '../widgets/action_button_row.dart';
 import 'paymob_checkout_screen.dart';
 import '../models/fleet.dart';
+import '../utils/safe_insets.dart';
+import '../widgets/app_feedback.dart';
 
 class MyBookingsScreen extends StatefulWidget {
   const MyBookingsScreen({super.key});
@@ -148,7 +150,7 @@ class _BookingsFallbackByEmailState extends State<_BookingsFallbackByEmail> {
           return const _EmptyBookings();
         }
         return ListView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(16).withSafeBottom(context),
           itemCount: docs.length,
           itemBuilder: (context, index) {
             final doc = docs[index];
@@ -192,16 +194,10 @@ class _BookingCard extends StatelessWidget {
     try {
       await BookingService.cancelBooking(bookingId);
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(context.t('bookingCancelled'))));
+      ScaffoldMessenger.of(context).showInfo(context.t('bookingCancelled'));
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showError(e);
     }
   }
 
@@ -312,13 +308,13 @@ class _BookingCard extends StatelessWidget {
               _row(
                 Icons.payments_outlined,
                 context.t('total'),
-                'EGP ${total is num ? total.toStringAsFixed(0) : total}',
+                egp(total is num ? total.toStringAsFixed(0) : total),
               ),
             if (data['payment_method'] != null)
               _row(
                 Icons.credit_card,
                 context.t('paidVia'),
-                data['payment_method'].toString(),
+                paymentMethodLabel(data['payment_method'].toString()),
               ),
             if (Fleet.bookingSummary(data) case final fleet
                 when fleet.isNotEmpty)
@@ -326,9 +322,17 @@ class _BookingCard extends StatelessWidget {
             if (_paymentStatusKey(data) case final key?)
               _row(Icons.receipt_long, context.t('payment'), context.t(key)),
             if (pickupLoc != null)
-              _row(Icons.place, context.t('from'), pickupLoc.address),
+              _row(
+                Icons.place,
+                context.t('from'),
+                addressLabel(pickupLoc.address),
+              ),
             if (dropoffLoc != null)
-              _row(Icons.flag, context.t('to'), dropoffLoc.address),
+              _row(
+                Icons.flag,
+                context.t('to'),
+                addressLabel(dropoffLoc.address),
+              ),
             if (hasChauffeur) ...[
               _row(
                 Icons.person,
@@ -343,11 +347,7 @@ class _BookingCard extends StatelessWidget {
                 ),
             ],
             if (tripStatus.isNotEmpty)
-              _row(
-                Icons.route,
-                context.t('trip'),
-                tripStatus.replaceAll('_', ' '),
-              ),
+              _row(Icons.route, context.t('trip'), statusLabel(tripStatus)),
             if (hasStartKm)
               _row(Icons.speed, context.t('pickupKm'), startKm.toString()),
             if (hasEndKm)
@@ -356,25 +356,38 @@ class _BookingCard extends StatelessWidget {
               _row(
                 Icons.straighten,
                 context.t('distance'),
-                '$drivenKm km ($allowedKm km allowed)',
+                tr(
+                  'kmDrivenAllowed',
+                  args: {'driven': '$drivenKm', 'allowed': '$allowedKm'},
+                ),
               ),
             if (extraKm != null && extraKm > 0)
               _row(
                 Icons.add_road,
                 context.t('extraKm'),
-                '$extraKm km × ${KmBillingService.extraKmRateEgp.toStringAsFixed(0)} EGP',
+                tr(
+                  'extraKmRate',
+                  args: {
+                    'km': '$extraKm',
+                    'rate': KmBillingService.extraKmRateEgp.toStringAsFixed(0),
+                  },
+                ),
               ),
             if (extraKmCharge != null && extraKmCharge > 0)
               _row(
                 Icons.receipt_long,
                 context.t('extraKmCharge'),
-                'EGP ${extraKmCharge.toStringAsFixed(0)}',
+                egp(extraKmCharge),
               ),
             if (finalAmount != null && hasEndKm)
               _row(
                 Icons.payments,
                 context.t('finalTotal'),
-                'EGP ${finalAmount is num ? finalAmount.toStringAsFixed(0) : finalAmount}',
+                egp(
+                  finalAmount is num
+                      ? finalAmount.toStringAsFixed(0)
+                      : finalAmount,
+                ),
               ),
             if (extraKmCharge != null &&
                 extraKmCharge > 0 &&
@@ -385,11 +398,11 @@ class _BookingCard extends StatelessWidget {
                 extraKmPaymentStatusLabel(data),
               ),
             if (isSigned)
-              _row(Icons.verified, 'Rental Agreement', 'Signed & Emailed'),
+              _row(Icons.verified, tr('rentalAgreement'), tr('signedEmailed')),
             if (hasPickupVideo || hasReturnVideo) ...[
               const SizedBox(height: 8),
-              const Text(
-                'Condition Videos:',
+              Text(
+                tr('conditionVideos'),
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
@@ -473,9 +486,8 @@ class _BookingCard extends StatelessWidget {
                         ),
                       );
                       if (ok == true && context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(context.t('agreementSigned'))),
-                        );
+                        ScaffoldMessenger.of(context)
+                            .showInfo(context.t('agreementSigned'));
                       }
                     },
                     icon: const Icon(Icons.assignment_turned_in, size: 18),
@@ -499,11 +511,8 @@ class _BookingCard extends StatelessWidget {
                         ),
                       );
                       if (ok == true && context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(context.t('pickupKmRecorded')),
-                          ),
-                        );
+                        ScaffoldMessenger.of(context)
+                            .showInfo(context.t('pickupKmRecorded'));
                       }
                     },
                     icon: const Icon(Icons.camera_alt, size: 18),
@@ -543,11 +552,8 @@ class _BookingCard extends StatelessWidget {
                         ),
                       );
                       if (ok == true && context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(context.t('returnKmRecorded')),
-                          ),
-                        );
+                        ScaffoldMessenger.of(context)
+                            .showInfo(context.t('returnKmRecorded'));
                       }
                     },
                     icon: const Icon(Icons.camera_enhance, size: 18),

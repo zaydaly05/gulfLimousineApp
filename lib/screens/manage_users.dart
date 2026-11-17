@@ -12,6 +12,7 @@ import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
 import '../utils/live_refresh.dart';
 import '../services/user_profile_service.dart';
+import '../widgets/app_feedback.dart';
 
 class ManageUsersScreen extends StatefulWidget {
   const ManageUsersScreen({super.key});
@@ -37,7 +38,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
       return email.split('@').first;
     }
 
-    return 'No Name';
+    return tr('noName');
   }
 
   static String _resolvePhone(Map<String, dynamic> user) {
@@ -49,7 +50,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     if (user['createdAt'] != null && user['created_at'] == null) {
       return 'Google';
     }
-    return 'Email';
+    return tr('email');
   }
 
   static Timestamp? _resolveCreatedAt(Map<String, dynamic> user) {
@@ -132,6 +133,9 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
         child: StreamBuilder<QuerySnapshot>(
           stream: _usersStream,
           builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return ErrorView(error: snapshot.error, dark: true);
+            }
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
@@ -239,10 +243,17 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
-                            "${context.t('email')}: ${user['email'] ?? ''}\n"
-                            "${context.t('phone')}: ${_resolvePhone(user)}\n"
-                            "Role: ${user['role'] ?? ''}\n"
-                            "Created: $formattedDate",
+                            tr(
+                              'roleCreated',
+                              args: {
+                                't': context.t('email'),
+                                'useremail': ltr(user['email'] ?? ''),
+                                't2': context.t('phone'),
+                                'v3': ltr(_resolvePhone(user)),
+                                'userrole': roleLabel('${user['role'] ?? ''}'),
+                                'formattedDate': ltr(formattedDate),
+                              },
+                            ),
                             style: TextStyle(
                               color: Colors.grey.shade400,
                               height: 1.4,

@@ -5,6 +5,8 @@ import '../services/km_billing_service.dart';
 import 'admin_charts.dart';
 import 'status_pill.dart';
 import 'action_button_row.dart';
+import '../l10n/locale_service.dart';
+import 'app_feedback.dart';
 
 class ExtraKmAdminPanel extends StatefulWidget {
   final String bookingId;
@@ -34,24 +36,22 @@ class _ExtraKmAdminPanelState extends State<ExtraKmAdminPanel> {
       builder: (_) => AlertDialog(
         backgroundColor: Colors.grey.shade900,
         title: Text(
-          paid ? 'Confirm payment received?' : 'Mark as unpaid?',
+          paid ? tr('confirmPaymentReceivedQ') : tr('markUnpaidQ'),
           style: const TextStyle(color: Colors.white),
         ),
         content: Text(
-          paid
-              ? 'Mark the extra kilometer charge as paid for this booking.'
-              : 'Set the extra kilometer charge back to pending.',
+          paid ? tr('markExtraKmPaid') : tr('setExtraKmPending'),
           style: const TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(tr('cancel')),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: Text(
-              paid ? 'Mark paid' : 'Mark pending',
+              paid ? tr('markPaid') : tr('markPending'),
               style: TextStyle(color: paid ? Colors.green : Colors.orange),
             ),
           ),
@@ -68,17 +68,11 @@ class _ExtraKmAdminPanelState extends State<ExtraKmAdminPanel> {
         paid: paid,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Extra km marked as $label'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      ScaffoldMessenger.of(context)
+          .showSuccess(tr('extraKmMarkedAs', args: {'label': label}));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$e'), backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context).showError(e);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -100,7 +94,7 @@ class _ExtraKmAdminPanelState extends State<ExtraKmAdminPanel> {
 
     if (!hasKmData && !hasExtra) {
       return Text(
-        'No odometer readings yet',
+        tr('noOdometerReadingsYet'),
         style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
       );
     }
@@ -121,7 +115,7 @@ class _ExtraKmAdminPanelState extends State<ExtraKmAdminPanel> {
               const Icon(Icons.speed, color: Colors.orange, size: 18),
               const SizedBox(width: 8),
               Text(
-                'Odometer & extra km',
+                tr('odometerExtraKm'),
                 style: TextStyle(
                   color: Colors.grey.shade200,
                   fontWeight: FontWeight.bold,
@@ -130,37 +124,51 @@ class _ExtraKmAdminPanelState extends State<ExtraKmAdminPanel> {
             ],
           ),
           const SizedBox(height: 8),
-          if (startKm != null) _line('Pickup km', startKm.toString()),
-          if (endKm != null) _line('Return km', endKm.toString()),
+          if (startKm != null) _line(tr('pickupKm'), startKm.toString()),
+          if (endKm != null) _line(tr('returnKm'), endKm.toString()),
           if (km != null) ...[
-            if (km['drivenKm'] != null) _line('Driven', '${km['drivenKm']} km'),
+            if (km['drivenKm'] != null)
+              _line(
+                tr('driven'),
+                tr('kmValue', args: {'n': '${km['drivenKm']}'}),
+              ),
             if (km['allowedKm'] != null)
-              _line('Allowed', '${km['allowedKm']} km'),
+              _line(
+                tr('allowed'),
+                tr('kmValue', args: {'n': '${km['allowedKm']}'}),
+              ),
             if ((km['extraKm'] as num? ?? 0) > 0)
               _line(
-                'Extra km',
-                '${km['extraKm']} km × '
-                    '${KmBillingService.extraKmRateEgp.toStringAsFixed(0)} EGP',
+                tr('extraKm'),
+                tr(
+                  'extraKmRate',
+                  args: {
+                    'km': '${km['extraKm']}',
+                    'rate': KmBillingService.extraKmRateEgp.toStringAsFixed(0),
+                  },
+                ),
               ),
             if ((km['extraKmChargeEgp'] as num? ?? 0) > 0)
               _line(
-                'Extra charge',
-                'EGP ${(km['extraKmChargeEgp'] as num).toStringAsFixed(0)}',
+                tr('extraCharge'),
+                egp(km['extraKmChargeEgp'] as num),
                 highlight: true,
               ),
           ],
           if (finalAmount != null && endKm != null)
             _line(
-              'Final total',
-              'EGP ${finalAmount.toStringAsFixed(0)} '
-                  '(base EGP ${baseAmount.toStringAsFixed(0)})',
+              tr('finalTotal'),
+              tr(
+                'finalWithBase',
+                args: {'total': egp(finalAmount), 'base': egp(baseAmount)},
+              ),
             ),
           if (hasExtra) ...[
             const SizedBox(height: 8),
             Row(
               children: [
                 Text(
-                  'Payment: ',
+                  tr('payment2'),
                   style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
                 ),
                 StatusPill(
@@ -187,7 +195,7 @@ class _ExtraKmAdminPanelState extends State<ExtraKmAdminPanel> {
                     ElevatedButton.icon(
                       onPressed: () => _setPaid(true),
                       icon: const Icon(Icons.check_circle, size: 18),
-                      label: const Text('Mark paid'),
+                      label: Text(tr('markPaid')),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
                         foregroundColor: Colors.white,
@@ -197,7 +205,7 @@ class _ExtraKmAdminPanelState extends State<ExtraKmAdminPanel> {
                     OutlinedButton.icon(
                       onPressed: () => _setPaid(false),
                       icon: const Icon(Icons.undo, size: 18),
-                      label: const Text('Mark pending'),
+                      label: Text(tr('markPending')),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.orange,
                         side: const BorderSide(color: Colors.orange),
@@ -213,7 +221,7 @@ class _ExtraKmAdminPanelState extends State<ExtraKmAdminPanel> {
                     ElevatedButton.icon(
                       onPressed: () => _setPaid(true),
                       icon: const Icon(Icons.check_circle),
-                      label: const Text('Approve — extra km paid'),
+                      label: Text(tr('approveExtraKmPaid')),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
                         foregroundColor: Colors.white,
@@ -225,7 +233,7 @@ class _ExtraKmAdminPanelState extends State<ExtraKmAdminPanel> {
                     OutlinedButton.icon(
                       onPressed: () => _setPaid(false),
                       icon: const Icon(Icons.undo),
-                      label: const Text('Mark as unpaid'),
+                      label: Text(tr('markAsUnpaid')),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.orange,
                         side: const BorderSide(color: Colors.orange),

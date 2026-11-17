@@ -2,6 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Take photos for your profile, documents, payment receipts and the car odometer.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Choose photos for your profile, documents, payment receipts and the car odometer.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Show your position on the map and fill in pickup and drop-off addresses.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Unlock Gulf Limousine with Face ID or fingerprint.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
@@ -9,7 +15,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Gulflimousine Travel</string>
+	<string>Gulf Limousine</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

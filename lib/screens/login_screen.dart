@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../config/api_keys.dart';
 import 'dashboard_screen.dart';
 import 'forgot_password.dart';
 import 'signup_screen.dart';
@@ -13,6 +14,8 @@ import '../services/auth_navigation.dart';
 import '../widgets/language_picker.dart';
 import '../l10n/locale_service.dart';
 import '../services/user_profile_service.dart';
+import '../utils/safe_insets.dart';
+import '../widgets/app_feedback.dart';
 
 class LoginScreen extends StatefulWidget {
   /// False when the user just chose "Use password instead", so the screen
@@ -31,7 +34,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _isLoading = false;
   bool _biometricHardwareAvailable = false;
-  String _biometricLabel = 'Fingerprint';
+  String _biometricLabel = tr('fingerprint');
 
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
 
@@ -60,7 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _initializeGoogleSignIn() async {
     try {
       await _googleSignIn.initialize(
-        serverClientId: '671779610901-3ifha330389vg8bg9rdmjjtnalvrnjjg.apps.googleusercontent.com',
+        serverClientId: ApiKeys.googleServerClientId,
       );
 
       debugPrint('Google Sign-In initialized successfully');
@@ -74,7 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
     if (email.isEmpty || password.isEmpty) {
-      _showError("Please enter email and password");
+      _showError(tr('enterEmailPassword'));
       return;
     }
 
@@ -97,9 +100,9 @@ class _LoginScreenState extends State<LoginScreen> {
         password: password,
       );
     } on FirebaseAuthException catch (e) {
-      _showError(e.message ?? "Login failed");
+      _showError(e);
     } catch (e) {
-      _showError("An unexpected error occurred: $e");
+      _showError(e);
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -137,7 +140,7 @@ class _LoginScreenState extends State<LoginScreen> {
           // Silent if user just cancelled
           return;
         }
-        _showError("Google Sign-In failed: $e");
+        _showError(e, title: tr('googleSignInFailed'));
       }
     } finally {
       if (mounted) {
@@ -159,11 +162,13 @@ class _LoginScreenState extends State<LoginScreen> {
         await _handleUserNavigation(user, offerBiometrics: false);
       } else if (emailInput.isNotEmpty && passwordInput.isNotEmpty) {
         final ok = await BiometricService.authenticate(
-          reason: 'Authenticate $_biometricLabel to save login credentials',
+          reason: tr('authToSaveLogin', args: {'method': _biometricLabel}),
         );
         if (!ok) {
           if (mounted) {
-            _showError('$_biometricLabel authentication failed or cancelled');
+            _showError(
+              tr('authFailedCancelled', args: {'method': _biometricLabel}),
+            );
           }
           return;
         }
@@ -182,17 +187,17 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       } else {
         final ok = await BiometricService.authenticate(
-          reason: 'Authenticate $_biometricLabel for login',
+          reason: tr('authForLogin', args: {'method': _biometricLabel}),
         );
         if (ok && mounted) {
-          _showError(
+          ScaffoldMessenger.of(context).showSuccess(
             context.t('setupBiometrics', args: {'method': _biometricLabel}),
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        _showError(e.toString().replaceFirst('Exception: ', ''));
+        _showError(e);
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -229,11 +234,10 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _showError(String message) {
+  /// [error] is a message or any error (shown as a clear message).
+  void _showError(Object error, {String? title}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
-    );
+    showError(context, error, title: title);
   }
 
   @override
@@ -252,7 +256,7 @@ class _LoginScreenState extends State<LoginScreen> {
       // through, so the page was white or dark grey depending on dark mode.
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
+        padding: EdgeInsets.symmetric(horizontal: 24).withSafeBottom(context),
         child: SizedBox(
           height: MediaQuery.of(context).size.height,
           child: Center(
@@ -325,6 +329,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
+                    textDirection: TextDirection.ltr,
                     autofillHints: const [AutofillHints.email],
                     decoration: _inputDecoration(
                       context.t('email'),
@@ -377,7 +382,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const ForgotPasswordDialog(),
+                            builder: (_) => ForgotPasswordScreen(
+                              initialEmail: _emailController.text.trim(),
+                            ),
                           ),
                         );
                       },
@@ -451,7 +458,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const SignUpDialog(),
+                                builder: (_) => const SignUpScreen(),
                               ),
                             );
                           },

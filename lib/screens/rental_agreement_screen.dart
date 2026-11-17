@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../services/booking_service.dart';
+import '../utils/safe_insets.dart';
+import '../l10n/locale_service.dart';
+import '../widgets/app_feedback.dart';
 
 class RentalAgreementScreen extends StatefulWidget {
   final String? bookingId;
@@ -40,9 +43,7 @@ class _RentalAgreementScreenState extends State<RentalAgreementScreen> {
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
+        ScaffoldMessenger.of(context).showError(e);
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -51,29 +52,29 @@ class _RentalAgreementScreenState extends State<RentalAgreementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    String carName = 'Car';
+    String carName = tr('carFallback');
     if (widget.bookingData != null) {
       carName =
           widget.bookingData!['carName'] ??
           widget.bookingData!['car_name'] ??
-          'Car';
+          tr('carFallback');
     } else if (widget.rentalDetails != null) {
       carName = widget.rentalDetails!.carName;
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Rental Agreement'),
+        title: Text(tr('rentalAgreement')),
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(20).withSafeBottom(context),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'RENTAL TERMS & CONDITIONS',
+            Text(
+              tr('rentalTermsConditions'),
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
@@ -86,11 +87,7 @@ class _RentalAgreementScreenState extends State<RentalAgreementScreen> {
                 border: Border.all(color: Colors.grey.shade300),
               ),
               child: Text(
-                '1. USE OF VEHICLE: The Renter shall use the $carName only for personal transport and shall not use it for illegal purposes.\n\n'
-                '2. GPS TRACKING: The vehicle is equipped with a GPS tracking device. The Owner reserves the right to monitor the vehicle\'s location at all times for security reasons.\n\n'
-                '3. SAFE ZONE: The Renter agrees to keep the vehicle within the designated Safe Zone (100km radius from Cairo). Leaving this zone may trigger security alerts.\n\n'
-                '4. THEFT & LOSS: In the event of theft, the Renter must immediately notify the Owner and the police. The Renter is legally responsible for the full value of the vehicle if theft occurs due to negligence.\n\n'
-                '5. REMOTE LOCK: The Owner reserves the right to remotely immobilize the vehicle if any suspicious activity is detected or terms are breached.',
+                tr('t1UseOfVehicleThe', args: {'carName': carName}),
                 style: TextStyle(height: 1.5, color: Colors.grey.shade800),
               ),
             ),
@@ -98,8 +95,8 @@ class _RentalAgreementScreenState extends State<RentalAgreementScreen> {
             CheckboxListTile(
               value: _accepted,
               onChanged: (v) => setState(() => _accepted = v ?? false),
-              title: const Text(
-                'I have read and agree to the terms of the digital rental agreement. I understand a copy will be sent to my email.',
+              title: Text(
+                tr('iHaveReadAndAgree'),
                 style: TextStyle(fontSize: 13),
               ),
               activeColor: Colors.orange,
@@ -117,8 +114,8 @@ class _RentalAgreementScreenState extends State<RentalAgreementScreen> {
               ),
               child: _submitting
                   ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text(
-                      'Sign & Start Rental',
+                  : Text(
+                      tr('signStartRental'),
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,

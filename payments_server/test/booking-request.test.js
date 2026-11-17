@@ -37,6 +37,12 @@ test('payment states per method', () => {
   assert.match(parse({ paymentMethod: 'paymob' }, false).error, /not set up/);
 });
 
+test('the app\'s checkbox agreement is accepted', () => {
+  const r = parse({ signatureUrl: 'digital_signature_accepted' });
+  assert.equal(r.error, undefined);
+  assert.equal(r.signatureUrl, 'digital_signature_accepted');
+});
+
 test('bad requests are refused', () => {
   assert.match(parse({ pickupDay: '2026-11-10' }).error, /passed/);
   assert.match(parse({ returnDay: '2026-11-19' }).error, /after pickup/);
@@ -45,6 +51,8 @@ test('bad requests are refused', () => {
   assert.match(parse({ quantity: 21 }).error, /1 to/);
   assert.match(parse({ pickupLocation: null }).error, /locations/);
   assert.match(parse({ signatureUrl: 'https://evil.example/sig.png' }).error, /agreement/);
+  assert.match(parse({ signatureUrl: '' }).error, /agreement/);
+  assert.match(parse({ signatureUrl: 'accepted' }).error, /agreement/);
   assert.match(parse({ paymentMethod: 'instapay', reference: '12', payerPhone: '01012345678' }).error, /transaction/);
   assert.match(parse({ paymentMethod: 'wallet', reference: '123456789', payerPhone: '0223456789' }).error, /mobile/);
   assert.match(parse({ paymentMethod: 'bitcoin' }).error, /payment method/);

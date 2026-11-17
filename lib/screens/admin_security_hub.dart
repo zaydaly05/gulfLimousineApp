@@ -7,9 +7,12 @@ import 'package:latlong2/latlong.dart';
 
 import '../services/booking_service.dart';
 import '../services/whatsapp_service.dart';
+import '../utils/safe_insets.dart';
 import 'edit_booking_screen.dart';
 import '../models/geo_location.dart';
 import '../widgets/app_map.dart';
+import '../l10n/locale_service.dart';
+import '../widgets/app_feedback.dart';
 
 class AdminSecurityHub extends StatefulWidget {
   const AdminSecurityHub({super.key});
@@ -44,13 +47,16 @@ class _AdminSecurityHubState extends State<AdminSecurityHub> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Security & Anti-Theft Hub'),
+        title: Text(tr('securityAntiTheftHub')),
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: _activeTripsStream,
         builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return ErrorView(error: snapshot.error);
+          }
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -62,8 +68,9 @@ class _AdminSecurityHubState extends State<AdminSecurityHub> {
             final data = doc.data() as Map<String, dynamic>;
             final pos = _toLatLng(data['liveLocation']);
             final security = data['security'];
-            final carName = (data['carName'] ?? data['car_name'] ?? 'Car')
-                .toString();
+            final carName =
+                (data['carName'] ?? data['car_name'] ?? tr('carFallback'))
+                    .toString();
 
             if (pos != null) {
               final isImmobilized =
@@ -162,7 +169,10 @@ class _AdminSecurityHubState extends State<AdminSecurityHub> {
                     ],
                   ),
                   child: Text(
-                    'Monitoring ${docs.length} Active Trips\nSafe Zone: 100km radius from Cairo',
+                    tr(
+                      'monitoringActiveTripsSafeZone',
+                      args: {'length': '${docs.length}'},
+                    ),
                     textAlign: TextAlign.center,
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
@@ -179,7 +189,7 @@ class _AdminSecurityHubState extends State<AdminSecurityHub> {
     final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final customerName =
-        (data['customerName'] ?? data['userName'] ?? 'Customer').toString();
+        (data['customerName'] ?? data['userName'] ?? tr('customer')).toString();
     unawaited(
       showModalBottomSheet(
         context: context,
@@ -189,25 +199,26 @@ class _AdminSecurityHubState extends State<AdminSecurityHub> {
               security is Map && security['isImmobilized'] == true;
 
           return Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(20).withSafeBottom(sheetContext),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  (data['carName'] ?? data['car_name'] ?? 'Car').toString(),
+                  (data['carName'] ?? data['car_name'] ?? tr('carFallback'))
+                      .toString(),
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                Text('Customer: $customerName'),
+                Text(tr('customer2', args: {'customerName': customerName})),
                 const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     if ((data['phone'] ?? '').toString().isNotEmpty)
                       IconButton(
-                        tooltip: 'WhatsApp Customer',
+                        tooltip: tr('whatsappCustomer'),
                         icon: const Icon(
                           Icons.chat_bubble_outline,
                           color: Color(0xFF25D366),
@@ -231,7 +242,7 @@ class _AdminSecurityHubState extends State<AdminSecurityHub> {
                         );
                       },
                       icon: const Icon(Icons.edit),
-                      label: const Text('Manage'),
+                      label: Text(tr('manage')),
                     ),
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
@@ -247,18 +258,15 @@ class _AdminSecurityHubState extends State<AdminSecurityHub> {
                             immobilized: !isImmobilized,
                           );
                         } catch (e) {
-                          messenger.showSnackBar(
-                            SnackBar(
-                              content: Text('$e'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
+                          messenger.showError(e);
                         }
                         if (sheetContext.mounted) Navigator.pop(sheetContext);
                       },
                       icon: Icon(isImmobilized ? Icons.lock_open : Icons.lock),
                       label: Text(
-                        isImmobilized ? 'Restore Engine' : 'Engine Kill Switch',
+                        isImmobilized
+                            ? tr('restoreEngine')
+                            : tr('engineKillSwitch'),
                       ),
                     ),
                   ],

@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 
 import 'app_config_service.dart';
+import '../l10n/locale_service.dart';
+import '../l10n/server_errors.dart';
 
 /// A refusal or failure from payments_server, with a message to show.
 class ServerException implements Exception {
@@ -28,12 +30,10 @@ class PaymentsServerClient {
   }) async {
     final config = await AppConfigService.instance.load();
     if (!config.hasPaymob) {
-      throw const ServerException(
-        'This is not available right now. Please try again later.',
-      );
+      throw ServerException(tr('notAvailableNow'));
     }
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) throw const ServerException('Please sign in again.');
+    if (user == null) throw ServerException(tr('pleaseSignInAgain'));
     final idToken = await user.getIdToken();
 
     final http.Response response;
@@ -49,15 +49,15 @@ class PaymentsServerClient {
           )
           .timeout(timeout);
     } catch (_) {
-      throw const ServerException(
-        'Could not reach the server. Check your connection.',
-      );
+      throw ServerException(tr('couldNotReachServer'));
     }
 
     final decoded = _decode(response.body);
     if (response.statusCode != 200) {
       throw ServerException(
-        decoded['error']?.toString() ?? 'Something went wrong. Try again.',
+        decoded['error'] is String
+            ? localizeServerMessage(decoded['error'] as String)
+            : tr('somethingWentWrong'),
         body: decoded,
       );
     }

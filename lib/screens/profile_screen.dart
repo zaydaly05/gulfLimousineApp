@@ -7,7 +7,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../services/account_deletion_service.dart';
 import '../services/cloudinary_service.dart';
 import '../services/auth_navigation.dart';
 import '../widgets/biometric_settings_tile.dart';
@@ -15,6 +17,8 @@ import '../widgets/language_picker.dart';
 import '../l10n/locale_service.dart';
 import '../services/user_profile_service.dart';
 import '../utils/image_decode.dart';
+import '../utils/safe_insets.dart';
+import '../widgets/app_feedback.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -178,27 +182,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (!mounted) return;
       if (!biometricOk) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.t('profileSavedBioFailed')),
-            backgroundColor: Colors.orange,
-          ),
-        );
+        ScaffoldMessenger.of(context)
+            .showError(context.t('profileSavedBioFailed'));
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.t('changesSaved')),
-          backgroundColor: Colors.green,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSuccess(context.t('changesSaved'));
       await AuthNavigation.goToRoleHome(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$e'), backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context).showError(e);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -238,7 +231,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         onRefresh: _loadUserData,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.all(20).withSafeBottom(context),
           child: Column(
             children: [
               Semantics(
@@ -267,12 +260,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 20),
               _input(context.t('fullName'), nameController),
-              _input(context.t('email'), emailController, enabled: false),
-              _input(context.t('phone'), phoneController),
-              _input('National ID', nationalIdController),
+              _input(
+                context.t('email'),
+                emailController,
+                enabled: false,
+                ltr: true,
+              ),
+              _input(context.t('phone'), phoneController, ltr: true),
+              _input(tr('nationalId'), nationalIdController, ltr: true),
 
               const SizedBox(height: 24),
-              _sectionHeader(Icons.security, 'Security & Privacy'),
+              _sectionHeader(Icons.security, tr('securityPrivacy')),
               const SizedBox(height: 12),
               Card(
                 elevation: 0,
@@ -292,33 +290,61 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Icons.lock_reset,
                         color: Colors.orange,
                       ),
-                      title: const Text('Change Password'),
-                      subtitle: const Text('Send reset link to your email'),
+                      title: Text(tr('changePassword')),
+                      subtitle: Text(tr('sendResetLinkToYour')),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: _sendPasswordReset,
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(
+                        Icons.privacy_tip_outlined,
+                        color: Colors.orange,
+                      ),
+                      title: Text(tr('privacyPolicy')),
+                      subtitle: Text(tr('whatWeCollectAndWhy')),
+                      trailing: const Icon(Icons.open_in_new),
+                      onTap: _openPrivacyPolicy,
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(
+                        Icons.delete_forever_outlined,
+                        color: Colors.red,
+                      ),
+                      title: Text(
+                        tr('deleteAccount'),
+                        style: TextStyle(color: Colors.red),
+                      ),
+                      subtitle: Text(tr('permanentlyRemoveYourProfileAnd')),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: _deleting ? null : _confirmDeleteAccount,
                     ),
                   ],
                 ),
               ),
 
               const SizedBox(height: 24),
-              _sectionHeader(Icons.document_scanner, 'Verification Documents'),
+              _sectionHeader(
+                Icons.document_scanner,
+                tr('verificationDocuments'),
+              ),
               const SizedBox(height: 12),
               _imagePreviewTile(
-                'National ID Photo',
+                tr('nationalIdPhoto'),
                 _nationalIdImage,
                 _nationalIdImageUrl,
                 () => _pickImageForField(true),
               ),
               const SizedBox(height: 14),
               _imagePreviewTile(
-                'Driver License Photo',
+                tr('driverLicensePhoto'),
                 _licenseIdImage,
                 _licenseIdImageUrl,
                 () => _pickImageForField(false),
               ),
               const SizedBox(height: 24),
-              _sectionHeader(Icons.language, 'Regional Settings'),
+              _sectionHeader(Icons.language, tr('regionalSettings')),
               const SizedBox(height: 12),
               const LanguagePicker(),
               const SizedBox(height: 32),
@@ -363,6 +389,84 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
+  static final _privacyPolicyUrl = Uri.parse(
+    'https://gulf-limousine-travel-1d4c7.web.app/privacy.html',
+  );
+
+  void _openPrivacyPolicy() {
+    unawaited(
+      launchUrl(
+        _privacyPolicyUrl,
+        mode: LaunchMode.externalApplication,
+      ).catchError((Object e) {
+        debugPrint('Could not open privacy policy: $e');
+        return false;
+      }),
+    );
+  }
+
+  bool _deleting = false;
+
+  Future<void> _confirmDeleteAccount() async {
+    final passwordController = TextEditingController();
+    final needsPassword = AccountDeletionService.usesPassword;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(tr('deleteYourAccount')),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(tr('thisPermanentlyDeletesYourProfile')),
+              if (needsPassword) ...[
+                const SizedBox(height: 16),
+                TextField(
+                  controller: passwordController,
+                  obscureText: true,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    labelText: tr('enterYourPasswordToConfirm'),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(tr('cancel')),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text(tr('delete')),
+          ),
+        ],
+      ),
+    );
+    final password = passwordController.text;
+    passwordController.dispose();
+    if (confirmed != true || !mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _deleting = true);
+    try {
+      await AccountDeletionService.reauthenticate(password: password);
+      await AccountDeletionService.deleteAccount();
+      messenger.showInfo(tr('yourAccountHasBeenDeleted'));
+      if (!mounted) return;
+      await AuthNavigation.signOut(context, autoPromptBiometrics: false);
+    } on AccountDeletionException catch (e) {
+      messenger.showError(e);
+    } finally {
+      if (mounted) setState(() => _deleting = false);
+    }
+  }
+
   Future<void> _sendPasswordReset() async {
     final email = _auth.currentUser?.email;
     if (email == null) return;
@@ -370,17 +474,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       await _auth.sendPasswordResetEmail(email: email);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Password reset email sent to $email'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      ScaffoldMessenger.of(context)
+          .showSuccess(tr('passwordResetEmailSentTo', args: {'email': email}));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$e'), backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context).showError(e);
     }
   }
 
@@ -459,12 +557,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     String label,
     TextEditingController controller, {
     bool enabled = true,
+    bool ltr = false,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: TextField(
         controller: controller,
         enabled: enabled,
+        // Emails, phone and ID numbers read left to right in Arabic too.
+        textDirection: ltr ? TextDirection.ltr : null,
         decoration: InputDecoration(
           labelText: label,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),

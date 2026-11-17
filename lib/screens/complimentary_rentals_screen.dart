@@ -14,6 +14,7 @@ import '../utils/live_refresh.dart';
 import '../widgets/dark_form_fields.dart';
 import '../widgets/status_pill.dart';
 import '../services/complimentary_rental_service.dart';
+import '../widgets/app_feedback.dart';
 
 class ComplimentaryRentalsScreen extends StatefulWidget {
   const ComplimentaryRentalsScreen({super.key});
@@ -77,12 +78,12 @@ class _ComplimentaryRentalsScreenState
     return status != 'cancelled';
   }
 
-  String _egp(num value) => 'EGP ${value.toStringAsFixed(0)}';
+  String _egp(num value) => egp(value);
 
   String _personKey(Map<String, dynamic> data) {
     final email = (data['email'] ?? '').toString().trim().toLowerCase();
     final phone = (data['phone'] ?? '').toString().trim();
-    final name = (data['recipientName'] ?? 'Guest')
+    final name = (data['recipientName'] ?? tr('guest'))
         .toString()
         .trim()
         .toLowerCase();
@@ -100,15 +101,9 @@ class _ComplimentaryRentalsScreenState
     await ComplimentaryRentalService.setStatus(id, data, status);
 
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          status == 'completed'
-              ? 'Complimentary rental ended. Car is available again.'
-              : 'Complimentary rental cancelled.',
-        ),
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showInfo(status == 'completed' ? tr('giftEnded') : tr('giftCancelled'));
   }
 
   Future<void> _delete(
@@ -120,22 +115,19 @@ class _ComplimentaryRentalsScreenState
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: Colors.grey.shade900,
-        title: const Text(
-          'Delete record',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: const Text(
-          'Remove this complimentary rental from the list?',
+        title: Text(tr('deleteRecord'), style: TextStyle(color: Colors.white)),
+        content: Text(
+          tr('removeThisComplimentaryRentalFrom'),
           style: TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
+            child: Text(tr('cancel')),
           ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: Text(tr('delete'), style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -162,7 +154,7 @@ class _ComplimentaryRentalsScreenState
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: Colors.orange,
         icon: const Icon(Icons.card_giftcard, color: Colors.white),
-        label: const Text('Grant car', style: TextStyle(color: Colors.white)),
+        label: Text(tr('grantCar'), style: TextStyle(color: Colors.white)),
         onPressed: () {
           Navigator.push(
             context,
@@ -181,11 +173,10 @@ class _ComplimentaryRentalsScreenState
               return const Center(child: CircularProgressIndicator());
             }
             if (snapshot.hasError) {
-              return Center(
-                child: Text(
-                  'Could not load complimentary rentals',
-                  style: TextStyle(color: Colors.red.shade300),
-                ),
+              return ErrorView(
+                error: snapshot.error,
+                message: tr('couldNotLoadComplimentaryRentals'),
+                dark: true,
               );
             }
 
@@ -195,11 +186,11 @@ class _ComplimentaryRentalsScreenState
             docs.sort(compareCreatedAtDesc);
 
             if (docs.isEmpty) {
-              return const Center(
+              return Center(
                 child: Padding(
                   padding: EdgeInsets.all(32),
                   child: Text(
-                    'No complimentary or gift cars yet.\nTap Grant car to lend a vehicle at no charge.',
+                    tr('noComplimentaryOrGiftCars'),
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.white70),
                   ),
@@ -217,7 +208,7 @@ class _ComplimentaryRentalsScreenState
                 key,
                 () => _GiftPersonTotal(
                   key: key,
-                  name: (data['recipientName'] ?? 'Guest').toString(),
+                  name: (data['recipientName'] ?? tr('guest')).toString(),
                   phone: (data['phone'] ?? '').toString(),
                   email: (data['email'] ?? '').toString(),
                 ),
@@ -305,7 +296,9 @@ class _ComplimentaryRentalsScreenState
                 final data = doc.data() as Map<String, dynamic>;
                 final status = (data['status'] ?? 'active').toString();
                 final overdue = _isOverdue(data);
-                final label = overdue ? 'OVERDUE' : status.toUpperCase();
+                final label = overdue
+                    ? tr('overdue')
+                    : statusLabel(status).toUpperCase();
                 final color = _statusColor(status, overdue: overdue);
                 final carName = [
                   data['brand'],
@@ -338,7 +331,7 @@ class _ComplimentaryRentalsScreenState
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                carName.isEmpty ? 'Car' : carName,
+                                carName.isEmpty ? tr('carFallback') : carName,
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -351,29 +344,52 @@ class _ComplimentaryRentalsScreenState
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          'For: ${data['recipientName'] ?? 'Guest'}',
+                          tr(
+                            'forName',
+                            args: {
+                              'name': '${data['recipientName'] ?? tr('guest')}',
+                            },
+                          ),
                           style: TextStyle(color: Colors.grey.shade300),
                         ),
                         if ((data['phone'] ?? '').toString().isNotEmpty)
                           Text(
-                            'Phone: ${data['phone']}',
+                            '${tr('phone')}: ${ltr(data['phone'])}',
                             style: TextStyle(color: Colors.grey.shade400),
                           ),
                         Text(
-                          'Type: ${reason[0].toUpperCase()}${reason.substring(1)}',
+                          tr(
+                            'typeLabel',
+                            args: {'type': giftReasonLabel(reason)},
+                          ),
                           style: TextStyle(color: Colors.grey.shade400),
                         ),
                         if (start.isNotEmpty || end.isNotEmpty)
                           Text(
-                            'Period: $start → $end'
-                            '${days != null ? ' · $days day(s)' : ''}',
+                            tr(
+                                  'periodLabel',
+                                  args: {'start': start, 'end': end},
+                                ) +
+                                (days != null
+                                    ? ' · ${tr('daysCount', args: {'n': '$days'})}'
+                                    : ''),
                             style: TextStyle(color: Colors.grey.shade400),
                           ),
                         if (gifted > 0)
                           Text(
                             price > 0
-                                ? 'Gift value: $days day(s) × ${_egp(price)} = ${_egp(gifted)}'
-                                : 'Gift value: ${_egp(gifted)} (not charged)',
+                                ? tr(
+                                    'giftValueCalc',
+                                    args: {
+                                      'days': '$days',
+                                      'price': _egp(price),
+                                      'total': _egp(gifted),
+                                    },
+                                  )
+                                : tr(
+                                    'giftValueOnly',
+                                    args: {'total': _egp(gifted)},
+                                  ),
                             style: const TextStyle(
                               color: Colors.orange,
                               fontWeight: FontWeight.w600,
@@ -381,7 +397,7 @@ class _ComplimentaryRentalsScreenState
                           ),
                         if ((data['notes'] ?? '').toString().isNotEmpty)
                           Text(
-                            'Note: ${data['notes']}',
+                            tr('noteLabel', args: {'note': '${data['notes']}'}),
                             style: TextStyle(color: Colors.grey.shade500),
                           ),
                         const SizedBox(height: 12),
@@ -402,7 +418,7 @@ class _ComplimentaryRentalsScreenState
                                     data,
                                     'cancelled',
                                   ),
-                                  child: const Text('Cancel'),
+                                  child: Text(tr('cancel')),
                                 ),
                               ),
                               const SizedBox(width: 10),
@@ -417,8 +433,8 @@ class _ComplimentaryRentalsScreenState
                                     data,
                                     'completed',
                                   ),
-                                  child: const Text(
-                                    'End rental',
+                                  child: Text(
+                                    tr('endRental'),
                                     style: TextStyle(color: Colors.white),
                                   ),
                                 ),
@@ -430,8 +446,8 @@ class _ComplimentaryRentalsScreenState
                             alignment: AlignmentDirectional.centerEnd,
                             child: TextButton(
                               onPressed: () => _delete(context, doc.id, data),
-                              child: const Text(
-                                'Delete',
+                              child: Text(
+                                tr('delete'),
                                 style: TextStyle(color: Colors.redAccent),
                               ),
                             ),
@@ -533,32 +549,17 @@ class _AddComplimentaryRentalScreenState
     if (!_formKey.currentState!.validate()) return;
 
     if (selectedCarId == null || selectedCarName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a car'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showError(tr('pleaseSelectACar'));
       return;
     }
 
     if (startDate == null || endDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select start and return dates'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showError(tr('pleaseSelectStartAndReturn'));
       return;
     }
 
     if (endDate!.isBefore(startDate!)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Return date must be after the start date'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showError(tr('returnDateMustBeAfter'));
       return;
     }
 
@@ -594,19 +595,10 @@ class _AddComplimentaryRentalScreenState
 
       if (!mounted) return;
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Car granted. It is hidden from the public fleet until returned.',
-          ),
-          backgroundColor: Colors.green,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSuccess(tr('carGrantedItIsHidden'));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context).showError(e);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -618,7 +610,7 @@ class _AddComplimentaryRentalScreenState
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: const Text('Grant complimentary car'),
+        title: Text(tr('grantComplimentaryCar2')),
       ),
       body: Form(
         key: _formKey,
@@ -630,21 +622,21 @@ class _AddComplimentaryRentalScreenState
             24 + MediaQuery.viewPaddingOf(context).bottom,
           ),
           children: [
-            const Text(
-              'Use this when the owner lends a car as a gift or courtesy — no payment is recorded.',
+            Text(
+              tr('useThisWhenTheOwner'),
               style: TextStyle(color: Colors.white70),
             ),
             const SizedBox(height: 16),
-            DarkTextFormField(name, 'Recipient name'),
+            DarkTextFormField(name, tr('recipientName')),
             DarkTextFormField(
               phone,
-              'Phone',
+              tr('phone'),
               type: TextInputType.phone,
               required: false,
             ),
             DarkTextFormField(
               email,
-              'Email',
+              tr('email'),
               type: TextInputType.emailAddress,
               required: false,
             ),
@@ -652,12 +644,12 @@ class _AddComplimentaryRentalScreenState
               initialValue: reason,
               dropdownColor: Colors.grey.shade900,
               style: const TextStyle(color: Colors.white),
-              decoration: darkInputDecoration('Reason'),
+              decoration: darkInputDecoration(tr('reason')),
               items: _reasons
                   .map(
                     (r) => DropdownMenuItem(
                       value: r,
-                      child: Text(r[0].toUpperCase() + r.substring(1)),
+                      child: Text(giftReasonLabel(r)),
                     ),
                   )
                   .toList(),
@@ -678,10 +670,10 @@ class _AddComplimentaryRentalScreenState
 
                 final cars = snapshot.data?.docs ?? [];
                 if (cars.isEmpty) {
-                  return const Padding(
+                  return Padding(
                     padding: EdgeInsets.only(bottom: 12),
                     child: Text(
-                      'No cars in the fleet. Add a car first.',
+                      tr('noCarsInTheFleet'),
                       style: TextStyle(color: Colors.redAccent),
                     ),
                   );
@@ -691,32 +683,34 @@ class _AddComplimentaryRentalScreenState
                   initialValue: selectedCarId,
                   dropdownColor: Colors.grey.shade900,
                   style: const TextStyle(color: Colors.white),
-                  decoration: darkInputDecoration('Car'),
-                  hint: const Text(
-                    'Select car',
+                  decoration: darkInputDecoration(tr('carFallback')),
+                  hint: Text(
+                    tr('selectCar'),
                     style: TextStyle(color: Colors.white70),
                   ),
                   items: cars.map((doc) {
                     final car = doc.data() as Map<String, dynamic>;
-                    final carName = (car['name'] ?? 'Car').toString();
+                    final carName = (car['name'] ?? tr('carFallback'))
+                        .toString();
                     final brand = (car['brand'] ?? '').toString();
                     final available = car['available'] != false;
                     return DropdownMenuItem(
                       value: doc.id,
                       child: Text(
-                        '$brand $carName · EGP ${((car['price_per_day'] as num?)?.toDouble() ?? 0).toStringAsFixed(0)}/day${available ? '' : ' (currently out)'}'
+                        '$brand $carName · ${tr('egpPerDay', args: {'amount': ((car['price_per_day'] as num?)?.toDouble() ?? 0).toStringAsFixed(0)})}${available ? '' : ' ${tr('currentlyOut')}'}'
                             .trim(),
                       ),
                     );
                   }).toList(),
-                  validator: (v) => v == null ? 'Required' : null,
+                  validator: (v) => v == null ? tr('required') : null,
                   onChanged: (id) {
                     if (id == null) return;
                     final doc = cars.firstWhere((c) => c.id == id);
                     final car = doc.data() as Map<String, dynamic>;
                     setState(() {
                       selectedCarId = id;
-                      selectedCarName = (car['name'] ?? 'Car').toString();
+                      selectedCarName = (car['name'] ?? tr('carFallback'))
+                          .toString();
                       selectedBrand = (car['brand'] ?? '').toString();
                       pricePerDay =
                           (car['price_per_day'] as num?)?.toDouble() ?? 0;
@@ -726,33 +720,40 @@ class _AddComplimentaryRentalScreenState
               },
             ),
             const SizedBox(height: 16),
-            const Text('How long?', style: TextStyle(color: Colors.white70)),
+            Text(tr('howLong'), style: TextStyle(color: Colors.white70)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
-                _chip('1 day', 1),
-                _chip('3 days', 3),
-                _chip('1 week', 7),
-                _chip('2 weeks', 14),
-                _chip('1 month', 30),
+                _chip(tr('oneDay'), 1),
+                _chip(tr('threeDays'), 3),
+                _chip(tr('oneWeek'), 7),
+                _chip(tr('twoWeeks'), 14),
+                _chip(tr('oneMonth'), 30),
               ],
             ),
             const SizedBox(height: 12),
             _dateButton(
-              'Select start date',
+              tr('selectStartDate'),
               startDate,
               () => _pickDate(isStart: true),
             ),
             _dateButton(
-              'Select return date',
+              tr('selectReturnDate'),
               endDate,
               () => _pickDate(isStart: false),
             ),
             if (_days > 0 && pricePerDay > 0)
               Text(
-                '$_days day(s) × EGP ${pricePerDay.toStringAsFixed(0)} = EGP ${_total.toStringAsFixed(0)} (gifted, not charged)',
+                tr(
+                  'daySEgpEgpGifted',
+                  args: {
+                    '_days': '$_days',
+                    'toStringAsFixed': pricePerDay.toStringAsFixed(0),
+                    'toStringAsFixed2': _total.toStringAsFixed(0),
+                  },
+                ),
                 style: const TextStyle(
                   color: Colors.orange,
                   fontWeight: FontWeight.w600,
@@ -760,11 +761,11 @@ class _AddComplimentaryRentalScreenState
               )
             else if (_days > 0)
               Text(
-                '$_days day(s) · gift value will use the car daily rate',
+                tr('daySGiftValueWill', args: {'_days': '$_days'}),
                 style: const TextStyle(color: Colors.orange),
               ),
             const SizedBox(height: 12),
-            DarkTextFormField(notes, 'Internal note', required: false),
+            DarkTextFormField(notes, tr('internalNote'), required: false),
             const SizedBox(height: 12),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -781,10 +782,7 @@ class _AddComplimentaryRentalScreenState
                         color: Colors.white,
                       ),
                     )
-                  : const Text(
-                      'Grant car',
-                      style: TextStyle(color: Colors.white),
-                    ),
+                  : Text(tr('grantCar'), style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -890,7 +888,7 @@ class _GiftTotalsHeader extends StatelessWidget {
             dropdownColor: Colors.grey.shade900,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              labelText: 'Filter by person',
+              labelText: tr('filterByPerson'),
               labelStyle: const TextStyle(color: Colors.white70),
               prefixIcon: const Icon(Icons.person_search, color: Colors.orange),
               enabledBorder: OutlineInputBorder(
@@ -903,9 +901,9 @@ class _GiftTotalsHeader extends StatelessWidget {
               ),
             ),
             items: [
-              const DropdownMenuItem<String?>(
+              DropdownMenuItem<String?>(
                 value: null,
-                child: Text('All people'),
+                child: Text(tr('allPeople')),
               ),
               ...people.map(
                 (person) => DropdownMenuItem<String?>(
@@ -927,9 +925,9 @@ class _GiftTotalsHeader extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _periodChip('This month', 'month'),
-              _periodChip('This year', 'year'),
-              _periodChip('All time', 'all'),
+              _periodChip(tr('thisMonth'), 'month'),
+              _periodChip(tr('thisYear'), 'year'),
+              _periodChip(tr('allTime'), 'all'),
             ],
           ),
           const SizedBox(height: 14),
@@ -946,16 +944,16 @@ class _GiftTotalsHeader extends StatelessWidget {
               children: [
                 Text(
                   selected == null
-                      ? 'Gifted value · ${period == 'month'
-                            ? 'this month'
+                      ? '${tr('giftedValue')} · ${period == 'month'
+                            ? tr('thisMonth')
                             : period == 'year'
-                            ? 'this year'
-                            : 'all time'}'
+                            ? tr('thisYear')
+                            : tr('allTime')}'
                       : '${selected.name} · ${period == 'month'
-                            ? 'this month'
+                            ? tr('thisMonth')
                             : period == 'year'
-                            ? 'this year'
-                            : 'all time'}',
+                            ? tr('thisYear')
+                            : tr('allTime')}',
                   style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
                 ),
                 const SizedBox(height: 6),
@@ -969,7 +967,7 @@ class _GiftTotalsHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '$grantCount grant(s)',
+                  tr('grantS', args: {'grantCount': '$grantCount'}),
                   style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
                 ),
               ],
@@ -978,17 +976,17 @@ class _GiftTotalsHeader extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: _totalTile('This month', format(monthTotal))),
+              Expanded(child: _totalTile(tr('thisMonth'), format(monthTotal))),
               const SizedBox(width: 10),
-              Expanded(child: _totalTile('This year', format(yearTotal))),
+              Expanded(child: _totalTile(tr('thisYear'), format(yearTotal))),
               const SizedBox(width: 10),
-              Expanded(child: _totalTile('All time', format(allTotal))),
+              Expanded(child: _totalTile(tr('allTime'), format(allTotal))),
             ],
           ),
           if (people.isNotEmpty) ...[
             const SizedBox(height: 16),
-            const Text(
-              'Gifted by person',
+            Text(
+              tr('giftedByPerson'),
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -1026,9 +1024,9 @@ class _GiftTotalsHeader extends StatelessWidget {
                   subtitle: Text(
                     [
                       if (person.phone.isNotEmpty) person.phone,
-                      'Month ${format(person.monthTotal)}',
-                      'Year ${format(person.yearTotal)}',
-                      'All ${format(person.allTotal)}',
+                      '${tr('month')} ${format(person.monthTotal)}',
+                      '${tr('year')} ${format(person.yearTotal)}',
+                      '${tr('all')} ${format(person.allTotal)}',
                     ].join(' · '),
                     style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
                   ),
@@ -1041,7 +1039,9 @@ class _GiftTotalsHeader extends StatelessWidget {
             }),
             const SizedBox(height: 8),
             Text(
-              selected == null ? 'All grants' : 'Grants for ${selected.name}',
+              selected == null
+                  ? tr('allGrants')
+                  : tr('grantsFor', args: {'name': selected.name}),
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -1053,7 +1053,7 @@ class _GiftTotalsHeader extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Text(
-                  'No grants match this person and period.',
+                  tr('noGrantsMatchThisPerson'),
                   style: TextStyle(color: Colors.grey.shade500),
                 ),
               ),

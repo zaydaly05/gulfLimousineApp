@@ -8,6 +8,8 @@ import '../services/booking_service.dart';
 import 'map_location_picker.dart';
 import '../widgets/app_map.dart';
 import '../theme/app_theme.dart';
+import '../l10n/locale_service.dart';
+import '../widgets/app_feedback.dart';
 
 class UpdateTripLocationScreen extends StatelessWidget {
   final String bookingId;
@@ -26,8 +28,7 @@ class UpdateTripLocationScreen extends StatelessWidget {
       lng: point.longitude,
     );
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Live location updated')));
+    ScaffoldMessenger.of(context).showInfo(tr('liveLocationUpdated'));
   }
 
   Future<void> _simulateTowardPickup(BuildContext context) async {
@@ -58,9 +59,7 @@ class UpdateTripLocationScreen extends StatelessWidget {
       lng: lng,
     );
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Simulated move toward pickup')),
-    );
+    ScaffoldMessenger.of(context).showInfo(tr('simulatedMoveTowardPickup'));
   }
 
   @override
@@ -73,7 +72,7 @@ class UpdateTripLocationScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('Update Live Location'),
+        title: Text(tr('updateLiveLocation2')),
         backgroundColor: Colors.black,
       ),
       body: Column(
@@ -151,8 +150,8 @@ class UpdateTripLocationScreen extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  const Text(
-                    'Tap the map to set the car location, or simulate movement.',
+                  Text(
+                    tr('tapTheMapToSet'),
                     style: TextStyle(color: Colors.white70),
                     textAlign: TextAlign.center,
                   ),
@@ -165,8 +164,8 @@ class UpdateTripLocationScreen extends StatelessWidget {
                             final loc = await Navigator.push<GeoLocation>(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const MapLocationPicker(
-                                  title: 'Set car location',
+                                builder: (_) => MapLocationPicker(
+                                  title: tr('setCarLocation'),
                                 ),
                               ),
                             );
@@ -176,14 +175,14 @@ class UpdateTripLocationScreen extends StatelessWidget {
                               LatLng(loc.lat, loc.lng),
                             );
                           },
-                          child: const Text('Pick on full map'),
+                          child: Text(tr('pickOnFullMap')),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () => _simulateTowardPickup(context),
-                          child: const Text('Simulate move'),
+                          child: Text(tr('simulateMove')),
                         ),
                       ),
                     ],

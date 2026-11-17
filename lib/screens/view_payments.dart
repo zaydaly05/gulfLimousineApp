@@ -6,6 +6,8 @@ import '../l10n/locale_service.dart';
 import '../services/booking_service.dart';
 import '../widgets/language_picker.dart';
 import '../widgets/empty_state.dart';
+import '../utils/safe_insets.dart';
+import '../widgets/app_feedback.dart';
 
 class ViewPaymentsScreen extends StatefulWidget {
   const ViewPaymentsScreen({super.key});
@@ -48,6 +50,9 @@ class _ViewPaymentsScreenState extends State<ViewPaymentsScreen> {
               child: StreamBuilder<QuerySnapshot>(
                 stream: _paymentsStream,
                 builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return ErrorView(error: snapshot.error, dark: true);
+                  }
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
@@ -61,7 +66,8 @@ class _ViewPaymentsScreenState extends State<ViewPaymentsScreen> {
                   }
 
                   return ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: EdgeInsets.symmetric(horizontal: 16)
+                        .withSafeBottom(context),
                     itemCount: snapshot.data!.docs.length,
                     itemBuilder: (context, index) {
                       final doc = snapshot.data!.docs[index];
@@ -100,7 +106,7 @@ class _ViewPaymentsScreenState extends State<ViewPaymentsScreen> {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    "${payment['amount']} EGP",
+                                    egp(payment['amount']),
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 18,
@@ -135,15 +141,15 @@ class _ViewPaymentsScreenState extends State<ViewPaymentsScreen> {
                               ),
                               const SizedBox(height: 10),
                               Text(
-                                "${context.t('email')}: ${payment['user_email']}",
+                                "${context.t('email')}: ${ltr(payment['user_email'])}",
                                 style: TextStyle(color: Colors.grey.shade400),
                               ),
                               Text(
-                                "${context.t('paymentMethod')}: ${payment['method']}",
+                                "${context.t('paymentMethod')}: ${paymentMethodLabel('${payment['method']}')}",
                                 style: TextStyle(color: Colors.grey.shade400),
                               ),
                               Text(
-                                "Date: $formattedDate",
+                                '${tr('date')}: $formattedDate',
                                 style: TextStyle(color: Colors.grey.shade500),
                               ),
                               if (reference.isNotEmpty)
@@ -224,9 +230,11 @@ class _ViewPaymentsScreenState extends State<ViewPaymentsScreen> {
         ),
         content: Text(
           approved
-              ? 'Only confirm after you see EGP ${payment['amount']} '
-                    'in your InstaPay/wallet history with this transaction ID.'
-              : 'The customer will be told the transfer was not found.',
+              ? tr(
+                  'confirmOnlyAfterSee',
+                  args: {'amount': egp(payment['amount'])},
+                )
+              : tr('customerToldNotFound'),
         ),
         actions: [
           TextButton(
@@ -249,15 +257,11 @@ class _ViewPaymentsScreenState extends State<ViewPaymentsScreen> {
         bookingId: bookingId,
         approved: approved,
       );
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(approved ? 'Payment confirmed' : 'Payment rejected'),
-        ),
+      messenger.showInfo(
+        approved ? tr('paymentConfirmed') : tr('paymentRejectedMsg'),
       );
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('$e'), backgroundColor: Colors.red),
-      );
+      messenger.showError(e);
     }
   }
 }

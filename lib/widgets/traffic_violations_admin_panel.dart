@@ -6,6 +6,9 @@ import '../services/traffic_violation_service.dart';
 import '../utils/booking_fields.dart';
 import 'status_colors.dart';
 import 'status_pill.dart';
+import '../l10n/locale_service.dart';
+import '../l10n/content_labels.dart';
+import 'app_feedback.dart';
 
 class TrafficViolationsAdminPanel extends StatefulWidget {
   final String sourceType;
@@ -89,9 +92,9 @@ class _TrafficViolationsAdminPanelState
                 children: [
                   const Icon(Icons.gavel, color: Colors.orange, size: 18),
                   const SizedBox(width: 8),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Traffic violations',
+                      tr('trafficViolations2'),
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -106,20 +109,26 @@ class _TrafficViolationsAdminPanelState
                       rentalData: widget.rentalData,
                     ),
                     icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Add'),
+                    label: Text(tr('add')),
                   ),
                 ],
               ),
               if (docs.isEmpty)
                 Text(
-                  'No violations recorded for this rental',
+                  tr('noViolationsRecordedForThis'),
                   style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
                 )
               else ...[
                 Text(
                   pending > 0
-                      ? '${docs.length} recorded · EGP ${pending.toStringAsFixed(0)} pending'
-                      : '${docs.length} recorded · none pending',
+                      ? tr(
+                          'recordedPending',
+                          args: {'n': '${docs.length}', 'amount': egp(pending)},
+                        )
+                      : tr(
+                          'recordedNonePending',
+                          args: {'n': '${docs.length}'},
+                        ),
                   style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
                 ),
                 if (!widget.compact) ...[
@@ -136,7 +145,7 @@ class _TrafficViolationsAdminPanelState
                           Expanded(
                             child: Text(
                               [
-                                'EGP ${TrafficViolationService.amountOf(data).toStringAsFixed(0)}',
+                                egp(TrafficViolationService.amountOf(data)),
                                 if ((data['ticketNumber'] ?? '')
                                     .toString()
                                     .isNotEmpty)
@@ -147,7 +156,7 @@ class _TrafficViolationsAdminPanelState
                             ),
                           ),
                           StatusPill(
-                            label: status.toUpperCase(),
+                            label: statusLabel(status).toUpperCase(),
                             color: violationStatusColor(status),
                             horizontalPadding: 8,
                             verticalPadding: 2,
@@ -156,7 +165,7 @@ class _TrafficViolationsAdminPanelState
                           ),
                           if (status == 'pending')
                             IconButton(
-                              tooltip: 'Mark paid',
+                              tooltip: tr('markPaid'),
                               icon: const Icon(
                                 Icons.check_circle_outline,
                                 color: Colors.green,
@@ -207,6 +216,7 @@ class _AddTrafficViolationDialogState
   final location = TextEditingController();
   DateTime violationDate = DateTime.now();
   String status = 'pending';
+  String violationType = 'speeding';
   bool _saving = false;
 
   @override
@@ -230,23 +240,17 @@ class _AddTrafficViolationDialogState
         violationDate: violationDate,
         status: status,
         ticketNumber: ticket.text,
+        violationType: violationType,
         description: description.text,
         location: location.text,
       );
       if (!mounted) return;
       final messenger = ScaffoldMessenger.maybeOf(context);
       Navigator.pop(context);
-      messenger?.showSnackBar(
-        const SnackBar(
-          content: Text('Traffic violation saved (admin only)'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      messenger?.showSuccess(tr('trafficViolationSavedAdminOnly'));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$e'), backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context).showError(e);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -256,8 +260,8 @@ class _AddTrafficViolationDialogState
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: Colors.grey.shade900,
-      title: const Text(
-        'Add traffic violation',
+      title: Text(
+        tr('addTrafficViolation2'),
         style: TextStyle(color: Colors.white),
       ),
       content: Form(
@@ -272,53 +276,73 @@ class _AddTrafficViolationDialogState
                   decimal: true,
                 ),
                 style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: 'Amount (EGP)',
+                decoration: InputDecoration(
+                  labelText: tr('amountEgp2'),
                   labelStyle: TextStyle(color: Colors.white70),
                 ),
                 validator: (v) {
                   final n = double.tryParse(v?.trim() ?? '');
-                  if (n == null || n <= 0) return 'Enter a valid amount';
+                  if (n == null || n <= 0) return tr('enterValidAmount');
                   return null;
                 },
               ),
               TextFormField(
                 controller: ticket,
                 style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: 'Ticket / receipt no. (optional)',
+                decoration: InputDecoration(
+                  labelText: tr('ticketReceiptNoOptional'),
                   labelStyle: TextStyle(color: Colors.white70),
                 ),
+              ),
+              DropdownButtonFormField<String>(
+                initialValue: violationType,
+                dropdownColor: Colors.grey.shade900,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: tr('violationType'),
+                  labelStyle: const TextStyle(color: Colors.white70),
+                ),
+                items: [
+                  for (final t in violationTypes)
+                    DropdownMenuItem(
+                      value: t,
+                      child: Text(violationTypeLabel(t)),
+                    ),
+                ],
+                onChanged: (v) => setState(() => violationType = v ?? 'other'),
               ),
               TextFormField(
                 controller: description,
                 style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: 'Violation type / note',
+                decoration: InputDecoration(
+                  labelText: tr('violationNoteOptional'),
                   labelStyle: TextStyle(color: Colors.white70),
                 ),
               ),
               TextFormField(
                 controller: location,
                 style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: 'Location (optional)',
+                decoration: InputDecoration(
+                  labelText: tr('locationOptional'),
                   labelStyle: TextStyle(color: Colors.white70),
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 initialValue: status,
                 dropdownColor: Colors.grey.shade900,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: 'Payment status',
+                style: TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: tr('paymentStatus'),
                   labelStyle: TextStyle(color: Colors.white70),
                 ),
-                items: const [
-                  DropdownMenuItem(value: 'pending', child: Text('Pending')),
-                  DropdownMenuItem(value: 'paid', child: Text('Paid')),
-                  DropdownMenuItem(value: 'waived', child: Text('Waived')),
+                items: [
+                  DropdownMenuItem(
+                    value: 'pending',
+                    child: Text(tr('pending')),
+                  ),
+                  DropdownMenuItem(value: 'paid', child: Text(tr('paid2'))),
+                  DropdownMenuItem(value: 'waived', child: Text(tr('waived'))),
                 ],
                 onChanged: (v) {
                   if (v != null) setState(() => status = v);
@@ -337,7 +361,7 @@ class _AddTrafficViolationDialogState
                   }
                 },
                 child: Text(
-                  'Date: ${DateFormat('dd MMM yyyy').format(violationDate)}',
+                  '${tr('date')}: ${DateFormat('dd MMM yyyy').format(violationDate)}',
                 ),
               ),
             ],
@@ -347,7 +371,7 @@ class _AddTrafficViolationDialogState
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(tr('cancel')),
         ),
         TextButton(
           onPressed: _saving ? null : _save,
@@ -357,7 +381,7 @@ class _AddTrafficViolationDialogState
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Save'),
+              : Text(tr('save')),
         ),
       ],
     );

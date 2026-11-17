@@ -10,6 +10,7 @@ import '../services/gemini_chat_service.dart';
 import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_feedback.dart';
 
 class ChatbotScreen extends StatefulWidget {
   final String? userName;
@@ -113,9 +114,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     } catch (e) {
       debugPrint('Chat reply failed: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not get a reply. Try again.')),
-        );
+        ScaffoldMessenger.of(context).showInfo(tr('couldNotGetAReply'));
       }
     } finally {
       // Always re-enable input, even when the reply failed.
@@ -183,7 +182,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
         actions: [
           const LanguageToggleButton(dark: true, showText: false),
           IconButton(
-            tooltip: 'Clear chat',
+            tooltip: tr('clearChat'),
             onPressed: _clearChat,
             icon: const Icon(Icons.delete_outline),
           ),
@@ -195,6 +194,9 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
             child: StreamBuilder<List<ChatMessage>>(
               stream: _messagesStream,
               builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return ErrorView(error: snapshot.error);
+                }
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }

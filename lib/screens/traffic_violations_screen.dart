@@ -9,6 +9,8 @@ import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
 import '../utils/live_refresh.dart';
 import '../widgets/status_pill.dart';
+import '../l10n/content_labels.dart';
+import '../widgets/app_feedback.dart';
 
 class TrafficViolationsScreen extends StatefulWidget {
   const TrafficViolationsScreen({super.key});
@@ -59,10 +61,7 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: Colors.orange,
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
-          'Add violation',
-          style: TextStyle(color: Colors.white),
-        ),
+        label: Text(tr('addViolation'), style: TextStyle(color: Colors.white)),
         onPressed: _addFromPicker,
       ),
       body: RefreshIndicator(
@@ -74,11 +73,10 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
               return const Center(child: CircularProgressIndicator());
             }
             if (snapshot.hasError) {
-              return Center(
-                child: Text(
-                  'Could not load traffic violations',
-                  style: TextStyle(color: Colors.red.shade300),
-                ),
+              return ErrorView(
+                error: snapshot.error,
+                message: tr('couldNotLoadTrafficViolations'),
+                dark: true,
               );
             }
 
@@ -124,8 +122,8 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Admin only. Customers never see these charges.',
+                        Text(
+                          tr('adminOnlyCustomersNeverSee'),
                           style: TextStyle(color: Colors.white70),
                         ),
                         const SizedBox(height: 12),
@@ -133,15 +131,15 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
                           children: [
                             Expanded(
                               child: _totalTile(
-                                'Pending',
-                                'EGP ${pendingTotal.toStringAsFixed(0)}',
+                                tr('pending'),
+                                egp(pendingTotal),
                               ),
                             ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: _totalTile(
-                                'Collected',
-                                'EGP ${paidTotal.toStringAsFixed(0)}',
+                                tr('collected'),
+                                egp(paidTotal),
                               ),
                             ),
                           ],
@@ -150,7 +148,7 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
                         TextField(
                           style: const TextStyle(color: Colors.white),
                           decoration: InputDecoration(
-                            hintText: 'Search customer, phone, car, ticket',
+                            hintText: tr('searchCustomerPhoneCarTicket'),
                             hintStyle: TextStyle(color: Colors.grey.shade500),
                             prefixIcon: const Icon(
                               Icons.search,
@@ -176,16 +174,16 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
                           spacing: 8,
                           runSpacing: 8,
                           children: [
-                            _chip('All status', 'all', _status, (v) {
+                            _chip(tr('allStatus'), 'all', _status, (v) {
                               setState(() => _status = v);
                             }),
-                            _chip('Pending', 'pending', _status, (v) {
+                            _chip(tr('pending'), 'pending', _status, (v) {
                               setState(() => _status = v);
                             }),
-                            _chip('Paid', 'paid', _status, (v) {
+                            _chip(tr('paidLabel'), 'paid', _status, (v) {
                               setState(() => _status = v);
                             }),
-                            _chip('Waived', 'waived', _status, (v) {
+                            _chip(tr('waived'), 'waived', _status, (v) {
                               setState(() => _status = v);
                             }),
                           ],
@@ -195,11 +193,11 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
                           spacing: 8,
                           runSpacing: 8,
                           children: [
-                            _chip('All rentals', 'all', _source, (v) {
+                            _chip(tr('allRentals'), 'all', _source, (v) {
                               setState(() => _source = v);
                             }),
                             _chip(
-                              'Paid rentals',
+                              tr('paidRentals'),
                               TrafficViolationService.sourceBooking,
                               _source,
                               (v) {
@@ -207,7 +205,7 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
                               },
                             ),
                             _chip(
-                              'Gift cars',
+                              tr('giftCars'),
                               TrafficViolationService.sourceGift,
                               _source,
                               (v) {
@@ -217,11 +215,11 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
                           ],
                         ),
                         if (visible.isEmpty)
-                          const Padding(
+                          Padding(
                             padding: EdgeInsets.only(top: 24),
                             child: Center(
                               child: Text(
-                                'No traffic violations match these filters.',
+                                tr('noTrafficViolationsMatchThese'),
                                 style: TextStyle(color: Colors.white70),
                               ),
                             ),
@@ -263,7 +261,8 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                data['customerName']?.toString() ?? 'Customer',
+                                data['customerName']?.toString() ??
+                                    tr('customer'),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -272,14 +271,14 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
                               ),
                             ),
                             StatusPill(
-                              label: status.toUpperCase(),
+                              label: statusLabel(status).toUpperCase(),
                               color: violationStatusColor(status),
                             ),
                           ],
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'EGP ${TrafficViolationService.amountOf(data).toStringAsFixed(0)}'
+                          '${egp(TrafficViolationService.amountOf(data))}'
                           '${dateLabel.isEmpty ? '' : ' · $dateLabel'}',
                           style: const TextStyle(
                             color: Colors.orange,
@@ -287,22 +286,22 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
                           ),
                         ),
                         Text(
-                          '${isGift ? 'Gift car' : 'Rental'} · ${data['car_name'] ?? 'Car'}',
+                          '${isGift ? tr('giftCar') : tr('rental')} · ${data['car_name'] ?? tr('carFallback')}',
                           style: TextStyle(color: Colors.grey.shade400),
                         ),
                         if ((data['phone'] ?? '').toString().isNotEmpty)
                           Text(
-                            'Phone: ${data['phone']}',
+                            '${tr('phone')}: ${ltr(data['phone'])}',
                             style: TextStyle(color: Colors.grey.shade400),
                           ),
                         if ((data['ticketNumber'] ?? '').toString().isNotEmpty)
                           Text(
-                            'Ticket: ${data['ticketNumber']}',
+                            '${tr('ticket')}: ${data['ticketNumber']}',
                             style: TextStyle(color: Colors.grey.shade400),
                           ),
-                        if ((data['description'] ?? '').toString().isNotEmpty)
+                        if (violationText(data).isNotEmpty)
                           Text(
-                            '${data['description']}',
+                            violationText(data),
                             style: TextStyle(color: Colors.grey.shade500),
                           ),
                         const SizedBox(height: 8),
@@ -315,7 +314,7 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
                                       doc.id,
                                       'paid',
                                     ),
-                                child: const Text('Mark paid'),
+                                child: Text(tr('markPaid')),
                               ),
                             if (status == 'pending')
                               TextButton(
@@ -324,14 +323,14 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
                                       doc.id,
                                       'waived',
                                     ),
-                                child: const Text('Waive'),
+                                child: Text(tr('waive')),
                               ),
                             const Spacer(),
                             TextButton(
                               onPressed: () =>
                                   TrafficViolationService.delete(doc.id),
-                              child: const Text(
-                                'Delete',
+                              child: Text(
+                                tr('delete'),
                                 style: TextStyle(color: Colors.redAccent),
                               ),
                             ),
@@ -445,8 +444,8 @@ class _PickRentalSheetState extends State<_PickRentalSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Which rental is this violation for?',
+          Text(
+            tr('whichRentalIsThisViolation'),
             style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
@@ -457,19 +456,19 @@ class _PickRentalSheetState extends State<_PickRentalSheet> {
           DropdownButtonFormField<String>(
             initialValue: sourceType,
             dropdownColor: Colors.grey.shade900,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
-              labelText: 'Type',
+            style: TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              labelText: tr('type2'),
               labelStyle: TextStyle(color: Colors.white70),
             ),
-            items: const [
+            items: [
               DropdownMenuItem(
                 value: TrafficViolationService.sourceBooking,
-                child: Text('Paid rental'),
+                child: Text(tr('paidRental')),
               ),
               DropdownMenuItem(
                 value: TrafficViolationService.sourceGift,
-                child: Text('Gift / complimentary'),
+                child: Text(tr('giftComplimentary')),
               ),
             ],
             onChanged: (v) {
@@ -492,8 +491,8 @@ class _PickRentalSheetState extends State<_PickRentalSheet> {
               docs.sort(compareCreatedAtDesc);
               final limited = docs.take(80).toList();
               if (limited.isEmpty) {
-                return const Text(
-                  'No rentals found for this type.',
+                return Text(
+                  tr('noRentalsFoundForThis'),
                   style: TextStyle(color: Colors.white70),
                 );
               }
@@ -503,14 +502,14 @@ class _PickRentalSheetState extends State<_PickRentalSheet> {
                 dropdownColor: Colors.grey.shade900,
                 style: const TextStyle(color: Colors.white),
                 isExpanded: true,
-                decoration: const InputDecoration(
-                  labelText: 'Customer / car',
+                decoration: InputDecoration(
+                  labelText: tr('customerCar'),
                   labelStyle: TextStyle(color: Colors.white70),
                 ),
                 items: limited.map((doc) {
                   final data = doc.data() as Map<String, dynamic>;
                   final name = sourceType == TrafficViolationService.sourceGift
-                      ? (data['recipientName'] ?? 'Guest').toString()
+                      ? (data['recipientName'] ?? tr('guest')).toString()
                       : resolveBookingName(data);
                   final car = resolveBookingCar(data);
                   return DropdownMenuItem(
@@ -547,10 +546,7 @@ class _PickRentalSheetState extends State<_PickRentalSheet> {
                       ),
                     );
                   },
-            child: const Text(
-              'Continue',
-              style: TextStyle(color: Colors.white),
-            ),
+            child: Text(tr('continue'), style: TextStyle(color: Colors.white)),
           ),
         ],
       ),

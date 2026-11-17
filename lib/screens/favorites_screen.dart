@@ -9,6 +9,9 @@ import '../l10n/locale_service.dart';
 import '../utils/live_refresh.dart';
 import '../utils/image_decode.dart';
 import '../widgets/empty_state.dart';
+import '../utils/safe_insets.dart';
+import '../l10n/content_labels.dart';
+import '../widgets/app_feedback.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -32,6 +35,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         child: StreamBuilder<QuerySnapshot>(
           stream: _favoritesStream,
           builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return ErrorView(error: snapshot.error);
+            }
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
@@ -44,7 +50,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             }
             return ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16).withSafeBottom(context),
               itemCount: docs.length,
               itemBuilder: (context, index) {
                 final data = docs[index].data() as Map<String, dynamic>;
@@ -52,7 +58,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 final price = (data['price_per_day'] as num?)?.toDouble() ?? 0;
                 final car = {
                   'id': carId,
-                  'name': data['name']?.toString() ?? context.t('cars'),
+                  'name': carNameOf(data, fallback: tr('carFallback')),
                   'brand': data['brand']?.toString() ?? '',
                   'pricePerDay': price,
                   'imageUrl': data['image_url'],
@@ -77,7 +83,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                         : const Icon(Icons.directions_car),
                     title: Text(car['name'] as String),
                     subtitle: Text(
-                      '${car['brand']} · EGP ${price.toStringAsFixed(0)}${context.t('perDay')}',
+                      '${car['brand']} · ${tr('egpPerDay', args: {'amount': price.toStringAsFixed(0)})}',
                     ),
                     trailing: IconButton(
                       tooltip: context.t('favorites'),
@@ -89,6 +95,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                         showModalBottomSheet(
                           context: context,
                           isScrollControlled: true,
+                          useSafeArea: true,
                           shape: const RoundedRectangleBorder(
                             borderRadius: BorderRadius.vertical(
                               top: Radius.circular(20),

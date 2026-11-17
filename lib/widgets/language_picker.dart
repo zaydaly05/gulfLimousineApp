@@ -18,8 +18,8 @@ class LanguagePicker extends StatelessWidget {
 
     if (compact) {
       return SegmentedButton<String>(
-        segments: const [
-          ButtonSegment(value: 'en', label: Text('EN')),
+        segments: [
+          ButtonSegment(value: 'en', label: Text(tr('en'))),
           ButtonSegment(value: 'ar', label: Text('ع')),
         ],
         selected: {selected},

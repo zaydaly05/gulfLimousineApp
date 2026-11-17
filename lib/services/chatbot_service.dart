@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/chat_message.dart';
+import '../l10n/locale_service.dart';
 
 class ChatbotReply {
   final String text;
@@ -18,12 +19,14 @@ class ChatbotService {
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
 
-  static const welcomeSuggestions = [
-    'Show available cars',
-    'My bookings',
-    'Security & Geofence',
-    'Payment methods',
-    'Contact support',
+  /// Quick-reply chips, in the current language (they are sent to the AI
+  /// assistant as the user's message).
+  static List<String> get welcomeSuggestions => [
+    tr('chipShowCars'),
+    tr('chipMyBookings'),
+    tr('chipSecurity'),
+    tr('chipPayments'),
+    tr('chipContact'),
   ];
 
   CollectionReference<Map<String, dynamic>> _messagesRef(String userId) {
@@ -60,14 +63,11 @@ class ChatbotService {
   ChatbotReply welcomeMessage({String? userName}) {
     final name = userName?.trim();
     final greeting = name != null && name.isNotEmpty
-        ? 'Hi $name!'
-        : 'Hi there!';
+        ? tr('chatHiName', args: {'name': name})
+        : tr('chatHi');
 
     return ChatbotReply(
-      text:
-          '$greeting I am Gulf Limousine Assistant.\n\n'
-          'I can help you browse cars, check your bookings, explain payments, '
-          'and answer common questions about our luxury rental service.',
+      text: '$greeting ${tr('chatWelcome')}',
       suggestions: welcomeSuggestions,
     );
   }
@@ -75,7 +75,7 @@ class ChatbotService {
   Future<ChatbotReply> generateReply(String input) async {
     final message = input.trim().toLowerCase();
     if (message.isEmpty) {
-      return const ChatbotReply(
+      return ChatbotReply(
         text: 'Please type a message or tap one of the quick suggestions.',
         suggestions: welcomeSuggestions,
       );
@@ -221,13 +221,13 @@ class ChatbotService {
     }
 
     if (_matches(message, ['thank', 'thanks'])) {
-      return const ChatbotReply(
+      return ChatbotReply(
         text: 'You are welcome! Let me know if you need anything else.',
         suggestions: welcomeSuggestions,
       );
     }
 
-    return const ChatbotReply(
+    return ChatbotReply(
       text:
           'I am not sure I understood that yet. Try asking about available cars, '
           'your bookings, payment methods, or contact support.',
@@ -293,7 +293,7 @@ class ChatbotService {
   Future<ChatbotReply> _bookingsReply() async {
     final user = _auth.currentUser;
     if (user == null) {
-      return const ChatbotReply(
+      return ChatbotReply(
         text: 'Please sign in to view your bookings.',
         suggestions: welcomeSuggestions,
       );

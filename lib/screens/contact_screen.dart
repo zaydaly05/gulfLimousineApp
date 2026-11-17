@@ -190,8 +190,8 @@ class ContactScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                '24/7 Premium Support',
+                              Text(
+                                tr('t247PremiumSupport'),
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -199,7 +199,7 @@ class ContactScreen extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                'Our concierge team is ready to assist you.',
+                                tr('ourConciergeTeamIsReady'),
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.6),
                                   fontSize: 13,

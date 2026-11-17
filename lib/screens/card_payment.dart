@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../theme/app_theme.dart';
+import '../utils/safe_insets.dart';
+import '../l10n/locale_service.dart';
 
 class CardPaymentScreen extends StatefulWidget {
   final double amount;
@@ -90,9 +92,10 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Card Payment')),
+      appBar: AppBar(title: Text(tr('cardPayment'))),
       body: Center(
         child: SingleChildScrollView(
+          padding: EdgeInsets.zero.withSafeBottom(context),
           child: Card(
             margin: const EdgeInsets.all(16),
             child: Padding(
@@ -101,8 +104,8 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                 key: _formKey,
                 child: Column(
                   children: [
-                    const Text(
-                      'Checkout with credit card',
+                    Text(
+                      tr('checkoutWithCreditCard'),
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -146,12 +149,12 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                       focusNode: nameFocus,
                       textInputAction: TextInputAction.next,
                       onFieldSubmitted: (_) => monthFocus.requestFocus(),
-                      decoration: const InputDecoration(
-                        labelText: 'Card Owner',
+                      decoration: InputDecoration(
+                        labelText: tr('cardOwner'),
                         border: OutlineInputBorder(),
                       ),
                       validator: (v) =>
-                          v == null || v.trim().isEmpty ? 'Required' : null,
+                          v == null || v.trim().isEmpty ? tr('required') : null,
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -160,7 +163,7 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                           child: _digitField(
                             controller: month,
                             focusNode: monthFocus,
-                            label: 'MM',
+                            label: tr('mm'),
                             maxLength: 2,
                             nextFocus: yearFocus,
                             previousFocus: nameFocus,
@@ -168,7 +171,7 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                               if (v == null || v.length != 2) return 'MM';
                               final m = int.tryParse(v);
                               if (m == null || m < 1 || m > 12) {
-                                return 'Invalid';
+                                return tr('invalid');
                               }
                               return null;
                             },
@@ -179,7 +182,7 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                           child: _digitField(
                             controller: year,
                             focusNode: yearFocus,
-                            label: 'YYYY',
+                            label: tr('yyyy'),
                             maxLength: 4,
                             nextFocus: cvvFocus,
                             previousFocus: monthFocus,
@@ -188,10 +191,12 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                               final y = int.tryParse(v);
                               final m = int.tryParse(month.text);
                               final now = DateTime.now();
-                              if (y == null || y < now.year) return 'Invalid';
+                              if (y == null || y < now.year) {
+                                return tr('invalid');
+                              }
                               // Same year: the card must not have expired.
                               if (y == now.year && m != null && m < now.month) {
-                                return 'Expired';
+                                return tr('expired');
                               }
                               return null;
                             },
@@ -202,7 +207,7 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                           child: _digitField(
                             controller: cvv,
                             focusNode: cvvFocus,
-                            label: 'CVV',
+                            label: tr('cvv'),
                             maxLength: 3,
                             obscureText: true,
                             previousFocus: yearFocus,
@@ -216,12 +221,12 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'Total:',
+                        Text(
+                          tr('total2'),
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                         Text(
-                          'EGP ${widget.amount.toStringAsFixed(0)}',
+                          egp(widget.amount),
                           style: const TextStyle(
                             color: AppTheme.accent,
                             fontSize: 20,
@@ -243,7 +248,7 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                                   strokeWidth: 2,
                                 ),
                               )
-                            : const Text('Pay Now'),
+                            : Text(tr('payNow2')),
                       ),
                     ),
                   ],

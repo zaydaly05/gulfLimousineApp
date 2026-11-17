@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
 import '../services/cloudinary_service.dart';
+import '../l10n/locale_service.dart';
+import '../utils/friendly_error.dart';
 
 class VideoViewerScreen extends StatefulWidget {
   final String url;
@@ -28,7 +30,7 @@ class _VideoViewerScreenState extends State<VideoViewerScreen> {
       unawaited(_initialize());
     } else {
       // Only play videos hosted on the app's own Cloudinary account.
-      _error = 'Video unavailable';
+      _error = tr('videoUnavailable');
     }
   }
 
@@ -40,7 +42,7 @@ class _VideoViewerScreenState extends State<VideoViewerScreen> {
       setState(() => _initialized = true);
       await _controller.play();
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
+      if (mounted) setState(() => _error = friendlyError(e));
     }
   }
 
@@ -58,7 +60,7 @@ class _VideoViewerScreenState extends State<VideoViewerScreen> {
       body: Center(
         child: _error != null
             ? Text(
-                'Error: $_error',
+                tr('error2', args: {'_error': '$_error'}),
                 style: const TextStyle(color: Colors.white),
               )
             : _initialized
@@ -71,7 +73,9 @@ class _VideoViewerScreenState extends State<VideoViewerScreen> {
                   ),
                   Semantics(
                     button: true,
-                    label: _controller.value.isPlaying ? 'Pause' : 'Play',
+                    label: _controller.value.isPlaying
+                        ? tr('pause')
+                        : tr('play'),
                     child: GestureDetector(
                       onTap: () {
                         setState(() {

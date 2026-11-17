@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/fleet.dart';
+import '../l10n/locale_service.dart';
 
 /// Admin editor for a car model's colours and how many cars of each.
 ///
@@ -74,9 +75,9 @@ class _FleetColorsEditorState extends State<FleetColorsEditor> {
         children: [
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Fleet: colours and number of cars',
+                  tr('fleetColoursAndNumberOf'),
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -84,7 +85,7 @@ class _FleetColorsEditorState extends State<FleetColorsEditor> {
                 ),
               ),
               Text(
-                '$total ${total == 1 ? 'car' : 'cars'}',
+                carCount(total),
                 style: const TextStyle(color: Colors.orange),
               ),
             ],
@@ -101,7 +102,7 @@ class _FleetColorsEditorState extends State<FleetColorsEditor> {
                       onChanged: (_) => _emit(),
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
-                        hintText: 'Colour, e.g. Black',
+                        hintText: tr('colourEGBlack'),
                         hintStyle: const TextStyle(color: Colors.white38),
                         isDense: true,
                         enabledBorder: OutlineInputBorder(
@@ -114,7 +115,7 @@ class _FleetColorsEditorState extends State<FleetColorsEditor> {
                     ),
                   ),
                   IconButton(
-                    tooltip: 'One less',
+                    tooltip: tr('oneLess'),
                     onPressed: row.count > 0
                         ? () => _setCount(row, row.count - 1)
                         : null,
@@ -134,13 +135,13 @@ class _FleetColorsEditorState extends State<FleetColorsEditor> {
                     ),
                   ),
                   IconButton(
-                    tooltip: 'One more',
+                    tooltip: tr('oneMore'),
                     onPressed: () => _setCount(row, row.count + 1),
                     icon: const Icon(Icons.add_circle_outline),
                     color: Colors.white70,
                   ),
                   IconButton(
-                    tooltip: 'Remove colour',
+                    tooltip: tr('removeColour'),
                     onPressed: _rows.length > 1 ? () => _remove(row) : null,
                     icon: const Icon(Icons.delete_outline),
                     color: Colors.red,
@@ -153,8 +154,8 @@ class _FleetColorsEditorState extends State<FleetColorsEditor> {
             child: TextButton.icon(
               onPressed: _add,
               icon: const Icon(Icons.add, color: Colors.orange),
-              label: const Text(
-                'Add colour',
+              label: Text(
+                tr('addColour'),
                 style: TextStyle(color: Colors.orange),
               ),
             ),

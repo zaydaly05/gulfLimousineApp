@@ -30,20 +30,20 @@ class AddNewCarVariablesBuilder {
   }
 
   AddNewCarVariablesBuilder(
-      this._dataConnect, {
-        required this.make,
-        required this.model,
-        required this.year,
-        required this.rentalPricePerDay,
-        required this.isAvailable,
-        required this.licensePlate,
-      });
+    this._dataConnect, {
+    required this.make,
+    required this.model,
+    required this.year,
+    required this.rentalPricePerDay,
+    required this.isAvailable,
+    required this.licensePlate,
+  });
 
-  Deserializer<AddNewCarData> dataDeserializer =
-      (dynamic json) => AddNewCarData.fromJson(jsonDecode(json));
+  Deserializer<AddNewCarData> dataDeserializer = (dynamic json) =>
+      AddNewCarData.fromJson(jsonDecode(json));
 
-  Serializer<AddNewCarVariables> varsSerializer =
-      (AddNewCarVariables vars) => jsonEncode(vars.toJson());
+  Serializer<AddNewCarVariables> varsSerializer = (AddNewCarVariables vars) =>
+      jsonEncode(vars.toJson());
 
   Future<OperationResult<AddNewCarData, AddNewCarVariables>> execute() {
     return ref().execute();
@@ -76,21 +76,18 @@ class AddNewCarCarInsert {
   final String id;
 
   AddNewCarCarInsert.fromJson(dynamic json)
-      : id = nativeFromJson<String>(json['id']);
+    : id = nativeFromJson<String>(json['id']);
 
   const AddNewCarCarInsert({required this.id});
 
   @override
   bool operator ==(Object other) =>
-      identical(this, other) ||
-          other is AddNewCarCarInsert && id == other.id;
+      identical(this, other) || other is AddNewCarCarInsert && id == other.id;
 
   @override
   int get hashCode => id.hashCode;
 
-  Map<String, dynamic> toJson() => {
-    'id': nativeToJson<String>(id),
-  };
+  Map<String, dynamic> toJson() => {'id': nativeToJson<String>(id)};
 }
 
 @immutable
@@ -98,21 +95,19 @@ class AddNewCarData {
   final AddNewCarCarInsert car_insert;
 
   AddNewCarData.fromJson(dynamic json)
-      : car_insert = AddNewCarCarInsert.fromJson(json['car_insert']);
+    : car_insert = AddNewCarCarInsert.fromJson(json['car_insert']);
 
   const AddNewCarData({required this.car_insert});
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-          other is AddNewCarData && car_insert == other.car_insert;
+      other is AddNewCarData && car_insert == other.car_insert;
 
   @override
   int get hashCode => car_insert.hashCode;
 
-  Map<String, dynamic> toJson() => {
-    'car_insert': car_insert.toJson(),
-  };
+  Map<String, dynamic> toJson() => {'car_insert': car_insert.toJson()};
 }
 
 @immutable
@@ -143,16 +138,16 @@ class AddNewCarVariables {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-          other is AddNewCarVariables &&
-              make == other.make &&
-              model == other.model &&
-              year == other.year &&
-              rentalPricePerDay == other.rentalPricePerDay &&
-              isAvailable == other.isAvailable &&
-              licensePlate == other.licensePlate &&
-              imageUrl == other.imageUrl &&
-              color == other.color &&
-              seatingCapacity == other.seatingCapacity;
+      other is AddNewCarVariables &&
+          make == other.make &&
+          model == other.model &&
+          year == other.year &&
+          rentalPricePerDay == other.rentalPricePerDay &&
+          isAvailable == other.isAvailable &&
+          licensePlate == other.licensePlate &&
+          imageUrl == other.imageUrl &&
+          color == other.color &&
+          seatingCapacity == other.seatingCapacity;
 
   @override
   int get hashCode => Object.hash(

@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 
+import '../l10n/locale_service.dart';
 import 'app_config_service.dart';
 import 'chatbot_service.dart';
 
@@ -48,6 +49,10 @@ class GeminiChatService {
                 'security features (100km geofence from Cairo, remote engine lock), '
                 'condition videos, digital agreements, and chauffeur tracking. '
                 'If something is missing from context, say so and suggest Browse Cars or Contact.';
+      final language = LocaleService.instance.isArabic
+          ? ' The app is set to Arabic: reply in clear Modern Standard Arabic '
+                'unless the user writes in another language.'
+          : ' Reply in the language the user writes in.';
 
       final body = {
         'contents': [
@@ -56,7 +61,7 @@ class GeminiChatService {
             'parts': [
               {
                 'text':
-                    '$system\n\nCONTEXT:\n$context\n\nUSER MESSAGE:\n$input\n\n'
+                    '$system$language\n\nCONTEXT:\n$context\n\nUSER MESSAGE:\n$input\n\n'
                     'Reply in plain text. Suggest next steps briefly when useful.',
               },
             ],

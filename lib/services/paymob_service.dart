@@ -1,4 +1,5 @@
 import 'payments_server_client.dart';
+import '../l10n/locale_service.dart';
 
 /// A checkout session on Paymob's hosted payment page.
 class PaymobCheckout {
@@ -30,7 +31,7 @@ class PaymobService {
     });
     final url = Uri.tryParse(body['checkoutUrl']?.toString() ?? '');
     if (url == null || url.scheme != 'https') {
-      throw const ServerException('Payment service sent an invalid link.');
+      throw ServerException(tr('invalidPaymentLink'));
     }
     return PaymobCheckout(url: url, testMode: body['testMode'] == true);
   }

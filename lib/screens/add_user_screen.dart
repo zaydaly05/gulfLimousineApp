@@ -6,6 +6,8 @@ import 'package:firebase_core/firebase_core.dart';
 
 import '../firebase_options.dart';
 import '../services/user_profile_service.dart';
+import '../l10n/locale_service.dart';
+import '../widgets/app_feedback.dart';
 
 class AddUserScreen extends StatefulWidget {
   const AddUserScreen({super.key});
@@ -80,27 +82,13 @@ class _AddUserScreenState extends State<AddUserScreen> {
       final messenger = ScaffoldMessenger.of(context);
       Navigator.pop(context);
 
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text(
-            "User created. A link to set their password was emailed to them.",
-          ),
-          backgroundColor: Colors.green,
-        ),
-      );
+      messenger.showSuccess(tr('userCreatedALinkTo'));
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.message ?? "Failed to create user"),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showError(e);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context).showError(e);
     } finally {
       if (secondaryApp != null) {
         await FirebaseAuth.instanceFor(app: secondaryApp).signOut();
@@ -114,30 +102,30 @@ class _AddUserScreenState extends State<AddUserScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: const Text("Add User"),
-      ),
+      appBar: AppBar(backgroundColor: Colors.black, title: Text(tr('addUser'))),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
           child: ListView(
             children: [
-              _input("Full Name", name),
-              _input("Email", email, type: TextInputType.emailAddress),
-              _input("Phone Number", phone, type: TextInputType.phone),
+              _input(tr('fullName'), name),
+              _input(tr('email'), email, type: TextInputType.emailAddress),
+              _input(tr('phoneNumber'), phone, type: TextInputType.phone),
 
               const SizedBox(height: 10),
 
-              const Text("User Role", style: TextStyle(color: Colors.white)),
+              Text(tr('userRole'), style: TextStyle(color: Colors.white)),
               const SizedBox(height: 5),
 
               DropdownButtonFormField<String>(
                 initialValue: role,
                 dropdownColor: Colors.grey.shade900,
                 items: ["user", "admin"]
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .map(
+                      (e) =>
+                          DropdownMenuItem(value: e, child: Text(roleLabel(e))),
+                    )
                     .toList(),
                 onChanged: (val) => setState(() => role = val!),
                 decoration: InputDecoration(
@@ -166,7 +154,7 @@ class _AddUserScreenState extends State<AddUserScreen> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text("Create User"),
+                    : Text(tr('createUser')),
               ),
             ],
           ),
@@ -185,7 +173,12 @@ class _AddUserScreenState extends State<AddUserScreen> {
       child: TextFormField(
         controller: controller,
         keyboardType: type,
-        validator: (v) => v == null || v.isEmpty ? "Required" : null,
+        // Phone numbers and emails read left to right in Arabic too.
+        textDirection:
+            type == TextInputType.phone || type == TextInputType.emailAddress
+            ? TextDirection.ltr
+            : null,
+        validator: (v) => v == null || v.isEmpty ? tr('required') : null,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           labelText: label,

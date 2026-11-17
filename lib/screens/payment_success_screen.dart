@@ -2,16 +2,13 @@ import 'package:flutter/material.dart';
 
 import 'dashboard_screen.dart';
 import '../theme/app_theme.dart';
+import '../l10n/locale_service.dart';
 
 class PaymentSuccessScreen extends StatelessWidget {
-  final String title;
-  final String message;
+  final String? title;
+  final String? message;
 
-  const PaymentSuccessScreen({
-    super.key,
-    this.title = 'Payment Successful',
-    this.message = 'Thank you for choosing Gulf Limousine Travel.\nYour car has been successfully booked.',
-  });
+  const PaymentSuccessScreen({super.key, this.title, this.message});
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +36,7 @@ class PaymentSuccessScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 30),
                 Text(
-                  title,
+                  title ?? tr('paymentSuccessful'),
                   style: const TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
@@ -48,7 +45,7 @@ class PaymentSuccessScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  message,
+                  message ?? tr('thanksBooked'),
                   textAlign: TextAlign.center,
                   style: const TextStyle(fontSize: 15, color: Colors.white70),
                 ),
@@ -73,8 +70,8 @@ class PaymentSuccessScreen extends StatelessWidget {
                         (route) => false,
                       );
                     },
-                    child: const Text(
-                      'Continue to Dashboard',
+                    child: Text(
+                      tr('continueToDashboard'),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,

@@ -73,6 +73,8 @@ export default async function handler(req, res) {
       const name = String(user.name ?? user.displayName ?? 'Customer');
       const phone = String(user.phone ?? user.phone_number ?? '');
       const carName = String(car.name ?? 'Car');
+      // Optional Arabic name, shown to Arabic readers (lib/l10n/content_labels.dart).
+      const carNameAr = typeof car.name_ar === 'string' ? car.name_ar.trim().slice(0, 100) : '';
       const totalAmount = pricePerDay * request.days * request.quantity;
       const pickupDate = Timestamp.fromDate(cairoMidnight(request.pickupDay));
 
@@ -85,6 +87,7 @@ export default async function handler(req, res) {
         car_id: request.carId,
         car_name: carName,
         carName,
+        ...(carNameAr ? { car_name_ar: carNameAr } : {}),
         brand: String(car.brand ?? ''),
         pickupDate,
         startDate: pickupDate,
@@ -130,6 +133,12 @@ export default async function handler(req, res) {
       tx.create(store.collection('users').doc(who.uid).collection('notifications').doc(), {
         title: request.status === 'confirmed' ? 'Booking confirmed' : 'Booking received',
         body: `Your ${units} rental is ${request.status}. Open My Bookings for details.`,
+        // Keys the reader's app translates (see lib/l10n/notification_text.dart).
+        i18n: {
+          title: request.status === 'confirmed' ? 'nBookingConfirmed' : 'nBookingReceived',
+          body: 'nBookingBody',
+          args: { units, bookingStatus: request.status },
+        },
         type: `booking_${request.status}`,
         bookingId: bookingRef.id,
         read: false,

@@ -7,6 +7,8 @@ import 'package:latlong2/latlong.dart';
 import '../models/geo_location.dart';
 import '../widgets/app_map.dart';
 import '../theme/app_theme.dart';
+import '../l10n/locale_service.dart';
+import '../widgets/app_feedback.dart';
 
 class MapLocationPicker extends StatefulWidget {
   final String title;
@@ -27,11 +29,12 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
   final _mapController = MapController();
 
   static final _presets = <String, LatLng>{
-    'Cairo Downtown': kCairoLatLng,
-    'Cairo Airport': const LatLng(30.1219, 31.4056),
-    'Giza Pyramids': const LatLng(29.9792, 31.1342),
-    'New Cairo': const LatLng(30.0300, 31.4700),
-    'Zamalek': const LatLng(30.0611, 31.2197),
+    // Keys are translation keys.
+    'placeCairoDowntown': kCairoLatLng,
+    'placeCairoAirport': const LatLng(30.1219, 31.4056),
+    'placeGizaPyramids': const LatLng(29.9792, 31.1342),
+    'placeNewCairo': const LatLng(30.0300, 31.4700),
+    'placeZamalek': const LatLng(30.0611, 31.2197),
   };
 
   /// The geocoding plugin has no web implementation, and its constructor
@@ -113,13 +116,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
     if (query.isEmpty) return;
     final geocoding = _geocoding;
     if (geocoding == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Address search isn\'t available here. Tap the map or pick a place below.',
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(context).showInfo(tr('addressSearchIsnTAvailable'));
       return;
     }
     setState(() => _resolving = true);
@@ -137,11 +134,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
     } catch (_) {}
     if (mounted) {
       setState(() => _resolving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Address not found. Try a Cairo landmark.'),
-        ),
-      );
+      ScaffoldMessenger.of(context).showInfo(tr('addressNotFoundTryA'));
     }
   }
 
@@ -154,9 +147,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Location permission denied')),
-        );
+        ScaffoldMessenger.of(context).showInfo(tr('locationPermissionDenied'));
         return;
       }
       final pos = await Geolocator.getCurrentPosition();
@@ -166,7 +157,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Could not get location: $e')));
+          .showError(e, title: tr('couldNotGetLocation'));
     }
   }
 
@@ -191,7 +182,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      hintText: 'Search address in Cairo...',
+                      hintText: tr('searchAddressInCairo'),
                       filled: true,
                       fillColor: Colors.grey.shade100,
                       border: OutlineInputBorder(
@@ -207,7 +198,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
                 ),
                 const SizedBox(width: 8),
                 IconButton.filled(
-                  tooltip: 'Search',
+                  tooltip: tr('search'),
                   onPressed: _searchAddress,
                   icon: const Icon(Icons.search),
                   style: IconButton.styleFrom(backgroundColor: AppTheme.accent),
@@ -215,16 +206,17 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
               ],
             ),
           ),
+          // Chips are 48 px tall with their tap target; leave room for it.
           SizedBox(
-            height: 44,
+            height: 52,
             child: ListView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
               children: _presets.entries.map((e) {
                 return Padding(
                   padding: const EdgeInsetsDirectional.only(end: 8),
                   child: ActionChip(
-                    label: Text(e.key),
+                    label: Text(tr(e.key)),
                     onPressed: () async {
                       _mapController.move(e.value, 14);
                       await _reverseGeocode(e.value);
@@ -285,15 +277,15 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
                 children: [
                   Text(
                     _address.isEmpty
-                        ? 'Tap the map to choose a location'
-                        : _address,
+                        ? tr('tapMapToChoose')
+                        : addressLabel(_address),
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 12),
                   ElevatedButton(
                     // Wait for the address lookup so the pin and address match.
                     onPressed: _address.isEmpty || _resolving ? null : _confirm,
-                    child: const Text('Confirm Location'),
+                    child: Text(tr('confirmLocation')),
                   ),
                 ],
               ),

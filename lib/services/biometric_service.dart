@@ -5,6 +5,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../l10n/locale_service.dart';
+import '../widgets/app_feedback.dart';
+
 class BiometricService {
   BiometricService._();
 
@@ -42,10 +45,10 @@ class BiometricService {
         types.contains(BiometricType.fingerprint) ||
         types.contains(BiometricType.strong) ||
         types.contains(BiometricType.weak);
-    if (hasFace && hasFingerprint) return 'Face ID / fingerprint';
-    if (hasFace) return 'Face ID';
-    if (hasFingerprint) return 'Fingerprint';
-    return 'Biometrics';
+    if (hasFace && hasFingerprint) return tr('faceAndFinger');
+    if (hasFace) return tr('faceId');
+    if (hasFingerprint) return tr('fingerprint');
+    return tr('biometrics');
   }
 
   static Future<bool> isEnabledForCurrentUser() async {
@@ -110,12 +113,10 @@ class BiometricService {
     }
   }
 
-  static Future<bool> authenticate({
-    String reason = 'Unlock Gulf Limousine',
-  }) async {
+  static Future<bool> authenticate({String? reason}) async {
     try {
       return await _auth.authenticate(
-        localizedReason: reason,
+        localizedReason: reason ?? tr('unlockApp'),
         persistAcrossBackgrounding: true,
         biometricOnly: true,
       );
@@ -129,18 +130,18 @@ class BiometricService {
   }
 
   static Future<bool> enableWithPrompt() async {
-    final ok = await authenticate(
-      reason: 'Confirm fingerprint or Face ID to enable login',
-    );
+    final ok = await authenticate(reason: tr('confirmBiometricEnable'));
     if (ok) await setEnabled(true);
     return ok;
   }
 
   static Future<User> loginWithBiometrics() async {
     final label = await methodLabel();
-    final ok = await authenticate(reason: 'Log in with $label');
+    final ok = await authenticate(
+      reason: tr('loginWithBiometrics', args: {'method': label}),
+    );
     if (!ok) {
-      throw Exception('$label cancelled or failed');
+      throw Exception(tr('authFailedCancelled', args: {'method': label}));
     }
 
     final email = await _secure.read(key: _emailKey);
@@ -149,9 +150,7 @@ class BiometricService {
         email.isEmpty ||
         password == null ||
         password.isEmpty) {
-      throw Exception(
-        'Sign in with email and password once to set up $label login.',
-      );
+      throw Exception(tr('signInOnceForBiometric', args: {'method': label}));
     }
 
     final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
@@ -181,18 +180,16 @@ class BiometricService {
     final enable = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Enable biometric login?'),
-        content: Text(
-          'Use $label to log in next time. You can also turn this on in Profile.',
-        ),
+        title: Text(tr('enableBiometric')),
+        content: Text(tr('useToLogInNext', args: {'label': label})),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Not now'),
+            child: Text(tr('notNow')),
           ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Enable'),
+            child: Text(tr('enable')),
           ),
         ],
       ),
@@ -204,14 +201,10 @@ class BiometricService {
         await rememberEmailLogin(email, password);
       }
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            ok ? '$label login is on' : 'Could not enable biometric login',
-          ),
-          backgroundColor: ok ? Colors.green : Colors.red,
-        ),
-      );
+      final messenger = ScaffoldMessenger.of(context);
+      ok
+          ? messenger.showSuccess(tr('biometricOn', args: {'method': label}))
+          : messenger.showError(tr('couldNotEnableBiometric'));
     }
   }
 }

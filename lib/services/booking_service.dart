@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 
 import '../models/geo_location.dart';
 import 'payments_server_client.dart';
+import '../l10n/locale_service.dart';
+import '../l10n/notification_text.dart';
 
 class RentalDetails {
   final String carId;
@@ -137,7 +139,7 @@ class BookingService {
       'payerPhone': ?payerPhone,
     });
     final id = body['bookingId']?.toString() ?? '';
-    if (id.isEmpty) throw const ServerException('Booking was not saved.');
+    if (id.isEmpty) throw ServerException(tr('bookingNotSaved'));
     return id;
   }
 
@@ -190,7 +192,7 @@ class BookingService {
     final booking = _firestore.collection('bookings').doc(bookingId);
     final snapshot = await booking.get();
     final data = snapshot.data();
-    if (data == null) throw Exception('Booking not found');
+    if (data == null) throw Exception(tr('bookingNotFound'));
 
     final batch = _firestore.batch();
     batch.update(_firestore.collection('payments').doc(paymentId), {
@@ -219,6 +221,13 @@ class BookingService {
                   'Please check the transaction ID or contact us.',
         type: approved ? 'payment_confirmed' : 'payment_rejected',
         bookingId: bookingId,
+        i18n: approved
+            ? notificationI18n('nPaymentConfirmed', 'nPaymentConfirmedBody', {
+                'car': car,
+              })
+            : notificationI18n('nPaymentNotFound', 'nPaymentNotFoundBody', {
+                'car': car,
+              }),
       ),
     );
   }
@@ -234,15 +243,15 @@ class BookingService {
   >
   _loadOwnedBooking(String bookingId) async {
     final user = _auth.currentUser;
-    if (user == null) throw Exception('Not signed in');
+    if (user == null) throw Exception(tr('notSignedIn'));
 
     final ref = _firestore.collection('bookings').doc(bookingId);
     final doc = await ref.get();
-    if (!doc.exists) throw Exception('Booking not found');
+    if (!doc.exists) throw Exception(tr('bookingNotFound'));
 
     final data = doc.data()!;
     if (data['userId'] != user.uid && data['user_email'] != user.email) {
-      throw Exception('Not allowed');
+      throw Exception(tr('notAllowed'));
     }
     return (user: user, ref: ref, data: data);
   }
@@ -254,7 +263,10 @@ class BookingService {
       await _firestore.collection('cars').doc(carId).update({
         'current_odometer': km,
       });
-    } catch (_) {}
+    } catch (e) {
+      // Best effort (a notification): never fail the main action.
+      debugPrint('Best-effort write failed: $e');
+    }
   }
 
   static Future<void> cancelBooking(String bookingId) async {
@@ -262,12 +274,12 @@ class BookingService {
 
     final status = (data['status'] ?? '').toString().toLowerCase();
     if (status != 'pending' && status != 'confirmed') {
-      throw Exception('Only pending or confirmed bookings can be cancelled');
+      throw Exception(tr('onlyPendingCancel'));
     }
 
     final pickup = data['pickupDate'];
     if (pickup is Timestamp && pickup.toDate().isBefore(DateTime.now())) {
-      throw Exception('Cannot cancel after pickup date');
+      throw Exception(tr('cannotCancelAfterPickup'));
     }
 
     await ref.update({
@@ -284,8 +296,14 @@ class BookingService {
             'Your booking for ${data['carName'] ?? data['car_name'] ?? 'car'} was cancelled.',
         type: 'booking_cancelled',
         bookingId: bookingId,
+        i18n: notificationI18n('nBookingCancelled', 'nBookingCancelledBody', {
+          'car': '${data['carName'] ?? data['car_name'] ?? ''}',
+        }),
       );
-    } catch (_) {}
+    } catch (e) {
+      // Best effort (a notification): never fail the main action.
+      debugPrint('Best-effort write failed: $e');
+    }
   }
 
   /// Tells the customer a chauffeur was assigned to their booking.
@@ -299,6 +317,9 @@ class BookingService {
     body: '$chauffeurName will drive your trip. Track from My Bookings.',
     type: 'chauffeur_assigned',
     bookingId: bookingId,
+    i18n: notificationI18n('nChauffeurAssigned', 'nChauffeurAssignedBody', {
+      'name': chauffeurName,
+    }),
   );
 
   /// Tells the customer their trip moved to [tripStatus].
@@ -312,6 +333,9 @@ class BookingService {
     body: 'Your trip is now ${tripStatus.replaceAll('_', ' ')}.',
     type: 'trip_$tripStatus',
     bookingId: bookingId,
+    i18n: notificationI18n('nTripUpdate', 'nTripUpdateBody', {
+      'tripStatus': tripStatus,
+    }),
   );
 
   static Future<void> updateLiveLocation({
@@ -395,6 +419,9 @@ class BookingService {
             : 'Your vehicle access has been restored.',
         type: 'security_alert',
         bookingId: bookingId,
+        i18n: immobilized
+            ? notificationI18n('nImmobilized', 'nImmobilizedBody')
+            : notificationI18n('nRestored', 'nRestoredBody'),
       );
     }
   }
@@ -404,7 +431,7 @@ class BookingService {
     required String signatureUrl,
   }) async {
     final user = _auth.currentUser;
-    if (user == null) throw Exception('Not signed in');
+    if (user == null) throw Exception(tr('notSignedIn'));
 
     await _firestore.collection('bookings').doc(bookingId).update({
       'agreement': {
@@ -425,7 +452,10 @@ class BookingService {
   static Future<void> _bestEffort(Future<void> write) async {
     try {
       await write;
-    } catch (_) {}
+    } catch (e) {
+      // Best effort (a notification): never fail the main action.
+      debugPrint('Best-effort write failed: $e');
+    }
   }
 
   static Future<void> _notifyUser({
@@ -434,6 +464,7 @@ class BookingService {
     required String body,
     required String type,
     String? bookingId,
+    Map<String, Object>? i18n,
   }) async {
     await _firestore
         .collection('users')
@@ -442,6 +473,7 @@ class BookingService {
         .add({
           'title': title,
           'body': body,
+          'i18n': ?i18n,
           'type': type,
           'bookingId': ?bookingId,
           'read': false,
@@ -496,12 +528,12 @@ class BookingService {
 
     final status = (data['status'] ?? '').toString().toLowerCase();
     if (status == 'cancelled' || status == 'completed') {
-      throw Exception('Cannot record km for this booking');
+      throw Exception(tr('cannotRecordKm'));
     }
 
     final existing = data['odometer'];
     if (existing is Map && existing['startKm'] != null) {
-      throw Exception('Pickup km already recorded');
+      throw Exception(tr('pickupKmAlready'));
     }
 
     final carId = data['car_id']?.toString() ?? data['carId']?.toString();
@@ -522,13 +554,16 @@ class BookingService {
 
     try {
       await _notifyAdmins(
-        title: 'Pickup km recorded',
+        title: tr('pickupKmRecorded'),
         body:
             '${data['carName'] ?? data['car_name'] ?? 'Car'} pickup at $km km',
         type: 'odometer_start',
         bookingId: bookingId,
       );
-    } catch (_) {}
+    } catch (e) {
+      // Best effort (a notification): never fail the main action.
+      debugPrint('Best-effort write failed: $e');
+    }
   }
 
   /// Records the return km and closes the rental through payments_server
@@ -557,7 +592,7 @@ class BookingService {
     required bool isPickup,
   }) async {
     final user = _auth.currentUser;
-    if (user == null) throw Exception('Not signed in');
+    if (user == null) throw Exception(tr('notSignedIn'));
 
     final ref = _firestore.collection('bookings').doc(bookingId);
     final field = isPickup ? 'pickupVideo' : 'returnVideo';
@@ -579,7 +614,10 @@ class BookingService {
         type: isPickup ? 'video_pickup' : 'video_return',
         bookingId: bookingId,
       );
-    } catch (_) {}
+    } catch (e) {
+      // Best effort (a notification): never fail the main action.
+      debugPrint('Best-effort write failed: $e');
+    }
   }
 
   // Condition videos are deleted 3 days after the return date by the
@@ -587,11 +625,11 @@ class BookingService {
 
   static Future<void> _requireAdmin() async {
     final user = _auth.currentUser;
-    if (user == null) throw Exception('Not signed in');
+    if (user == null) throw Exception(tr('notSignedIn'));
 
     final userDoc = await _firestore.collection('users').doc(user.uid).get();
     if (userDoc.data()?['role'] != 'admin') {
-      throw Exception('Admin access required');
+      throw Exception(tr('adminRequired'));
     }
   }
 
@@ -604,7 +642,7 @@ class BookingService {
 
     final ref = _firestore.collection('bookings').doc(bookingId);
     final doc = await ref.get();
-    if (!doc.exists) throw Exception('Booking not found');
+    if (!doc.exists) throw Exception(tr('bookingNotFound'));
 
     final data = doc.data()!;
     final status = paid ? 'paid' : 'pending';
@@ -655,8 +693,18 @@ class BookingService {
               : 'Your extra km charge of EGP ${charge.toStringAsFixed(0)} is pending payment.',
           type: paid ? 'extra_km_paid' : 'extra_km_pending',
           bookingId: bookingId,
+          i18n: paid
+              ? notificationI18n('nExtraKmPaid', 'nExtraKmPaidBody', {
+                  'amount': charge.toStringAsFixed(0),
+                })
+              : notificationI18n('nExtraKmPending', 'nExtraKmPendingBody', {
+                  'amount': charge.toStringAsFixed(0),
+                }),
         );
-      } catch (_) {}
+      } catch (e) {
+        // Best effort (a notification): never fail the main action.
+        debugPrint('Best-effort write failed: $e');
+      }
     }
   }
 }
