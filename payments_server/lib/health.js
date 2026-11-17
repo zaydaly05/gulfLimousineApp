@@ -6,10 +6,16 @@ const NAMES = [
   'PAYMOB_INTEGRATION_IDS', 'FIREBASE_SERVICE_ACCOUNT',
 ];
 
+// Paymob keys may carry a region prefix, e.g. egy_sk_test_... in Egypt.
 function keyMode(value, prefix) {
   if (!value) return 'missing';
-  if (value.startsWith(`${prefix}_test_`)) return 'test';
-  if (value.startsWith(`${prefix}_live_`)) return 'live';
+  const v = value.trim();
+  const m = v.match(new RegExp(`^(?:[a-z]{2,4}_)?${prefix}_(test|live)_`));
+  if (m) return m[1];
+  // The dashboard's older long "API key" is a base64 JWT starting "ZXlK";
+  // it is not the secret/public key the Intention API needs.
+  if (v.startsWith('ZXlK')) return 'legacy-api-key';
+  if (v !== value) return 'has-spaces';
   return 'unrecognised';
 }
 

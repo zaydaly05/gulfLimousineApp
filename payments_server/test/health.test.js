@@ -30,3 +30,12 @@ test('wrong Firebase project and bad IDs are caught', () => {
   assert.equal(r.paymob.integrationIdsValid, false);
   assert.equal(r.ok, false);
 });
+
+test('region-prefixed Paymob keys and wrong-key hints', () => {
+  const egy = configReport({ ...good, PAYMOB_SECRET_KEY: 'egy_sk_test_x', PAYMOB_PUBLIC_KEY: 'egy_pk_test_y' }, 'p1');
+  assert.equal(egy.ok, true);
+  assert.equal(egy.paymob.secretKeyMode, 'test');
+  const legacy = configReport({ ...good, PAYMOB_SECRET_KEY: 'ZXlKaGJHY2lPaUpJVXpVeE1pSXNJblI1Y0NJNklrcFhWQ0o5' }, 'p1');
+  assert.equal(legacy.paymob.secretKeyMode, 'legacy-api-key');
+  assert.equal(legacy.ok, false);
+});
