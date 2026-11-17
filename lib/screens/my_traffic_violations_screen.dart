@@ -250,7 +250,6 @@ class _ViolationPaymentScreenState extends State<ViolationPaymentScreen> {
       await TrafficViolationService.pay(
         violationId: widget.violationId,
         paymentMethod: method,
-        paymentStatus: paid ? 'paid' : 'pending',
       );
       if (!mounted) return;
       Navigator.pushAndRemoveUntil(

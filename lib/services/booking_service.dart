@@ -5,7 +5,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
 import '../models/geo_location.dart';
-import 'km_billing_service.dart';
 import 'payments_server_client.dart';
 
 class RentalDetails {
@@ -539,113 +538,23 @@ class BookingService {
     } catch (_) {}
   }
 
+  /// Records the return km and closes the rental through payments_server
+  /// (/api/end-trip). The server computes the extra-km bill
+  /// (the app's KmBillingService formula), completes the booking, writes the
+  /// extra-km payment record and sends the notifications in one
+  /// transaction. Throws [ServerException] with a message to show.
   static Future<void> recordEndKmAndFinalize({
     required String bookingId,
     required int km,
     required String photoUrl,
     required String photoPublicId,
   }) async {
-    final (:user, :ref, :data) = await _loadOwnedBooking(bookingId);
-
-    final odometer = data['odometer'];
-    if (odometer is! Map) {
-      throw Exception('Record pickup km first');
-    }
-
-    final odometerMap = Map<String, dynamic>.from(odometer);
-    final startKm = _odometerKm(odometerMap, 'startKm');
-    if (startKm == null) throw Exception('Record pickup km first');
-    if (odometerMap['endKm'] != null) {
-      throw Exception('Return km already recorded');
-    }
-    if (km < startKm) {
-      throw Exception('Return km must be at least $startKm');
-    }
-
-    final days = (data['days'] as num?)?.toInt() ?? 1;
-    final baseAmount = (data['total_amount'] as num?)?.toDouble() ?? 0;
-    final billing = KmBillingService.calculate(
-      startKm: startKm,
-      endKm: km,
-      rentalDays: days,
-    );
-    final finalAmount = KmBillingService.finalAmount(
-      baseAmount: baseAmount,
-      billing: billing,
-    );
-
-    final carId = data['car_id']?.toString() ?? data['carId']?.toString();
-    final carName = (data['carName'] ?? data['car_name'] ?? 'car').toString();
-
-    await ref.update({
-      'odometer': {
-        ...Map<String, dynamic>.from(odometer),
-        'endKm': km,
-        'endPhotoUrl': photoUrl,
-        'endPhotoPublicId': photoPublicId,
-        'endCapturedAt': FieldValue.serverTimestamp(),
-        'endCapturedBy': user.uid,
-      },
-      'kmAllowance': {
-        'kmPerDay': KmBillingService.kmPerDay,
-        'allowedKm': billing.allowedKm,
-        'drivenKm': billing.drivenKm,
-        'extraKm': billing.extraKm,
-        'extraKmRateEgp': KmBillingService.extraKmRateEgp,
-        'extraKmChargeEgp': billing.extraKmChargeEgp,
-      },
-      'final_amount': finalAmount,
-      'extraKmPaymentStatus': billing.extraKm > 0
-          ? 'pending'
-          : 'not_applicable',
-      'status': 'completed',
-      'tripStatus': 'completed',
-      'updatedAt': FieldValue.serverTimestamp(),
+    await PaymentsServerClient.post('/api/end-trip', {
+      'bookingId': bookingId,
+      'endKm': km,
+      'photoUrl': photoUrl,
+      'photoPublicId': photoPublicId,
     });
-
-    await _updateCarOdometer(carId, km);
-
-    if (billing.extraKmChargeEgp > 0) {
-      await _firestore.collection('payments').add({
-        'userId': user.uid,
-        'user_email': user.email ?? data['user_email'],
-        'booking_id': bookingId,
-        'car_name': carName,
-        'amount': billing.extraKmChargeEgp,
-        'method': 'extra_km',
-        'status': 'pending',
-        'description':
-            'Extra ${billing.extraKm} km (${billing.drivenKm} driven, '
-            '${billing.allowedKm} allowed)',
-        'payment_date': FieldValue.serverTimestamp(),
-      });
-    }
-
-    // Customer and admin notifications are independent: send both at once.
-    await Future.wait([
-      _bestEffort(
-        _notifyUser(
-          userId: user.uid,
-          title: 'Rental completed',
-          body: billing.extraKm > 0
-              ? '$carName returned. Extra ${billing.extraKm} km: '
-                    'EGP ${billing.extraKmChargeEgp.toStringAsFixed(0)} due.'
-              : '$carName returned. No extra km charges.',
-          type: 'rental_completed',
-          bookingId: bookingId,
-        ),
-      ),
-      _bestEffort(
-        _notifyAdmins(
-          title: 'Return km recorded',
-          body:
-              '$carName returned at $km km. '
-              'Extra: ${billing.extraKm} km (EGP ${billing.extraKmChargeEgp.toStringAsFixed(0)})',
-          type: 'odometer_end',
-          bookingId: bookingId,
-        ),
-      ),
-    ]);
   }
 
   static Future<void> recordConditionVideo({
