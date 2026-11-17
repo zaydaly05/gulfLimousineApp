@@ -111,3 +111,16 @@ String paymentMethodLabel(String method) => switch (method.toLowerCase()) {
   'paymob' || 'card' => tr('card'),
   _ => method,
 };
+
+/// Keeps a phone number, email or ID left to right inside Arabic text
+/// (otherwise "+2010..." shows as "2010...+"). Unicode isolates do nothing
+/// in English.
+String ltr(Object? text) => '\u2066${text ?? ''}\u2069';
+
+/// User roles as stored ('user', 'admin', 'chauffeur').
+String roleLabel(String role) => switch (role) {
+  'admin' => tr('roleAdmin'),
+  'user' || 'customer' => tr('roleCustomer'),
+  'chauffeur' => tr('chauffeur'),
+  _ => role,
+};

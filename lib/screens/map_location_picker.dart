@@ -8,6 +8,7 @@ import '../models/geo_location.dart';
 import '../widgets/app_map.dart';
 import '../theme/app_theme.dart';
 import '../l10n/locale_service.dart';
+import '../widgets/app_feedback.dart';
 
 class MapLocationPicker extends StatefulWidget {
   final String title;
@@ -115,9 +116,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
     if (query.isEmpty) return;
     final geocoding = _geocoding;
     if (geocoding == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(tr('addressSearchIsnTAvailable'))));
+      ScaffoldMessenger.of(context).showInfo(tr('addressSearchIsnTAvailable'));
       return;
     }
     setState(() => _resolving = true);
@@ -135,8 +134,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
     } catch (_) {}
     if (mounted) {
       setState(() => _resolving = false);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(tr('addressNotFoundTryA'))));
+      ScaffoldMessenger.of(context).showInfo(tr('addressNotFoundTryA'));
     }
   }
 
@@ -149,9 +147,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
         if (!mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(tr('locationPermissionDenied'))));
+        ScaffoldMessenger.of(context).showInfo(tr('locationPermissionDenied'));
         return;
       }
       final pos = await Geolocator.getCurrentPosition();
@@ -160,9 +156,8 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
       await _reverseGeocode(point);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(tr('couldNotGetLocation', args: {'e': '$e'}))),
-      );
+      ScaffoldMessenger.of(context)
+          .showError(e, title: tr('couldNotGetLocation'));
     }
   }
 

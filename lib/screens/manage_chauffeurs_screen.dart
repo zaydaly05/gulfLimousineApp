@@ -5,6 +5,7 @@ import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
 import '../utils/live_refresh.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/app_feedback.dart';
 
 class ManageChauffeursScreen extends StatefulWidget {
   const ManageChauffeursScreen({super.key});
@@ -91,6 +92,7 @@ class _ManageChauffeursScreenState extends State<ManageChauffeursScreen> {
                   controller: phone,
                   style: const TextStyle(color: Colors.white),
                   keyboardType: TextInputType.phone,
+                  textDirection: TextDirection.ltr,
                   decoration: InputDecoration(
                     labelText: context.t('phone'),
                     labelStyle: const TextStyle(color: Colors.white70),
@@ -169,6 +171,9 @@ class _ManageChauffeursScreenState extends State<ManageChauffeursScreen> {
         child: StreamBuilder<QuerySnapshot>(
           stream: _chauffeursStream,
           builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return ErrorView(error: snapshot.error, dark: true);
+            }
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
@@ -209,7 +214,7 @@ class _ManageChauffeursScreenState extends State<ManageChauffeursScreen> {
                       ),
                     ),
                     subtitle: Text(
-                      '${data['phone'] ?? ''}${active ? '' : ' · ${tr('inactive')}'}',
+                      '${ltr(data['phone'] ?? '')}${active ? '' : ' · ${tr('inactive')}'}',
                       style: TextStyle(color: Colors.grey.shade400),
                     ),
                     trailing: Row(

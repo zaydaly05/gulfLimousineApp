@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import 'app_config_service.dart';
 import '../l10n/locale_service.dart';
+import '../l10n/server_errors.dart';
 
 /// A refusal or failure from payments_server, with a message to show.
 class ServerException implements Exception {
@@ -54,7 +55,9 @@ class PaymentsServerClient {
     final decoded = _decode(response.body);
     if (response.statusCode != 200) {
       throw ServerException(
-        decoded['error']?.toString() ?? tr('somethingWentWrong'),
+        decoded['error'] is String
+            ? localizeServerMessage(decoded['error'] as String)
+            : tr('somethingWentWrong'),
         body: decoded,
       );
     }

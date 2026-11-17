@@ -9,6 +9,7 @@ import '../services/booking_service.dart';
 import '../services/cloudinary_service.dart';
 import '../utils/safe_insets.dart';
 import '../l10n/locale_service.dart';
+import '../utils/friendly_error.dart';
 
 enum ConditionCaptureMode { pickup, returnMode }
 
@@ -66,7 +67,9 @@ class _CarConditionCaptureScreenState extends State<CarConditionCaptureScreen> {
     } catch (e) {
       await controller.dispose();
       if (mounted) {
-        setState(() => _error = tr('couldNotOpenVideo', args: {'e': '$e'}));
+        setState(
+          () => _error = '${tr('couldNotOpenVideo')} ${friendlyError(e)}',
+        );
       }
       return;
     }
@@ -142,7 +145,7 @@ class _CarConditionCaptureScreenState extends State<CarConditionCaptureScreen> {
       if (!mounted) return;
       setState(() {
         _processing = false;
-        _error = e.toString();
+        _error = friendlyError(e);
       });
     }
   }

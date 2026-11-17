@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../services/biometric_service.dart';
 import '../l10n/locale_service.dart';
+import 'app_feedback.dart';
 
 class BiometricSettingsTile extends StatefulWidget {
   final bool dark;
@@ -65,14 +66,10 @@ class BiometricSettingsTileState extends State<BiometricSettingsTile> {
       final ok = await BiometricService.enableWithPrompt();
       if (!mounted) return;
       setState(() => _enabled = ok);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            ok
-                ? tr('biometricOn', args: {'method': _label})
-                : tr('couldNotEnableBiometric'),
-          ),
-        ),
+      ScaffoldMessenger.of(context).showInfo(
+        ok
+            ? tr('biometricOn', args: {'method': _label})
+            : tr('couldNotEnableBiometric'),
       );
       return;
     }

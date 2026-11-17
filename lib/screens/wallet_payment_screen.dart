@@ -7,7 +7,9 @@ import '../services/app_config_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/payment_validation.dart';
 import '../utils/safe_insets.dart';
+import '../l10n/content_labels.dart';
 import '../l10n/locale_service.dart';
+import '../widgets/app_feedback.dart';
 
 /// Pay by sending money from a mobile wallet (Vodafone Cash, Orange Cash,
 /// e& money, WE Pay) to the business's wallet number.
@@ -60,14 +62,12 @@ class _WalletPaymentScreenState extends State<WalletPaymentScreen> {
   Future<void> _copyNumber(String number) async {
     await Clipboard.setData(ClipboardData(text: number));
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(tr('walletNumberCopied'))));
+    ScaffoldMessenger.of(context).showInfo(tr('walletNumberCopied'));
   }
 
   void _submit() {
     if (_selectedWallet == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(tr('chooseTheWalletYouPaid'))));
+      ScaffoldMessenger.of(context).showInfo(tr('chooseTheWalletYouPaid'));
       return;
     }
     if (!_formKey.currentState!.validate()) return;
@@ -129,7 +129,7 @@ class _WalletPaymentScreenState extends State<WalletPaymentScreen> {
                                 ? AppTheme.accent
                                 : Colors.grey,
                           ),
-                          title: Text(wallet),
+                          title: Text(walletBrandLabel(wallet)),
                           trailing: _selectedWallet == wallet
                               ? const Icon(
                                   Icons.check_circle,
@@ -163,6 +163,7 @@ class _WalletPaymentScreenState extends State<WalletPaymentScreen> {
                     TextFormField(
                       controller: _phoneController,
                       keyboardType: TextInputType.phone,
+                      textDirection: TextDirection.ltr,
                       decoration: InputDecoration(
                         labelText: tr('walletNumberYouPaidFrom'),
                         hintText: tr('t01xxxxxxxxx'),

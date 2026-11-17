@@ -18,6 +18,7 @@ import '../widgets/condition_video_chips.dart';
 import '../widgets/status_pill.dart';
 import '../services/booking_service.dart';
 import '../models/fleet.dart';
+import '../widgets/app_feedback.dart';
 
 class ManageBookingsScreen extends StatefulWidget {
   const ManageBookingsScreen({super.key});
@@ -56,12 +57,7 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                   await BookingService.deleteBooking(id);
                 } catch (e) {
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('$e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
+                    ScaffoldMessenger.of(context).showError(e);
                   }
                 }
                 if (dialogContext.mounted) Navigator.pop(dialogContext);
@@ -107,25 +103,15 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
         child: StreamBuilder<QuerySnapshot>(
           stream: _bookingsStream,
           builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return ErrorView(
+                error: snapshot.error,
+                message: tr('errorLoadingBookings'),
+                dark: true,
+              );
+            }
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
-            }
-
-            if (snapshot.hasError) {
-              return ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                children: [
-                  SizedBox(
-                    height: 400,
-                    child: Center(
-                      child: Text(
-                        tr('errorLoadingBookings'),
-                        style: TextStyle(color: Colors.red.shade300),
-                      ),
-                    ),
-                  ),
-                ],
-              );
             }
 
             final docs = sortedByCreatedAtDesc(
@@ -210,7 +196,7 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                         ),
                         if (email.isNotEmpty)
                           Text(
-                            '${context.t('email')}: $email',
+                            '${context.t('email')}: ${ltr(email)}',
                             style: TextStyle(color: Colors.grey.shade400),
                           ),
                         if (Fleet.bookingSummary(booking) case final fleet

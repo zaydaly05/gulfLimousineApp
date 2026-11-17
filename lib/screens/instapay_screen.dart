@@ -218,6 +218,7 @@ class _InstaPayScreenState extends State<InstaPayScreen> {
                   prefixIcon: const Icon(Icons.phone_android),
                 ),
                 keyboardType: TextInputType.phone,
+                textDirection: TextDirection.ltr,
                 validator: (v) => normalizeEgyptianMobile(v ?? '') == null
                     ? tr('enterPaidFromNumber')
                     : null,

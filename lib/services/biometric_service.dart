@@ -6,6 +6,7 @@ import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../l10n/locale_service.dart';
+import '../widgets/app_feedback.dart';
 
 class BiometricService {
   BiometricService._();
@@ -200,16 +201,10 @@ class BiometricService {
         await rememberEmailLogin(email, password);
       }
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            ok
-                ? tr('biometricOn', args: {'method': label})
-                : tr('couldNotEnableBiometric'),
-          ),
-          backgroundColor: ok ? Colors.green : Colors.red,
-        ),
-      );
+      final messenger = ScaffoldMessenger.of(context);
+      ok
+          ? messenger.showSuccess(tr('biometricOn', args: {'method': label}))
+          : messenger.showError(tr('couldNotEnableBiometric'));
     }
   }
 }

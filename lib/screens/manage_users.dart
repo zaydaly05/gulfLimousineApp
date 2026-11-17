@@ -12,6 +12,7 @@ import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
 import '../utils/live_refresh.dart';
 import '../services/user_profile_service.dart';
+import '../widgets/app_feedback.dart';
 
 class ManageUsersScreen extends StatefulWidget {
   const ManageUsersScreen({super.key});
@@ -132,6 +133,9 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
         child: StreamBuilder<QuerySnapshot>(
           stream: _usersStream,
           builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return ErrorView(error: snapshot.error, dark: true);
+            }
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
@@ -243,11 +247,11 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
                               'roleCreated',
                               args: {
                                 't': context.t('email'),
-                                'useremail': '${user['email'] ?? ''}',
+                                'useremail': ltr(user['email'] ?? ''),
                                 't2': context.t('phone'),
-                                'v3': _resolvePhone(user),
-                                'userrole': '${user['role'] ?? ''}',
-                                'formattedDate': formattedDate,
+                                'v3': ltr(_resolvePhone(user)),
+                                'userrole': roleLabel('${user['role'] ?? ''}'),
+                                'formattedDate': ltr(formattedDate),
                               },
                             ),
                             style: TextStyle(

@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/foundation.dart';
 
 import '../utils/booking_fields.dart';
 import 'payments_server_client.dart';
+import '../l10n/notification_text.dart';
 
 class TrafficViolationService {
   TrafficViolationService._();
@@ -100,6 +102,7 @@ class TrafficViolationService {
     required DateTime violationDate,
     required String status,
     String ticketNumber = '',
+    String violationType = '',
     String description = '',
     String location = '',
   }) async {
@@ -123,6 +126,7 @@ class TrafficViolationService {
       'amount': amount,
       'violationDate': Timestamp.fromDate(violationDate),
       'ticketNumber': ticketNumber.trim(),
+      if (violationType.isNotEmpty) 'violationType': violationType,
       'description': description.trim(),
       'location': location.trim(),
       'status': status,
@@ -138,11 +142,22 @@ class TrafficViolationService {
           'title': 'Traffic violation',
           'body':
               'A traffic ticket of EGP ${amount.toStringAsFixed(0)} was added for ${customer['car_name'] ?? 'your rental'}. Open Traffic tickets to pay.',
+          'i18n': notificationI18n(
+            'nTrafficViolation',
+            'nTrafficViolationBody',
+            {
+              'amount': amount.toStringAsFixed(0),
+              'car': '${customer['car_name'] ?? ''}',
+            },
+          ),
           'type': 'traffic_violation',
           'read': false,
           'createdAt': FieldValue.serverTimestamp(),
         });
-      } catch (_) {}
+      } catch (e) {
+        // Best effort (a notification): never fail the main action.
+        debugPrint('Best-effort write failed: $e');
+      }
     }
   }
 

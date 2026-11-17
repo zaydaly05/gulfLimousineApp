@@ -7,6 +7,8 @@ import '../services/app_config_service.dart';
 import '../utils/payment_validation.dart';
 import '../utils/safe_insets.dart';
 import '../l10n/locale_service.dart';
+import '../widgets/app_feedback.dart';
+import '../utils/friendly_error.dart';
 
 /// Admin: switch each payment method on or off and set where manual
 /// transfers go. Saved to `config/payments`; checkout hides switched-off
@@ -74,7 +76,9 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
       });
     } catch (e) {
       if (mounted) {
-        setState(() => _error = tr('couldNotLoadSettings', args: {'e': '$e'}));
+        setState(
+          () => _error = '${tr('couldNotLoadSettings')} ${friendlyError(e)}',
+        );
       }
     }
   }
@@ -82,8 +86,7 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (!_enabled.values.any((on) => on)) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(tr('keepAtLeastOnePayment'))));
+      ScaffoldMessenger.of(context).showInfo(tr('keepAtLeastOnePayment'));
       return;
     }
     final messenger = ScaffoldMessenger.of(context);
@@ -97,13 +100,9 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
         'walletName': _walletName.text.trim(),
       }, SetOptions(merge: true));
       AppConfigService.instance.refresh();
-      messenger.showSnackBar(
-        SnackBar(content: Text(tr('paymentSettingsSaved'))),
-      );
+      messenger.showInfo(tr('paymentSettingsSaved'));
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('$e'), backgroundColor: Colors.red),
-      );
+      messenger.showError(e);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -196,6 +195,7 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
                   TextFormField(
                     controller: _wallet,
                     keyboardType: TextInputType.phone,
+                    textDirection: TextDirection.ltr,
                     style: const TextStyle(color: Colors.white),
                     decoration: _decoration(
                       tr('walletNumber'),

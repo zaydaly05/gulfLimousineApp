@@ -9,7 +9,9 @@ import 'expandable_address_row.dart';
 import '../l10n/locale_service.dart';
 import '../utils/rental_dates.dart';
 import '../theme/app_theme.dart';
-import '../services/payments_server_client.dart';
+import '../l10n/content_labels.dart';
+import 'app_feedback.dart';
+import '../utils/friendly_error.dart';
 
 class RentBottomSheet extends StatefulWidget {
   final Map<String, dynamic> car;
@@ -81,9 +83,10 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
         ]..sort((a, b) => _freeOf(avail, b).compareTo(_freeOf(avail, a)));
         _priority = [...kept, ...added];
       });
-    } on ServerException catch (e) {
+    } catch (e) {
+      // Server refusals, timeouts and lost connections alike.
       if (mounted && request == _availRequest) {
-        setState(() => _availError = e.message);
+        setState(() => _availError = friendlyError(e));
       }
     } finally {
       if (mounted && request == _availRequest) {
@@ -165,38 +168,30 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
 
   void _proceedToPayment() {
     if (pickupDate == null || returnDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.t('selectPickupReturnDates'))),
-      );
+      ScaffoldMessenger.of(context)
+          .showInfo(context.t('selectPickupReturnDates'));
       return;
     }
     if (returnDate!.isBefore(pickupDate!)) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(context.t('returnAfterPickup'))));
+      ScaffoldMessenger.of(context).showInfo(context.t('returnAfterPickup'));
       return;
     }
     if (_days < 1) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(context.t('rentalMinDay'))));
+      ScaffoldMessenger.of(context).showInfo(context.t('rentalMinDay'));
       return;
     }
     if (pickupLocation == null || dropoffLocation == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.t('selectPickupDropoffLoc'))),
-      );
+      ScaffoldMessenger.of(context)
+          .showInfo(context.t('selectPickupDropoffLoc'));
       return;
     }
     final avail = _avail;
     if (avail == null || _checking) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.t('checkingAvailability'))),
-      );
+      ScaffoldMessenger.of(context).showInfo(context.t('checkingAvailability'));
       return;
     }
     if (avail.totalAvailable < _quantity) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(context.t('noCarsFree'))));
+      ScaffoldMessenger.of(context).showInfo(context.t('noCarsFree'));
       return;
     }
 
@@ -366,7 +361,7 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              name,
+              colourLabel(name),
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 color: free == 0 ? Colors.grey : null,

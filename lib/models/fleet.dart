@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../l10n/locale_service.dart';
+import '../l10n/content_labels.dart';
 
 /// How many cars of one model the company has in one colour.
 @immutable
@@ -53,7 +54,9 @@ class Fleet {
     final colors = colorsOf(car);
     if (colors.isEmpty) return '';
     final total = totalOf(car);
-    final parts = colors.map((c) => '${c.name} ${c.count}').join(', ');
+    final parts = colors
+        .map((c) => '${colourLabel(c.name)} ${c.count}')
+        .join(', ');
     return '${carCount(total)} · $parts';
   }
 
@@ -68,7 +71,7 @@ class Fleet {
     if (quantity <= 1 && colors.isEmpty) return '';
     final cars = carCount(quantity);
     if (colors.isEmpty) return cars;
-    return '$cars: ${colors.map((c) => '${c.name} ${c.count}').join(', ')}';
+    return '$cars: ${colors.map((c) => '${colourLabel(c.name)} ${c.count}').join(', ')}';
   }
 
   /// Why [colors] can't be saved, or null if they can.

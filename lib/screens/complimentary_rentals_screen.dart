@@ -14,6 +14,7 @@ import '../utils/live_refresh.dart';
 import '../widgets/dark_form_fields.dart';
 import '../widgets/status_pill.dart';
 import '../services/complimentary_rental_service.dart';
+import '../widgets/app_feedback.dart';
 
 class ComplimentaryRentalsScreen extends StatefulWidget {
   const ComplimentaryRentalsScreen({super.key});
@@ -100,13 +101,9 @@ class _ComplimentaryRentalsScreenState
     await ComplimentaryRentalService.setStatus(id, data, status);
 
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          status == 'completed' ? tr('giftEnded') : tr('giftCancelled'),
-        ),
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showInfo(status == 'completed' ? tr('giftEnded') : tr('giftCancelled'));
   }
 
   Future<void> _delete(
@@ -176,11 +173,10 @@ class _ComplimentaryRentalsScreenState
               return const Center(child: CircularProgressIndicator());
             }
             if (snapshot.hasError) {
-              return Center(
-                child: Text(
-                  tr('couldNotLoadComplimentaryRentals'),
-                  style: TextStyle(color: Colors.red.shade300),
-                ),
+              return ErrorView(
+                error: snapshot.error,
+                message: tr('couldNotLoadComplimentaryRentals'),
+                dark: true,
               );
             }
 
@@ -358,7 +354,7 @@ class _ComplimentaryRentalsScreenState
                         ),
                         if ((data['phone'] ?? '').toString().isNotEmpty)
                           Text(
-                            '${tr('phone')}: ${data['phone']}',
+                            '${tr('phone')}: ${ltr(data['phone'])}',
                             style: TextStyle(color: Colors.grey.shade400),
                           ),
                         Text(
@@ -553,32 +549,17 @@ class _AddComplimentaryRentalScreenState
     if (!_formKey.currentState!.validate()) return;
 
     if (selectedCarId == null || selectedCarName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(tr('pleaseSelectACar')),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showError(tr('pleaseSelectACar'));
       return;
     }
 
     if (startDate == null || endDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(tr('pleaseSelectStartAndReturn')),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showError(tr('pleaseSelectStartAndReturn'));
       return;
     }
 
     if (endDate!.isBefore(startDate!)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(tr('returnDateMustBeAfter')),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showError(tr('returnDateMustBeAfter'));
       return;
     }
 
@@ -614,17 +595,10 @@ class _AddComplimentaryRentalScreenState
 
       if (!mounted) return;
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(tr('carGrantedItIsHidden')),
-          backgroundColor: Colors.green,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSuccess(tr('carGrantedItIsHidden'));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context).showError(e);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

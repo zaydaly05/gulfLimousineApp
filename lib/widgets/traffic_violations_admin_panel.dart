@@ -7,6 +7,8 @@ import '../utils/booking_fields.dart';
 import 'status_colors.dart';
 import 'status_pill.dart';
 import '../l10n/locale_service.dart';
+import '../l10n/content_labels.dart';
+import 'app_feedback.dart';
 
 class TrafficViolationsAdminPanel extends StatefulWidget {
   final String sourceType;
@@ -214,6 +216,7 @@ class _AddTrafficViolationDialogState
   final location = TextEditingController();
   DateTime violationDate = DateTime.now();
   String status = 'pending';
+  String violationType = 'speeding';
   bool _saving = false;
 
   @override
@@ -237,23 +240,17 @@ class _AddTrafficViolationDialogState
         violationDate: violationDate,
         status: status,
         ticketNumber: ticket.text,
+        violationType: violationType,
         description: description.text,
         location: location.text,
       );
       if (!mounted) return;
       final messenger = ScaffoldMessenger.maybeOf(context);
       Navigator.pop(context);
-      messenger?.showSnackBar(
-        SnackBar(
-          content: Text(tr('trafficViolationSavedAdminOnly')),
-          backgroundColor: Colors.green,
-        ),
-      );
+      messenger?.showSuccess(tr('trafficViolationSavedAdminOnly'));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$e'), backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context).showError(e);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -297,11 +294,28 @@ class _AddTrafficViolationDialogState
                   labelStyle: TextStyle(color: Colors.white70),
                 ),
               ),
+              DropdownButtonFormField<String>(
+                initialValue: violationType,
+                dropdownColor: Colors.grey.shade900,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: tr('violationType'),
+                  labelStyle: const TextStyle(color: Colors.white70),
+                ),
+                items: [
+                  for (final t in violationTypes)
+                    DropdownMenuItem(
+                      value: t,
+                      child: Text(violationTypeLabel(t)),
+                    ),
+                ],
+                onChanged: (v) => setState(() => violationType = v ?? 'other'),
+              ),
               TextFormField(
                 controller: description,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
-                  labelText: tr('violationTypeNote'),
+                  labelText: tr('violationNoteOptional'),
                   labelStyle: TextStyle(color: Colors.white70),
                 ),
               ),

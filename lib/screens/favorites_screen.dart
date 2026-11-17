@@ -10,6 +10,8 @@ import '../utils/live_refresh.dart';
 import '../utils/image_decode.dart';
 import '../widgets/empty_state.dart';
 import '../utils/safe_insets.dart';
+import '../l10n/content_labels.dart';
+import '../widgets/app_feedback.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -33,6 +35,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         child: StreamBuilder<QuerySnapshot>(
           stream: _favoritesStream,
           builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return ErrorView(error: snapshot.error);
+            }
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
@@ -53,7 +58,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 final price = (data['price_per_day'] as num?)?.toDouble() ?? 0;
                 final car = {
                   'id': carId,
-                  'name': data['name']?.toString() ?? context.t('cars'),
+                  'name': carNameOf(data, fallback: tr('carFallback')),
                   'brand': data['brand']?.toString() ?? '',
                   'pricePerDay': price,
                   'imageUrl': data['image_url'],

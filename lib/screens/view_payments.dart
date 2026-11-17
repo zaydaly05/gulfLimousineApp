@@ -7,6 +7,7 @@ import '../services/booking_service.dart';
 import '../widgets/language_picker.dart';
 import '../widgets/empty_state.dart';
 import '../utils/safe_insets.dart';
+import '../widgets/app_feedback.dart';
 
 class ViewPaymentsScreen extends StatefulWidget {
   const ViewPaymentsScreen({super.key});
@@ -49,6 +50,9 @@ class _ViewPaymentsScreenState extends State<ViewPaymentsScreen> {
               child: StreamBuilder<QuerySnapshot>(
                 stream: _paymentsStream,
                 builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return ErrorView(error: snapshot.error, dark: true);
+                  }
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
@@ -137,7 +141,7 @@ class _ViewPaymentsScreenState extends State<ViewPaymentsScreen> {
                               ),
                               const SizedBox(height: 10),
                               Text(
-                                "${context.t('email')}: ${payment['user_email']}",
+                                "${context.t('email')}: ${ltr(payment['user_email'])}",
                                 style: TextStyle(color: Colors.grey.shade400),
                               ),
                               Text(
@@ -253,17 +257,11 @@ class _ViewPaymentsScreenState extends State<ViewPaymentsScreen> {
         bookingId: bookingId,
         approved: approved,
       );
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            approved ? tr('paymentConfirmed') : tr('paymentRejectedMsg'),
-          ),
-        ),
+      messenger.showInfo(
+        approved ? tr('paymentConfirmed') : tr('paymentRejectedMsg'),
       );
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('$e'), backgroundColor: Colors.red),
-      );
+      messenger.showError(e);
     }
   }
 }

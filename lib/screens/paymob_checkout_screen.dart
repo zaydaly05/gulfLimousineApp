@@ -10,6 +10,7 @@ import '../theme/app_theme.dart';
 import '../utils/safe_insets.dart';
 import 'payment_success_screen.dart';
 import '../l10n/locale_service.dart';
+import '../utils/friendly_error.dart';
 
 /// Opens Paymob's hosted checkout for a booking and waits for the result.
 ///
@@ -53,7 +54,8 @@ class _PaymobCheckoutScreenState extends State<PaymobCheckoutScreen> {
           onError: (Object e) {
             if (mounted) {
               setState(
-                () => _error = tr('couldNotLoadBooking', args: {'e': '$e'}),
+                () =>
+                    _error = '${tr('couldNotLoadBooking')} ${friendlyError(e)}',
               );
             }
           },
@@ -109,7 +111,9 @@ class _PaymobCheckoutScreenState extends State<PaymobCheckoutScreen> {
       if (mounted) setState(() => _error = e.message);
     } catch (e) {
       if (mounted) {
-        setState(() => _error = tr('paymentNotStarted', args: {'e': '$e'}));
+        setState(
+          () => _error = '${tr('paymentNotStarted')} ${friendlyError(e)}',
+        );
       }
     } finally {
       if (mounted) setState(() => _opening = false);

@@ -18,6 +18,7 @@ import '../l10n/locale_service.dart';
 import '../services/user_profile_service.dart';
 import '../utils/image_decode.dart';
 import '../utils/safe_insets.dart';
+import '../widgets/app_feedback.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -181,27 +182,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (!mounted) return;
       if (!biometricOk) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.t('profileSavedBioFailed')),
-            backgroundColor: Colors.orange,
-          ),
-        );
+        ScaffoldMessenger.of(context)
+            .showError(context.t('profileSavedBioFailed'));
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.t('changesSaved')),
-          backgroundColor: Colors.green,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSuccess(context.t('changesSaved'));
       await AuthNavigation.goToRoleHome(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$e'), backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context).showError(e);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -270,9 +260,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 20),
               _input(context.t('fullName'), nameController),
-              _input(context.t('email'), emailController, enabled: false),
-              _input(context.t('phone'), phoneController),
-              _input(tr('nationalId'), nationalIdController),
+              _input(
+                context.t('email'),
+                emailController,
+                enabled: false,
+                ltr: true,
+              ),
+              _input(context.t('phone'), phoneController, ltr: true),
+              _input(tr('nationalId'), nationalIdController, ltr: true),
 
               const SizedBox(height: 24),
               _sectionHeader(Icons.security, tr('securityPrivacy')),
@@ -462,15 +457,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       await AccountDeletionService.reauthenticate(password: password);
       await AccountDeletionService.deleteAccount();
-      messenger.showSnackBar(
-        SnackBar(content: Text(tr('yourAccountHasBeenDeleted'))),
-      );
+      messenger.showInfo(tr('yourAccountHasBeenDeleted'));
       if (!mounted) return;
       await AuthNavigation.signOut(context, autoPromptBiometrics: false);
     } on AccountDeletionException catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(e.message), backgroundColor: Colors.red),
-      );
+      messenger.showError(e);
     } finally {
       if (mounted) setState(() => _deleting = false);
     }
@@ -483,17 +474,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       await _auth.sendPasswordResetEmail(email: email);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(tr('passwordResetEmailSentTo', args: {'email': email})),
-          backgroundColor: Colors.green,
-        ),
-      );
+      ScaffoldMessenger.of(context)
+          .showSuccess(tr('passwordResetEmailSentTo', args: {'email': email}));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$e'), backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context).showError(e);
     }
   }
 
@@ -572,12 +557,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     String label,
     TextEditingController controller, {
     bool enabled = true,
+    bool ltr = false,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: TextField(
         controller: controller,
         enabled: enabled,
+        // Emails, phone and ID numbers read left to right in Arabic too.
+        textDirection: ltr ? TextDirection.ltr : null,
         decoration: InputDecoration(
           labelText: label,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),

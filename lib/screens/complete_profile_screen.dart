@@ -9,6 +9,7 @@ import '../services/auth_navigation.dart';
 import '../services/user_profile_service.dart';
 import '../utils/safe_insets.dart';
 import '../l10n/locale_service.dart';
+import '../widgets/app_feedback.dart';
 
 class CompleteProfileScreen extends StatefulWidget {
   const CompleteProfileScreen({super.key});
@@ -58,8 +59,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_nationalIdImage == null || _licenseIdImage == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(tr('pleaseUploadBothIdAnd'))));
+      ScaffoldMessenger.of(context).showInfo(tr('pleaseUploadBothIdAnd'));
       return;
     }
 
@@ -94,12 +94,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       await AuthNavigation.goToRoleHome(context);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(tr('error', args: {'e': '$e'})),
-            backgroundColor: Colors.red,
-          ),
-        );
+        ScaffoldMessenger.of(context).showError(e);
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -131,6 +126,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                 TextFormField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
+                  textDirection: TextDirection.ltr,
                   decoration: _inputDecoration(tr('phoneNumber'), Icons.phone),
                   validator: (v) =>
                       (v ?? '').trim().isEmpty ? tr('required') : null,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/booking_service.dart';
 import '../utils/safe_insets.dart';
 import '../l10n/locale_service.dart';
+import '../widgets/app_feedback.dart';
 
 class RentalAgreementScreen extends StatefulWidget {
   final String? bookingId;
@@ -42,12 +43,7 @@ class _RentalAgreementScreenState extends State<RentalAgreementScreen> {
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(tr('error', args: {'e': '$e'})),
-            backgroundColor: Colors.red,
-          ),
-        );
+        ScaffoldMessenger.of(context).showError(e);
       }
     } finally {
       if (mounted) setState(() => _submitting = false);

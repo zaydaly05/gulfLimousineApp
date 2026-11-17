@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/review_service.dart';
 import '../theme/app_theme.dart';
 import '../l10n/locale_service.dart';
+import '../widgets/app_feedback.dart';
 
 class ReviewBookingScreen extends StatefulWidget {
   final String bookingId;
@@ -43,14 +44,10 @@ class _ReviewBookingScreenState extends State<ReviewBookingScreen> {
       if (!mounted) return;
       final messenger = ScaffoldMessenger.of(context);
       Navigator.pop(context);
-      messenger.showSnackBar(
-        SnackBar(content: Text(tr('thanksForYourReview'))),
-      );
+      messenger.showInfo(tr('thanksForYourReview'));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$e'), backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context).showError(e);
     } finally {
       if (mounted) setState(() => _saving = false);
     }

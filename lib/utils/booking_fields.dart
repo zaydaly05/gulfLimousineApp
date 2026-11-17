@@ -8,6 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
 import '../l10n/locale_service.dart';
+import '../l10n/content_labels.dart';
 
 /// Converts a Firestore date field (Timestamp, DateTime or ISO string).
 DateTime? parseFirestoreDate(dynamic value) {
@@ -37,7 +38,7 @@ String resolveBookingName(Map<String, dynamic> data) {
 }
 
 String resolveBookingCar(Map<String, dynamic> data) {
-  return data['carName'] ?? data['car_name'] ?? tr('carFallback');
+  return carNameOf(data, fallback: tr('carFallback'));
 }
 
 String resolveBookingDateLabel(Map<String, dynamic> data) {

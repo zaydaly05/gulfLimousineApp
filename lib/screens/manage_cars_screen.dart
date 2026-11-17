@@ -13,6 +13,7 @@ import '../utils/image_decode.dart';
 import '../widgets/empty_state.dart';
 import '../models/fleet.dart';
 import '../utils/safe_insets.dart';
+import '../widgets/app_feedback.dart';
 
 class ManageCarsScreen extends StatefulWidget {
   const ManageCarsScreen({super.key});
@@ -66,9 +67,7 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
                       .doc(id)
                       .delete();
                 } catch (e) {
-                  messenger.showSnackBar(
-                    SnackBar(content: Text('$e'), backgroundColor: Colors.red),
-                  );
+                  messenger.showError(e);
                   if (dialogContext.mounted) Navigator.pop(dialogContext);
                   return;
                 }
@@ -80,9 +79,7 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
                   } catch (e) {
                     // The car is gone; only the stored file is left behind.
                     debugPrint('Car image delete failed: $e');
-                    messenger.showSnackBar(
-                      SnackBar(content: Text(tr('carDeletedButItsImage'))),
-                    );
+                    messenger.showInfo(tr('carDeletedButItsImage'));
                   }
                 }
               },
@@ -107,14 +104,11 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
         });
 
         if (!mounted) return;
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(context.t('changesSaved'))));
+        ScaffoldMessenger.of(context).showInfo(context.t('changesSaved'));
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(tr('uploadFailed', args: {'e': '$e'}))),
-      );
+      ScaffoldMessenger.of(context).showError(e, title: tr('uploadFailed'));
     } finally {
       if (mounted) setState(() => isUploading = false);
     }
@@ -150,6 +144,9 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
             child: StreamBuilder<QuerySnapshot>(
               stream: _carsStream,
               builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return ErrorView(error: snapshot.error, dark: true);
+                }
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }

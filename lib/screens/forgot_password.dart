@@ -1,146 +1,148 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
 import '../l10n/locale_service.dart';
+import '../widgets/app_feedback.dart';
+import '../widgets/auth_scaffold.dart';
 
-class ForgotPasswordDialog extends StatefulWidget {
-  const ForgotPasswordDialog({super.key});
+/// Sends a password reset link, then says where to look for it.
+class ForgotPasswordScreen extends StatefulWidget {
+  const ForgotPasswordScreen({super.key, this.initialEmail = ''});
+
+  /// Prefilled from the login screen when the customer already typed it.
+  final String initialEmail;
 
   @override
-  State<ForgotPasswordDialog> createState() => _ForgotPasswordDialogState();
+  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
 }
 
-class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
-  final TextEditingController emailController = TextEditingController();
+class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+  final _formKey = GlobalKey<FormState>();
+  late final _email = TextEditingController(text: widget.initialEmail);
   bool _isLoading = false;
+  String? _sentTo;
+
+  static final _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
   @override
   void dispose() {
-    emailController.dispose();
+    _email.dispose();
     super.dispose();
   }
 
-  /// 🔑 SEND PASSWORD RESET EMAIL
-  Future<void> _sendResetEmail() async {
-    if (emailController.text.trim().isEmpty) {
-      _showError(context.t('enterEmail'));
-      return;
-    }
+  Future<void> _send() async {
+    FocusScope.of(context).unfocus();
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isLoading = true);
     try {
-      setState(() => _isLoading = true);
-
-      await FirebaseAuth.instance.sendPasswordResetEmail(
-        email: emailController.text.trim(),
-      );
-
-      if (!mounted) return;
-
-      final messenger = ScaffoldMessenger.of(context);
-      final sentText = context.t('resetLinkSent');
-      Navigator.pop(context);
-
-      messenger.showSnackBar(
-        SnackBar(content: Text(sentText), backgroundColor: Colors.green),
-      );
-    } on FirebaseAuthException catch (e) {
-      _showError(e.message ?? tr('failedSendReset'));
+      final email = _email.text.trim();
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      if (mounted) setState(() => _sentTo = email);
     } catch (e) {
-      _showError(e.toString());
+      if (mounted) showError(context, e, title: tr('failedSendReset'));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  void _showError(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
+  @override
+  Widget build(BuildContext context) {
+    final sentTo = _sentTo;
+    return AuthScaffold(
+      title: tr('forgotPasswordTitle'),
+      subtitle: sentTo == null ? tr('forgotPasswordHint') : tr('checkInbox'),
+      child: sentTo == null ? _form() : _sent(sentTo),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Material(
-        color: Colors.transparent,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 320, minWidth: 250),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  context.t('forgotPasswordTitle'),
-                  style: const TextStyle(
-                    color: Colors.orange,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  context.t('forgotPasswordHint'),
-                  style: const TextStyle(color: Colors.black87),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-
-                /// 📧 EMAIL
-                TextField(
-                  controller: emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    labelText: context.t('email'),
-                    labelStyle: const TextStyle(color: Colors.orange),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                /// 🔘 ACTION BUTTONS
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: _isLoading
-                          ? null
-                          : () => Navigator.pop(context),
-                      child: Text(
-                        context.t('cancel'),
-                        style: const TextStyle(color: Colors.black),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: _isLoading ? null : _sendResetEmail,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : Text(context.t('sendResetLink')),
-                    ),
-                  ],
-                ),
-              ],
+  Widget _form() {
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextFormField(
+            controller: _email,
+            keyboardType: TextInputType.emailAddress,
+            textDirection: TextDirection.ltr,
+            textInputAction: TextInputAction.send,
+            autofillHints: const [AutofillHints.email],
+            onFieldSubmitted: (_) {
+              if (!_isLoading) unawaited(_send());
+            },
+            decoration: authInputDecoration(tr('email'), Icons.email_outlined),
+            validator: (v) => _emailPattern.hasMatch((v ?? '').trim())
+                ? null
+                : tr('errInvalidEmail'),
+          ),
+          const SizedBox(height: 28),
+          AuthPrimaryButton(
+            label: tr('sendResetLink'),
+            loading: _isLoading,
+            onPressed: _send,
+          ),
+          const SizedBox(height: 12),
+          TextButton(
+            onPressed: _isLoading ? null : () => Navigator.maybePop(context),
+            child: Text(
+              tr('backToLogin'),
+              style: const TextStyle(color: Colors.orange),
             ),
           ),
-        ),
+        ],
       ),
+    );
+  }
+
+  Widget _sent(String email) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.green.shade50,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.green.shade200),
+          ),
+          child: Column(
+            children: [
+              Icon(
+                Icons.mark_email_read_outlined,
+                size: 48,
+                color: Colors.green.shade700,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                tr('resetSentTo', args: {'email': ltr(email)}),
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 15, height: 1.4),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                tr('checkSpam'),
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey.shade700),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 28),
+        AuthPrimaryButton(
+          label: tr('backToLogin'),
+          onPressed: () => Navigator.maybePop(context),
+        ),
+        const SizedBox(height: 12),
+        TextButton(
+          onPressed: _isLoading ? null : _send,
+          child: Text(
+            tr('resendLink'),
+            style: const TextStyle(color: Colors.orange),
+          ),
+        ),
+      ],
     );
   }
 }

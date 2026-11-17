@@ -8,6 +8,7 @@ import '../l10n/locale_service.dart';
 import '../utils/live_refresh.dart';
 import '../theme/app_theme.dart';
 import '../widgets/empty_state.dart';
+import '../l10n/notification_text.dart';
 
 class NotificationsInboxScreen extends StatefulWidget {
   const NotificationsInboxScreen({super.key});
@@ -88,18 +89,19 @@ class _NotificationsInboxScreenState extends State<NotificationsInboxScreen> {
         final doc = docs[index];
         final data = doc.data() as Map<String, dynamic>;
         final read = data['read'] == true;
+        final (title, body) = notificationText(data);
         return ListTile(
           leading: Icon(
             Icons.notifications,
             color: read ? Colors.grey : AppTheme.accent,
           ),
           title: Text(
-            data['title']?.toString() ?? '',
+            title,
             style: TextStyle(
               fontWeight: read ? FontWeight.normal : FontWeight.bold,
             ),
           ),
-          subtitle: Text(data['body']?.toString() ?? ''),
+          subtitle: Text(body),
           onTap: () {
             unawaited(
               doc.reference.update({'read': true}).catchError((Object e) {

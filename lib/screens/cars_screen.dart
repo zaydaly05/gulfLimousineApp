@@ -13,6 +13,8 @@ import '../utils/live_refresh.dart';
 import '../theme/app_theme.dart';
 import '../utils/image_decode.dart';
 import '../widgets/empty_state.dart';
+import '../l10n/content_labels.dart';
+import '../widgets/app_feedback.dart';
 
 class CarsScreen extends StatefulWidget {
   const CarsScreen({super.key});
@@ -145,6 +147,9 @@ class _CarsScreenState extends State<CarsScreen> {
   Widget _buildCarList(
     AsyncSnapshot<QuerySnapshot<Map<String, dynamic>>> snapshot,
   ) {
+    if (snapshot.hasError) {
+      return ErrorView(error: snapshot.error);
+    }
     if (snapshot.connectionState == ConnectionState.waiting) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -161,7 +166,8 @@ class _CarsScreenState extends State<CarsScreen> {
       final price = _price(data['price_per_day']);
       return {
         'id': doc.id,
-        'name': (data['name'] ?? '').toString(),
+        'name': carNameOf(data),
+        'searchName': '${data['name'] ?? ''} ${data['name_ar'] ?? ''}',
         'brand': (data['brand'] ?? '').toString(),
         'fuel_type': (data['fuel_type'] ?? '').toString(),
         'seats': data['seats'],
@@ -176,7 +182,7 @@ class _CarsScreenState extends State<CarsScreen> {
 
     final filtered = cars.where((car) {
       if (car['available'] != true) return false;
-      final name = car['name'].toString().toLowerCase();
+      final name = car['searchName'].toString().toLowerCase();
       final brand = car['brand'].toString().toLowerCase();
       final matchesBrand =
           selectedBrand == 'All' || car['brand'] == selectedBrand;

@@ -6,6 +6,8 @@ import '../utils/rental_dates.dart';
 import '../widgets/dark_form_fields.dart';
 import '../services/booking_service.dart';
 import '../l10n/locale_service.dart';
+import '../widgets/app_feedback.dart';
+import '../utils/friendly_error.dart';
 
 class NewBookingScreen extends StatefulWidget {
   const NewBookingScreen({super.key});
@@ -55,32 +57,17 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     if (selectedCarId == null || selectedCarName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(tr('pleaseSelectACar')),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showError(tr('pleaseSelectACar'));
       return;
     }
 
     if (pickupDate == null || returnDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(tr('selectPickupReturnDates')),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showError(tr('selectPickupReturnDates'));
       return;
     }
 
     if (returnDate!.isBefore(pickupDate!)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(tr('returnAfterPickup')),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showError(tr('returnAfterPickup'));
       return;
     }
 
@@ -109,17 +96,11 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
 
       if (!mounted) return;
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(tr('bookingCreatedSuccessfully')),
-          backgroundColor: Colors.green,
-        ),
-      );
+      ScaffoldMessenger.of(context)
+          .showSuccess(tr('bookingCreatedSuccessfully'));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context).showError(e);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -185,6 +166,16 @@ class _NewBookingScreenState extends State<NewBookingScreen> {
             StreamBuilder<QuerySnapshot>(
               stream: _carsStream,
               builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  // Inline: this sits inside the form's column.
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      friendlyError(snapshot.error),
+                      style: TextStyle(color: Colors.red.shade300),
+                    ),
+                  );
+                }
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Padding(
                     padding: EdgeInsets.symmetric(vertical: 12),

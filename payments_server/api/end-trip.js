@@ -88,6 +88,10 @@ export default async function handler(req, res) {
         body: kmAllowance.extraKm > 0
           ? `${carName} returned. Extra ${kmAllowance.extraKm} km: EGP ${egp} due.`
           : `${carName} returned. No extra km charges.`,
+        // Keys the reader's app translates (see lib/l10n/notification_text.dart).
+        i18n: kmAllowance.extraKm > 0
+          ? { title: 'nRentalCompleted', body: 'nRentalCompletedExtra', args: { car: carName, km: String(kmAllowance.extraKm), amount: egp } }
+          : { title: 'nRentalCompleted', body: 'nRentalCompletedNoExtra', args: { car: carName } },
         type: 'rental_completed',
         bookingId: request.bookingId,
         read: false,

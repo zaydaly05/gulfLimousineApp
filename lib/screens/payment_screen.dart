@@ -16,6 +16,8 @@ import 'wallet_payment_screen.dart';
 import '../widgets/payment_method_tile.dart';
 import '../theme/app_theme.dart';
 import '../l10n/locale_service.dart';
+import '../l10n/content_labels.dart';
+import '../widgets/app_feedback.dart';
 
 class PaymentScreen extends StatefulWidget {
   final RentalDetails rental;
@@ -46,9 +48,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   bool _ensureSigned() {
     if (_signatureUrl != null) return true;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(tr('pleaseSignTheRentalAgreement'))));
+    ScaffoldMessenger.of(context).showInfo(tr('pleaseSignTheRentalAgreement'));
     return false;
   }
 
@@ -98,9 +98,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$e'), backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context).showError(e);
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
@@ -139,9 +137,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$e'), backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context).showError(e);
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
@@ -205,7 +201,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       if (rental.colorPreferences.isNotEmpty)
                         _summaryRow(
                           tr('coloursPreferredFirst'),
-                          rental.colorPreferences.join(' › '),
+                          rental.colorPreferences.map(colourLabel).join(' › '),
                         ),
                       _summaryRow(
                         tr('rate'),

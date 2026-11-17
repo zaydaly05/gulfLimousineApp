@@ -6,6 +6,7 @@ import 'admin_charts.dart';
 import 'status_pill.dart';
 import 'action_button_row.dart';
 import '../l10n/locale_service.dart';
+import 'app_feedback.dart';
 
 class ExtraKmAdminPanel extends StatefulWidget {
   final String bookingId;
@@ -67,17 +68,11 @@ class _ExtraKmAdminPanelState extends State<ExtraKmAdminPanel> {
         paid: paid,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(tr('extraKmMarkedAs', args: {'label': label})),
-          backgroundColor: Colors.green,
-        ),
-      );
+      ScaffoldMessenger.of(context)
+          .showSuccess(tr('extraKmMarkedAs', args: {'label': label}));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$e'), backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context).showError(e);
     } finally {
       if (mounted) setState(() => _loading = false);
     }

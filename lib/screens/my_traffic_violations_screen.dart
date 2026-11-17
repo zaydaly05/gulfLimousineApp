@@ -12,6 +12,8 @@ import '../utils/booking_fields.dart';
 import '../utils/live_refresh.dart';
 import '../widgets/payment_method_tile.dart';
 import '../theme/app_theme.dart';
+import '../l10n/content_labels.dart';
+import '../widgets/app_feedback.dart';
 
 class MyTrafficViolationsScreen extends StatelessWidget {
   const MyTrafficViolationsScreen({super.key});
@@ -163,8 +165,8 @@ class _UserViolationsListState extends State<_UserViolationsList> {
                         ),
                         if ((data['ticketNumber'] ?? '').toString().isNotEmpty)
                           Text('${tr('ticket')}: ${data['ticketNumber']}'),
-                        if ((data['description'] ?? '').toString().isNotEmpty)
-                          Text('${data['description']}'),
+                        if (violationText(data).isNotEmpty)
+                          Text(violationText(data)),
                         if ((data['location'] ?? '').toString().isNotEmpty)
                           Text('${context.t('location')}: ${data['location']}'),
                         if (awaitingCash) ...[
@@ -264,12 +266,7 @@ class _ViolationPaymentScreenState extends State<ViolationPaymentScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(tr('paymentFailed2', args: {'e': '$e'})),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showError(e, title: tr('paymentFailed2'));
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
@@ -318,12 +315,10 @@ class _ViolationPaymentScreenState extends State<ViolationPaymentScreen> {
                             tr('ticket'),
                             widget.data['ticketNumber'].toString(),
                           ),
-                        if ((widget.data['description'] ?? '')
-                            .toString()
-                            .isNotEmpty)
+                        if (violationText(widget.data).isNotEmpty)
                           _row(
                             context.t('details'),
-                            widget.data['description'].toString(),
+                            violationText(widget.data),
                           ),
                         const Divider(height: 24),
                         _row(context.t('amountDue'), egp(_amount), bold: true),

@@ -9,6 +9,8 @@ import '../services/cloudinary_service.dart';
 import '../services/km_billing_service.dart';
 import '../services/odometer_service.dart';
 import '../l10n/locale_service.dart';
+import '../utils/friendly_error.dart';
+import '../widgets/app_feedback.dart';
 
 enum OdometerCaptureMode { start, end }
 
@@ -99,9 +101,8 @@ class _OdometerCaptureScreenState extends State<OdometerCaptureScreen> {
     });
 
     if (detected == null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(tr('couldNotReadOdometerAutomatically'))),
-      );
+      ScaffoldMessenger.of(context)
+          .showInfo(tr('couldNotReadOdometerAutomatically'));
     }
   }
 
@@ -200,7 +201,7 @@ class _OdometerCaptureScreenState extends State<OdometerCaptureScreen> {
       if (!mounted) return;
       setState(() {
         _processing = false;
-        _error = e.toString();
+        _error = friendlyError(e);
       });
     }
   }

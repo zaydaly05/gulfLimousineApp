@@ -21,6 +21,7 @@ import '../widgets/action_button_row.dart';
 import 'paymob_checkout_screen.dart';
 import '../models/fleet.dart';
 import '../utils/safe_insets.dart';
+import '../widgets/app_feedback.dart';
 
 class MyBookingsScreen extends StatefulWidget {
   const MyBookingsScreen({super.key});
@@ -193,16 +194,10 @@ class _BookingCard extends StatelessWidget {
     try {
       await BookingService.cancelBooking(bookingId);
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(context.t('bookingCancelled'))));
+      ScaffoldMessenger.of(context).showInfo(context.t('bookingCancelled'));
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showError(e);
     }
   }
 
@@ -491,9 +486,8 @@ class _BookingCard extends StatelessWidget {
                         ),
                       );
                       if (ok == true && context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(context.t('agreementSigned'))),
-                        );
+                        ScaffoldMessenger.of(context)
+                            .showInfo(context.t('agreementSigned'));
                       }
                     },
                     icon: const Icon(Icons.assignment_turned_in, size: 18),
@@ -517,11 +511,8 @@ class _BookingCard extends StatelessWidget {
                         ),
                       );
                       if (ok == true && context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(context.t('pickupKmRecorded')),
-                          ),
-                        );
+                        ScaffoldMessenger.of(context)
+                            .showInfo(context.t('pickupKmRecorded'));
                       }
                     },
                     icon: const Icon(Icons.camera_alt, size: 18),
@@ -561,11 +552,8 @@ class _BookingCard extends StatelessWidget {
                         ),
                       );
                       if (ok == true && context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(context.t('returnKmRecorded')),
-                          ),
-                        );
+                        ScaffoldMessenger.of(context)
+                            .showInfo(context.t('returnKmRecorded'));
                       }
                     },
                     icon: const Icon(Icons.camera_enhance, size: 18),

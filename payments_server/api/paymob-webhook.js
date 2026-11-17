@@ -68,6 +68,10 @@ export default async function handler(req, res) {
           body: paid
             ? `Your ${booking.carName || 'car'} booking is confirmed.`
             : 'Your online payment did not go through. Open My Bookings to try again.',
+          // Keys the reader's app translates (see lib/l10n/notification_text.dart).
+          i18n: paid
+            ? { title: 'nPaymentReceived', body: 'nPaymentConfirmedBody', args: { car: booking.carName || '' } }
+            : { title: 'nPaymentFailed', body: 'nPaymentFailedBody', args: {} },
           type: paid ? 'payment_confirmed' : 'payment_failed',
           bookingId,
           read: false,

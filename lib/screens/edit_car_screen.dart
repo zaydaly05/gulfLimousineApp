@@ -6,6 +6,7 @@ import '../utils/image_decode.dart';
 import '../models/fleet.dart';
 import '../widgets/fleet_colors_editor.dart';
 import '../l10n/locale_service.dart';
+import '../widgets/app_feedback.dart';
 
 class EditCarScreen extends StatefulWidget {
   final String carId;
@@ -19,6 +20,7 @@ class EditCarScreen extends StatefulWidget {
 
 class _EditCarScreenState extends State<EditCarScreen> {
   late TextEditingController nameController;
+  late TextEditingController nameArController;
   late TextEditingController brandController;
   late TextEditingController priceController;
 
@@ -35,6 +37,9 @@ class _EditCarScreenState extends State<EditCarScreen> {
 
     final data = widget.carData;
     nameController = TextEditingController(text: data['name']?.toString());
+    nameArController = TextEditingController(
+      text: data['name_ar']?.toString() ?? '',
+    );
     brandController = TextEditingController(text: data['brand']?.toString());
     priceController = TextEditingController(
       text: data['price_per_day']?.toString() ?? '',
@@ -47,6 +52,7 @@ class _EditCarScreenState extends State<EditCarScreen> {
   @override
   void dispose() {
     nameController.dispose();
+    nameArController.dispose();
     brandController.dispose();
     priceController.dispose();
     super.dispose();
@@ -80,15 +86,13 @@ class _EditCarScreenState extends State<EditCarScreen> {
   Future<void> updateCar() async {
     final price = double.tryParse(priceController.text.trim());
     if (price == null || price <= 0) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(tr('enterAValidPricePer'))));
+      ScaffoldMessenger.of(context).showInfo(tr('enterAValidPricePer'));
       return;
     }
     final colorProblem = Fleet.validate(_colors);
     if (colorProblem != null || _colors.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(colorProblem ?? tr('addOneColour'))),
-      );
+      ScaffoldMessenger.of(context)
+          .showInfo(colorProblem ?? tr('addOneColour'));
       return;
     }
     try {
@@ -99,6 +103,7 @@ class _EditCarScreenState extends State<EditCarScreen> {
           .doc(widget.carId)
           .update({
             'name': nameController.text.trim(),
+            'name_ar': nameArController.text.trim(),
             'brand': brandController.text.trim(),
             'price_per_day': price,
             'colors': [for (final c in _colors) c.toMap()],
@@ -110,9 +115,7 @@ class _EditCarScreenState extends State<EditCarScreen> {
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(tr('error', args: {'e': '$e'}))));
+      ScaffoldMessenger.of(context).showError(e);
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
@@ -174,6 +177,7 @@ class _EditCarScreenState extends State<EditCarScreen> {
                 const SizedBox(height: 20),
 
                 buildTextField(nameController, tr('carName')),
+                buildTextField(nameArController, tr('carNameArOptional')),
                 buildTextField(brandController, tr('brand')),
                 buildTextField(
                   priceController,

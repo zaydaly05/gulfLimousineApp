@@ -9,6 +9,7 @@ import 'map_location_picker.dart';
 import '../widgets/app_map.dart';
 import '../theme/app_theme.dart';
 import '../l10n/locale_service.dart';
+import '../widgets/app_feedback.dart';
 
 class UpdateTripLocationScreen extends StatelessWidget {
   final String bookingId;
@@ -27,8 +28,7 @@ class UpdateTripLocationScreen extends StatelessWidget {
       lng: point.longitude,
     );
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(tr('liveLocationUpdated'))));
+    ScaffoldMessenger.of(context).showInfo(tr('liveLocationUpdated'));
   }
 
   Future<void> _simulateTowardPickup(BuildContext context) async {
@@ -59,8 +59,7 @@ class UpdateTripLocationScreen extends StatelessWidget {
       lng: lng,
     );
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(tr('simulatedMoveTowardPickup'))));
+    ScaffoldMessenger.of(context).showInfo(tr('simulatedMoveTowardPickup'));
   }
 
   @override

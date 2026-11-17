@@ -14,6 +14,7 @@ import '../utils/booking_fields.dart';
 import '../widgets/condition_video_chips.dart';
 import '../widgets/dark_form_fields.dart';
 import '../l10n/locale_service.dart';
+import '../widgets/app_feedback.dart';
 
 class EditBookingScreen extends StatefulWidget {
   final String bookingId;
@@ -161,21 +162,11 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
   Future<void> _updateBooking() async {
     if (!_formKey.currentState!.validate()) return;
     if (selectedCarName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(tr('pleaseSelectACar')),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showError(tr('pleaseSelectACar'));
       return;
     }
     if (pickupDate == null || returnDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(tr('selectPickupReturnDates')),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showError(tr('selectPickupReturnDates'));
       return;
     }
 
@@ -236,17 +227,10 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
       if (!mounted) return;
       final messenger = ScaffoldMessenger.of(context);
       Navigator.pop(context);
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(tr('bookingUpdatedSuccessfully')),
-          backgroundColor: Colors.green,
-        ),
-      );
+      messenger.showSuccess(tr('bookingUpdatedSuccessfully'));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context).showError(e);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -413,7 +397,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                       final c = doc.data() as Map<String, dynamic>;
                       return DropdownMenuItem(
                         value: doc.id,
-                        child: Text('${c['name']} · ${c['phone'] ?? ''}'),
+                        child: Text('${c['name']} · ${ltr(c['phone'] ?? '')}'),
                       );
                     }),
                   ],
@@ -565,9 +549,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
       if (mounted) setState(() => _isImmobilized = value);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$e'), backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context).showError(e);
     } finally {
       if (mounted) setState(() => _togglingSecurity = false);
     }

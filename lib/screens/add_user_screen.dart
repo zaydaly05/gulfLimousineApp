@@ -7,6 +7,7 @@ import 'package:firebase_core/firebase_core.dart';
 import '../firebase_options.dart';
 import '../services/user_profile_service.dart';
 import '../l10n/locale_service.dart';
+import '../widgets/app_feedback.dart';
 
 class AddUserScreen extends StatefulWidget {
   const AddUserScreen({super.key});
@@ -81,28 +82,13 @@ class _AddUserScreenState extends State<AddUserScreen> {
       final messenger = ScaffoldMessenger.of(context);
       Navigator.pop(context);
 
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(tr('userCreatedALinkTo')),
-          backgroundColor: Colors.green,
-        ),
-      );
+      messenger.showSuccess(tr('userCreatedALinkTo'));
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.message ?? tr('failedCreateUser')),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showError(e);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(tr('error', args: {'e': '$e'})),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showError(e);
     } finally {
       if (secondaryApp != null) {
         await FirebaseAuth.instanceFor(app: secondaryApp).signOut();
@@ -136,7 +122,10 @@ class _AddUserScreenState extends State<AddUserScreen> {
                 initialValue: role,
                 dropdownColor: Colors.grey.shade900,
                 items: ["user", "admin"]
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .map(
+                      (e) =>
+                          DropdownMenuItem(value: e, child: Text(roleLabel(e))),
+                    )
                     .toList(),
                 onChanged: (val) => setState(() => role = val!),
                 decoration: InputDecoration(
@@ -184,6 +173,11 @@ class _AddUserScreenState extends State<AddUserScreen> {
       child: TextFormField(
         controller: controller,
         keyboardType: type,
+        // Phone numbers and emails read left to right in Arabic too.
+        textDirection:
+            type == TextInputType.phone || type == TextInputType.emailAddress
+            ? TextDirection.ltr
+            : null,
         validator: (v) => v == null || v.isEmpty ? tr('required') : null,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(

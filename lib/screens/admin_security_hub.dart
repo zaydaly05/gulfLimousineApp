@@ -12,6 +12,7 @@ import 'edit_booking_screen.dart';
 import '../models/geo_location.dart';
 import '../widgets/app_map.dart';
 import '../l10n/locale_service.dart';
+import '../widgets/app_feedback.dart';
 
 class AdminSecurityHub extends StatefulWidget {
   const AdminSecurityHub({super.key});
@@ -53,6 +54,9 @@ class _AdminSecurityHubState extends State<AdminSecurityHub> {
       body: StreamBuilder<QuerySnapshot>(
         stream: _activeTripsStream,
         builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return ErrorView(error: snapshot.error);
+          }
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -254,12 +258,7 @@ class _AdminSecurityHubState extends State<AdminSecurityHub> {
                             immobilized: !isImmobilized,
                           );
                         } catch (e) {
-                          messenger.showSnackBar(
-                            SnackBar(
-                              content: Text('$e'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
+                          messenger.showError(e);
                         }
                         if (sheetContext.mounted) Navigator.pop(sheetContext);
                       },

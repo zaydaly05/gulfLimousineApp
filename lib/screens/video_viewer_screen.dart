@@ -5,6 +5,7 @@ import 'package:video_player/video_player.dart';
 
 import '../services/cloudinary_service.dart';
 import '../l10n/locale_service.dart';
+import '../utils/friendly_error.dart';
 
 class VideoViewerScreen extends StatefulWidget {
   final String url;
@@ -41,7 +42,7 @@ class _VideoViewerScreenState extends State<VideoViewerScreen> {
       setState(() => _initialized = true);
       await _controller.play();
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
+      if (mounted) setState(() => _error = friendlyError(e));
     }
   }
 

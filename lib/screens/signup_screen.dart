@@ -1,189 +1,170 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
 import '../l10n/locale_service.dart';
 import '../services/user_profile_service.dart';
+import '../widgets/app_feedback.dart';
+import '../widgets/auth_scaffold.dart';
 
-class SignUpDialog extends StatefulWidget {
-  const SignUpDialog({super.key});
+/// Create an account with name, email and password.
+class SignUpScreen extends StatefulWidget {
+  const SignUpScreen({super.key});
 
   @override
-  State<SignUpDialog> createState() => _SignUpDialogState();
+  State<SignUpScreen> createState() => _SignUpScreenState();
 }
 
-class _SignUpDialogState extends State<SignUpDialog> {
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
-
+class _SignUpScreenState extends State<SignUpScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _name = TextEditingController();
+  final _email = TextEditingController();
+  final _password = TextEditingController();
+  final _confirm = TextEditingController();
+  bool _hidePassword = true;
   bool _isLoading = false;
+
+  static final _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
   @override
   void dispose() {
-    nameController.dispose();
-    emailController.dispose();
-    passwordController.dispose();
+    _name.dispose();
+    _email.dispose();
+    _password.dispose();
+    _confirm.dispose();
     super.dispose();
   }
 
-  /// 📝 SIGN UP WITH FIREBASE
   Future<void> _signUp() async {
-    if (nameController.text.trim().isEmpty ||
-        emailController.text.trim().isEmpty ||
-        passwordController.text.isEmpty) {
-      _showError(context.t('fillAllFields'));
-      return;
-    }
+    FocusScope.of(context).unfocus();
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isLoading = true);
     try {
-      setState(() => _isLoading = true);
-
-      UserCredential userCredential = await FirebaseAuth.instance
+      final credential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
-            email: emailController.text.trim(),
-            password: passwordController.text.trim(),
+            email: _email.text.trim(),
+            password: _password.text,
           );
-
-      String uid = userCredential.user!.uid;
-
       await UserProfileService.createEmailUser(
-        uid: uid,
-        name: nameController.text.trim(),
-        email: emailController.text.trim(),
+        uid: credential.user!.uid,
+        name: _name.text.trim(),
+        email: _email.text.trim(),
       );
-
       if (!mounted) return;
-
       final messenger = ScaffoldMessenger.of(context);
-      final createdText = context.t('accountCreated');
       Navigator.pop(context);
-
-      messenger.showSnackBar(
-        SnackBar(content: Text(createdText), backgroundColor: Colors.green),
-      );
-    } on FirebaseAuthException catch (e) {
-      _showError(e.message ?? context.t('signupFailed'));
+      messenger.showSuccess(tr('accountCreated'));
     } catch (e) {
-      _showError(e.toString());
+      if (mounted) showError(context, e, title: tr('signupFailed'));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  void _showError(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Material(
-        color: Colors.transparent,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 380, minWidth: 250),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  context.t('signUp'),
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 30),
+    final visibility = IconButton(
+      tooltip: tr(_hidePassword ? 'showPassword' : 'hidePassword'),
+      icon: Icon(
+        _hidePassword ? Icons.visibility_outlined : Icons.visibility_off,
+        color: Colors.grey.shade600,
+      ),
+      onPressed: () => setState(() => _hidePassword = !_hidePassword),
+    );
 
-                /// 👤 NAME
-                TextField(
-                  controller: nameController,
-                  decoration: InputDecoration(
-                    labelText: context.t('fullName'),
-                    labelStyle: const TextStyle(color: Colors.orange),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+    return AuthScaffold(
+      title: tr('createAccount'),
+      subtitle: tr('signUpSubtitle'),
+      child: AutofillGroup(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextFormField(
+                controller: _name,
+                textInputAction: TextInputAction.next,
+                textCapitalization: TextCapitalization.words,
+                autofillHints: const [AutofillHints.name],
+                decoration: authInputDecoration(
+                  tr('fullName'),
+                  Icons.person_outline,
                 ),
-                const SizedBox(height: 12),
-
-                /// 📧 EMAIL
-                TextField(
-                  controller: emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    labelText: context.t('email'),
-                    labelStyle: const TextStyle(color: Colors.orange),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+                validator: (v) =>
+                    (v ?? '').trim().length < 2 ? tr('enterYourName') : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _email,
+                keyboardType: TextInputType.emailAddress,
+                textDirection: TextDirection.ltr,
+                textInputAction: TextInputAction.next,
+                autofillHints: const [AutofillHints.email],
+                decoration: authInputDecoration(
+                  tr('email'),
+                  Icons.email_outlined,
                 ),
-                const SizedBox(height: 12),
-
-                /// 🔒 PASSWORD
-                TextField(
-                  controller: passwordController,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: context.t('password'),
-                    labelStyle: const TextStyle(color: Colors.orange),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+                validator: (v) => _emailPattern.hasMatch((v ?? '').trim())
+                    ? null
+                    : tr('errInvalidEmail'),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _password,
+                obscureText: _hidePassword,
+                textInputAction: TextInputAction.next,
+                autofillHints: const [AutofillHints.newPassword],
+                decoration: authInputDecoration(
+                  tr('password'),
+                  Icons.lock_outline,
+                  suffixIcon: visibility,
+                  helperText: tr('passwordHint'),
                 ),
-                const SizedBox(height: 20),
-
-                /// 🔘 ACTION BUTTONS
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: _isLoading
-                          ? null
-                          : () => Navigator.pop(context),
-                      child: Text(
-                        context.t('cancel'),
-                        style: const TextStyle(color: Colors.black),
+                validator: (v) =>
+                    (v ?? '').length < 6 ? tr('errWeakPassword') : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _confirm,
+                obscureText: _hidePassword,
+                textInputAction: TextInputAction.done,
+                onFieldSubmitted: (_) {
+                  if (!_isLoading) unawaited(_signUp());
+                },
+                decoration: authInputDecoration(
+                  tr('confirmPassword'),
+                  Icons.lock_outline,
+                ),
+                validator: (v) =>
+                    v != _password.text ? tr('passwordsDontMatch') : null,
+              ),
+              const SizedBox(height: 28),
+              AuthPrimaryButton(
+                label: tr('createAccount'),
+                loading: _isLoading,
+                onPressed: _signUp,
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(child: Text(tr('haveAccount'))),
+                  TextButton(
+                    onPressed: _isLoading
+                        ? null
+                        : () => Navigator.maybePop(context),
+                    child: Text(
+                      tr('login'),
+                      style: const TextStyle(
+                        color: Colors.orange,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    ElevatedButton(
-                      onPressed: _isLoading ? null : _signUp,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : Text(context.t('signUp')),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),

@@ -15,6 +15,7 @@ import '../widgets/language_picker.dart';
 import '../l10n/locale_service.dart';
 import '../services/user_profile_service.dart';
 import '../utils/safe_insets.dart';
+import '../widgets/app_feedback.dart';
 
 class LoginScreen extends StatefulWidget {
   /// False when the user just chose "Use password instead", so the screen
@@ -99,9 +100,9 @@ class _LoginScreenState extends State<LoginScreen> {
         password: password,
       );
     } on FirebaseAuthException catch (e) {
-      _showError(e.message ?? tr('loginFailed'));
+      _showError(e);
     } catch (e) {
-      _showError(tr('unexpectedError', args: {'e': '$e'}));
+      _showError(e);
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -139,7 +140,7 @@ class _LoginScreenState extends State<LoginScreen> {
           // Silent if user just cancelled
           return;
         }
-        _showError(tr('googleSignInFailed', args: {'e': '$e'}));
+        _showError(e, title: tr('googleSignInFailed'));
       }
     } finally {
       if (mounted) {
@@ -189,14 +190,14 @@ class _LoginScreenState extends State<LoginScreen> {
           reason: tr('authForLogin', args: {'method': _biometricLabel}),
         );
         if (ok && mounted) {
-          _showError(
+          ScaffoldMessenger.of(context).showSuccess(
             context.t('setupBiometrics', args: {'method': _biometricLabel}),
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        _showError(e.toString().replaceFirst('Exception: ', ''));
+        _showError(e);
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -233,11 +234,10 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _showError(String message) {
+  /// [error] is a message or any error (shown as a clear message).
+  void _showError(Object error, {String? title}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
-    );
+    showError(context, error, title: title);
   }
 
   @override
@@ -329,6 +329,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
+                    textDirection: TextDirection.ltr,
                     autofillHints: const [AutofillHints.email],
                     decoration: _inputDecoration(
                       context.t('email'),
@@ -381,7 +382,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const ForgotPasswordDialog(),
+                            builder: (_) => ForgotPasswordScreen(
+                              initialEmail: _emailController.text.trim(),
+                            ),
                           ),
                         );
                       },
@@ -455,7 +458,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const SignUpDialog(),
+                                builder: (_) => const SignUpScreen(),
                               ),
                             );
                           },

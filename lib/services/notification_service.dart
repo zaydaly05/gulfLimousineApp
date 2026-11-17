@@ -6,6 +6,9 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import '../l10n/locale_service.dart';
+import '../l10n/notification_text.dart';
+
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // Background handler — OS displays the FCM notification.
@@ -216,10 +219,11 @@ class NotificationService {
               if (age.inMinutes > 2) continue;
             }
 
+            final (title, body) = notificationText(data);
             unawaited(
               showLocal(
-                title: (data['title'] ?? 'Gulf Limousine').toString(),
-                body: (data['body'] ?? '').toString(),
+                title: title.isEmpty ? tr('appName') : title,
+                body: body,
               ),
             );
           }

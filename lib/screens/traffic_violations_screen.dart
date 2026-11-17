@@ -9,6 +9,8 @@ import '../l10n/locale_service.dart';
 import '../widgets/language_picker.dart';
 import '../utils/live_refresh.dart';
 import '../widgets/status_pill.dart';
+import '../l10n/content_labels.dart';
+import '../widgets/app_feedback.dart';
 
 class TrafficViolationsScreen extends StatefulWidget {
   const TrafficViolationsScreen({super.key});
@@ -71,11 +73,10 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
               return const Center(child: CircularProgressIndicator());
             }
             if (snapshot.hasError) {
-              return Center(
-                child: Text(
-                  tr('couldNotLoadTrafficViolations'),
-                  style: TextStyle(color: Colors.red.shade300),
-                ),
+              return ErrorView(
+                error: snapshot.error,
+                message: tr('couldNotLoadTrafficViolations'),
+                dark: true,
               );
             }
 
@@ -290,7 +291,7 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
                         ),
                         if ((data['phone'] ?? '').toString().isNotEmpty)
                           Text(
-                            '${tr('phone')}: ${data['phone']}',
+                            '${tr('phone')}: ${ltr(data['phone'])}',
                             style: TextStyle(color: Colors.grey.shade400),
                           ),
                         if ((data['ticketNumber'] ?? '').toString().isNotEmpty)
@@ -298,9 +299,9 @@ class _TrafficViolationsScreenState extends State<TrafficViolationsScreen> {
                             '${tr('ticket')}: ${data['ticketNumber']}',
                             style: TextStyle(color: Colors.grey.shade400),
                           ),
-                        if ((data['description'] ?? '').toString().isNotEmpty)
+                        if (violationText(data).isNotEmpty)
                           Text(
-                            '${data['description']}',
+                            violationText(data),
                             style: TextStyle(color: Colors.grey.shade500),
                           ),
                         const SizedBox(height: 8),

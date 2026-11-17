@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import '../models/geo_location.dart';
 import 'payments_server_client.dart';
 import '../l10n/locale_service.dart';
+import '../l10n/notification_text.dart';
 
 class RentalDetails {
   final String carId;
@@ -220,6 +221,13 @@ class BookingService {
                   'Please check the transaction ID or contact us.',
         type: approved ? 'payment_confirmed' : 'payment_rejected',
         bookingId: bookingId,
+        i18n: approved
+            ? notificationI18n('nPaymentConfirmed', 'nPaymentConfirmedBody', {
+                'car': car,
+              })
+            : notificationI18n('nPaymentNotFound', 'nPaymentNotFoundBody', {
+                'car': car,
+              }),
       ),
     );
   }
@@ -255,7 +263,10 @@ class BookingService {
       await _firestore.collection('cars').doc(carId).update({
         'current_odometer': km,
       });
-    } catch (_) {}
+    } catch (e) {
+      // Best effort (a notification): never fail the main action.
+      debugPrint('Best-effort write failed: $e');
+    }
   }
 
   static Future<void> cancelBooking(String bookingId) async {
@@ -280,13 +291,19 @@ class BookingService {
     try {
       await _notifyUser(
         userId: user.uid,
-        title: tr('bookingCancelled'),
+        title: 'Booking cancelled',
         body:
             'Your booking for ${data['carName'] ?? data['car_name'] ?? 'car'} was cancelled.',
         type: 'booking_cancelled',
         bookingId: bookingId,
+        i18n: notificationI18n('nBookingCancelled', 'nBookingCancelledBody', {
+          'car': '${data['carName'] ?? data['car_name'] ?? ''}',
+        }),
       );
-    } catch (_) {}
+    } catch (e) {
+      // Best effort (a notification): never fail the main action.
+      debugPrint('Best-effort write failed: $e');
+    }
   }
 
   /// Tells the customer a chauffeur was assigned to their booking.
@@ -300,6 +317,9 @@ class BookingService {
     body: '$chauffeurName will drive your trip. Track from My Bookings.',
     type: 'chauffeur_assigned',
     bookingId: bookingId,
+    i18n: notificationI18n('nChauffeurAssigned', 'nChauffeurAssignedBody', {
+      'name': chauffeurName,
+    }),
   );
 
   /// Tells the customer their trip moved to [tripStatus].
@@ -313,6 +333,9 @@ class BookingService {
     body: 'Your trip is now ${tripStatus.replaceAll('_', ' ')}.',
     type: 'trip_$tripStatus',
     bookingId: bookingId,
+    i18n: notificationI18n('nTripUpdate', 'nTripUpdateBody', {
+      'tripStatus': tripStatus,
+    }),
   );
 
   static Future<void> updateLiveLocation({
@@ -396,6 +419,9 @@ class BookingService {
             : 'Your vehicle access has been restored.',
         type: 'security_alert',
         bookingId: bookingId,
+        i18n: immobilized
+            ? notificationI18n('nImmobilized', 'nImmobilizedBody')
+            : notificationI18n('nRestored', 'nRestoredBody'),
       );
     }
   }
@@ -426,7 +452,10 @@ class BookingService {
   static Future<void> _bestEffort(Future<void> write) async {
     try {
       await write;
-    } catch (_) {}
+    } catch (e) {
+      // Best effort (a notification): never fail the main action.
+      debugPrint('Best-effort write failed: $e');
+    }
   }
 
   static Future<void> _notifyUser({
@@ -435,6 +464,7 @@ class BookingService {
     required String body,
     required String type,
     String? bookingId,
+    Map<String, Object>? i18n,
   }) async {
     await _firestore
         .collection('users')
@@ -443,6 +473,7 @@ class BookingService {
         .add({
           'title': title,
           'body': body,
+          'i18n': ?i18n,
           'type': type,
           'bookingId': ?bookingId,
           'read': false,
@@ -529,7 +560,10 @@ class BookingService {
         type: 'odometer_start',
         bookingId: bookingId,
       );
-    } catch (_) {}
+    } catch (e) {
+      // Best effort (a notification): never fail the main action.
+      debugPrint('Best-effort write failed: $e');
+    }
   }
 
   /// Records the return km and closes the rental through payments_server
@@ -580,7 +614,10 @@ class BookingService {
         type: isPickup ? 'video_pickup' : 'video_return',
         bookingId: bookingId,
       );
-    } catch (_) {}
+    } catch (e) {
+      // Best effort (a notification): never fail the main action.
+      debugPrint('Best-effort write failed: $e');
+    }
   }
 
   // Condition videos are deleted 3 days after the return date by the
@@ -656,8 +693,18 @@ class BookingService {
               : 'Your extra km charge of EGP ${charge.toStringAsFixed(0)} is pending payment.',
           type: paid ? 'extra_km_paid' : 'extra_km_pending',
           bookingId: bookingId,
+          i18n: paid
+              ? notificationI18n('nExtraKmPaid', 'nExtraKmPaidBody', {
+                  'amount': charge.toStringAsFixed(0),
+                })
+              : notificationI18n('nExtraKmPending', 'nExtraKmPendingBody', {
+                  'amount': charge.toStringAsFixed(0),
+                }),
         );
-      } catch (_) {}
+      } catch (e) {
+        // Best effort (a notification): never fail the main action.
+        debugPrint('Best-effort write failed: $e');
+      }
     }
   }
 }

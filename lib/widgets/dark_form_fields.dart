@@ -43,6 +43,11 @@ class DarkTextFormField extends StatelessWidget {
       child: TextFormField(
         controller: controller,
         keyboardType: type,
+        // Phone numbers and emails read left to right in Arabic too.
+        textDirection:
+            type == TextInputType.phone || type == TextInputType.emailAddress
+            ? TextDirection.ltr
+            : null,
         style: const TextStyle(color: Colors.white),
         validator: required
             ? (v) => (v == null || v.trim().isEmpty) ? tr('required') : null
