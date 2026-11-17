@@ -1,5 +1,6 @@
 // GET /api/health  Is the server configured? Yes/no answers only.
 import { configReport } from '../lib/health.js';
+import { checkGeminiKey, describeAiConfig } from '../lib/ai-check.js';
 
 const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || 'gulf-limousine-travel-1d4c7';
 
@@ -9,8 +10,14 @@ export default async function handler(req, res) {
   if (report.serviceAccount.valid) {
     try {
       const { db } = await import('../lib/firebase.js');
-      await db().collection('config').doc('payments').get();
+      const [, ai] = await Promise.all([
+        db().collection('config').doc('payments').get(),
+        db().collection('config').doc('ai').get(),
+      ]);
       report.firestore = 'reachable';
+      const { key, report: aiReport } = describeAiConfig(ai.exists ? ai.data() : null);
+      aiReport.gemini = key ? await checkGeminiKey(key, aiReport.model) : 'no key';
+      report.ai = aiReport; // informational: AI is optional, so not part of ok
     } catch (e) {
       report.firestore = 'unreachable';
       report.ok = false;
