@@ -364,14 +364,25 @@ class _PaymentScreenState extends State<PaymentScreen> {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TextStyle(color: Colors.grey.shade600)),
-          Text(
-            value,
-            style: TextStyle(
-              fontWeight: bold ? FontWeight.bold : FontWeight.w500,
-              fontSize: bold ? 18 : 14,
-              color: bold ? AppTheme.accent : null,
+          // Long labels or values wrap instead of running into each other;
+          // values stay at the end of the row.
+          Flexible(
+            flex: 3,
+            child: Text(label, style: TextStyle(color: Colors.grey.shade600)),
+          ),
+          const SizedBox(width: 12),
+          Flexible(
+            flex: 2,
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: TextStyle(
+                fontWeight: bold ? FontWeight.bold : FontWeight.w500,
+                fontSize: bold ? 18 : 14,
+                color: bold ? AppTheme.accent : null,
+              ),
             ),
           ),
         ],
