@@ -22,6 +22,7 @@ Future<void> main() async {
   installErrorHandlers();
 
   await LocaleService.instance.load();
+  LocaleService.instance.addListener(_rebuildForNewLanguage);
 
   try {
     await Firebase.initializeApp(
@@ -39,6 +40,21 @@ Future<void> main() async {
   _useEmulatorsIfRequested();
 
   runApp(const GulfLimousineApp());
+}
+
+/// Screens read their text with `context.t(...)`, which does not subscribe
+/// to language changes, so a screen already open (login, profile, drawer)
+/// would keep its old language. Rebuild everything once after a switch.
+void _rebuildForNewLanguage() {
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    void mark(Element element) {
+      element.markNeedsBuild();
+      element.visitChildren(mark);
+    }
+
+    WidgetsBinding.instance.rootElement?.visitChildren(mark);
+  });
+  WidgetsBinding.instance.scheduleFrame();
 }
 
 /// Local development only: `--dart-define=USE_FIREBASE_EMULATORS=true`
