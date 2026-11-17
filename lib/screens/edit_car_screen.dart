@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../services/cloudinary_service.dart';
 import '../utils/image_decode.dart';
+import '../models/fleet.dart';
+import '../widgets/fleet_colors_editor.dart';
 
 class EditCarScreen extends StatefulWidget {
   final String carId;
@@ -24,6 +26,7 @@ class _EditCarScreenState extends State<EditCarScreen> {
   String? imageUrl;
   String? publicId;
   bool isLoading = false;
+  late List<FleetColor> _colors = Fleet.colorsOf(widget.carData);
 
   @override
   void initState() {
@@ -81,6 +84,13 @@ class _EditCarScreenState extends State<EditCarScreen> {
       );
       return;
     }
+    final colorProblem = Fleet.validate(_colors);
+    if (colorProblem != null || _colors.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(colorProblem ?? 'Add at least one colour')),
+      );
+      return;
+    }
     try {
       setState(() => isLoading = true);
 
@@ -91,6 +101,7 @@ class _EditCarScreenState extends State<EditCarScreen> {
             'name': nameController.text.trim(),
             'brand': brandController.text.trim(),
             'price_per_day': price,
+            'colors': [for (final c in _colors) c.toMap()],
             'image_url': imageUrl,
             'public_id': publicId,
           });
@@ -167,6 +178,11 @@ class _EditCarScreenState extends State<EditCarScreen> {
                   priceController,
                   "Price Per Day",
                   isNumber: true,
+                ),
+
+                FleetColorsEditor(
+                  initial: _colors,
+                  onChanged: (colors) => _colors = colors,
                 ),
 
                 const SizedBox(height: 20),

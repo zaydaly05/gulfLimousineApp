@@ -24,6 +24,7 @@ import '../widgets/language_picker.dart';
 import '../l10n/locale_service.dart';
 import '../utils/live_refresh.dart';
 import '../services/complimentary_rental_service.dart';
+import 'payment_settings_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -189,6 +190,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
               Icons.attach_money,
               context.t('payments'),
               const ViewPaymentsScreen(),
+            ),
+            _drawerItem(
+              context,
+              Icons.toggle_on,
+              'Payment Methods',
+              const PaymentSettingsScreen(),
             ),
             _drawerItem(
               context,

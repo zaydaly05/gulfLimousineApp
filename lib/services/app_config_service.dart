@@ -23,7 +23,17 @@ class AppConfig {
     this.instapayAddress = defaultInstapayAddress,
     this.walletNumber = '',
     this.walletName = '',
+    this.methods = const {},
   });
+
+  /// Admin switches in `config/payments.methods`; missing means on.
+  static const methodKeys = [
+    'card',
+    'walletOnline',
+    'walletTransfer',
+    'instapay',
+    'cash',
+  ];
 
   /// Auto-updated alias for Google's newest Flash model, so the app keeps
   /// working when a specific model version is retired.
@@ -42,6 +52,10 @@ class AppConfig {
   /// Mobile-wallet number that receives manual wallet transfers.
   final String walletNumber;
   final String walletName;
+  final Map<String, bool> methods;
+
+  /// Whether the admin has this payment method switched on.
+  bool isEnabled(String method) => methods[method] ?? true;
 
   bool get hasGemini =>
       geminiApiKey.isNotEmpty && !geminiApiKey.startsWith('YOUR_');
@@ -82,6 +96,14 @@ class AppConfig {
       ),
       walletNumber: read(payments, 'walletNumber', ''),
       walletName: read(payments, 'walletName', ''),
+      methods: {
+        for (final key in methodKeys)
+          key:
+              (payments?['methods'] is Map
+                  ? (payments!['methods'] as Map)[key]
+                  : null) !=
+              false,
+      },
     );
   }
 

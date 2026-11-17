@@ -151,8 +151,14 @@ const newBooking = {
   tripStatus: 'pending',
   createdAt: serverTimestamp(),
 };
-test('app: checkout creates a booking', async () => {
-  await assertSucceeds(addDoc(collection(customer(), 'bookings'), newBooking));
+// Customers book through payments_server (/api/book), which checks the
+// fleet and prices the booking; writing one directly is refused.
+test('a customer cannot write a booking directly', async () => {
+  await assertFails(addDoc(collection(customer(), 'bookings'), newBooking));
+});
+test('admins can still enter bookings', async () => {
+  await seed('users/admin', { role: 'admin' });
+  await assertSucceeds(addDoc(collection(admin(), 'bookings'), newBooking));
 });
 test('a booking cannot be created for someone else', async () => {
   await assertFails(addDoc(collection(stranger(), 'bookings'), newBooking));
@@ -522,11 +528,8 @@ const transfer = {
   payment_status: 'awaiting_verification',
   payer_phone: '01012345678',
 };
-test('app: an InstaPay transfer booking waits for the admin', async () => {
-  await assertSucceeds(addDoc(collection(customer(), 'bookings'), transfer));
-  await assertSucceeds(
-    addDoc(collection(customer(), 'bookings'), { ...transfer, payment_method: 'wallet' }),
-  );
+test('a customer cannot write a transfer booking directly', async () => {
+  await assertFails(addDoc(collection(customer(), 'bookings'), transfer));
 });
 test('a transfer cannot be booked as already paid or confirmed', async () => {
   await assertFails(
@@ -536,11 +539,11 @@ test('a transfer cannot be booked as already paid or confirmed', async () => {
     addDoc(collection(customer(), 'bookings'), { ...transfer, status: 'confirmed' }),
   );
 });
-test('app: an online (Paymob) booking starts unpaid; never paid by the app', async () => {
+test('a customer cannot write an online booking directly', async () => {
   const online = { ...transfer, payment_method: 'paymob', payment_status: 'unpaid' };
   delete online.payer_phone;
   online.payment_reference = null;
-  await assertSucceeds(addDoc(collection(customer(), 'bookings'), online));
+  await assertFails(addDoc(collection(customer(), 'bookings'), online));
   await assertFails(
     addDoc(collection(customer(), 'bookings'), { ...online, payment_status: 'paid' }),
   );
@@ -551,7 +554,7 @@ test('a customer cannot mark their own booking paid later', async () => {
     updateDoc(doc(customer(), BOOKING), { payment_status: 'paid' }),
   );
 });
-test('app: transfer payment records stay unconfirmed', async () => {
+test('a customer cannot write payment records directly', async () => {
   const record = {
     userId: 'u1',
     booking_id: 'b1',
@@ -561,7 +564,7 @@ test('app: transfer payment records stay unconfirmed', async () => {
     payer_phone: '01012345678',
     status: 'awaiting_verification',
   };
-  await assertSucceeds(addDoc(collection(customer(), 'payments'), record));
+  await assertFails(addDoc(collection(customer(), 'payments'), record));
   await assertFails(
     addDoc(collection(customer(), 'payments'), { ...record, status: 'paid' }),
   );
@@ -575,8 +578,9 @@ test('config: signed-in users read it, only admins change it', async () => {
   await assertSucceeds(setDoc(doc(admin(), 'config/ai'), { geminiModel: 'gemini-flash-latest' }));
 });
 
-// ---------------------------------------- the app's checkout, field for field
-// Mirrors BookingService.completeRental: booking + payment in ONE batch.
+// ------------------------- the old client-side checkout is no longer allowed
+// What the app used to write itself (booking + payment in ONE batch); the
+// server now does this, so the same batch from a customer must fail.
 function checkoutBatch(db, { method, paymentStatus, reference = null, payerPhone }) {
   const batch = writeBatch(db);
   const booking = doc(collection(db, 'bookings'));
@@ -613,7 +617,7 @@ for (const [method, paymentStatus, reference, payerPhone] of [
   ['card', 'paid', null, undefined],
   ['paymob', 'unpaid', null, undefined],
 ]) {
-  test(`app: full checkout batch via ${method}`, async () => {
-    await assertSucceeds(checkoutBatch(customer(), { method, paymentStatus, reference, payerPhone }));
+  test(`a customer's direct checkout batch via ${method} is refused`, async () => {
+    await assertFails(checkoutBatch(customer(), { method, paymentStatus, reference, payerPhone }));
   });
 }

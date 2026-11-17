@@ -8,9 +8,11 @@
 import { auth, db } from '../lib/firebase.js';
 import { applyCors, requireEnv, selfOrigin } from '../lib/http.js';
 import { checkoutUrl, createIntention } from '../lib/paymob.js';
+import { holdsCars, stillAvailable } from '../lib/fleet.js';
 import {
-  integrationIdsFor, payableProblem, specialReferenceFor, splitName, toCents,
+  integrationIdsFor, payableProblem, paymobMethodFor, specialReferenceFor, splitName, toCents,
 } from '../lib/booking.js';
+import { enabledMethods } from '../lib/booking-request.js';
 
 export default async function handler(req, res) {
   applyCors(req, res);
@@ -46,13 +48,29 @@ export default async function handler(req, res) {
     const problem = payableProblem(booking, uid, car);
     if (problem) return res.status(409).json({ error: problem });
 
+    // An unpaid booking holds its cars for a while; after that someone else
+    // may have taken them, so check before taking the money.
+    if (!holdsCars(booking) && carId) {
+      const others = await db().collection('bookings').where('car_id', '==', carId).get();
+      const all = others.docs.map((d) => ({ id: d.id, ...d.data() }));
+      if (!stillAvailable(car, all, { id: bookingId, ...booking })) {
+        return res.status(409).json({
+          error: 'These cars were booked by someone else while this payment was pending. Please make a new booking.',
+        });
+      }
+    }
+
     const user = (await db().collection('users').doc(uid).get()).data() || {};
     const phone = String(booking.phone || user.phone || user.phone_number || '').trim();
     if (!phone) {
       return res.status(400).json({ error: 'Add your phone number in Profile first.' });
     }
 
-    const method = ['card', 'wallet'].includes(req.body?.method) ? req.body.method : null;
+    // The admin may have switched this method off since the booking was made.
+    const config = (await db().collection('config').doc('payments').get()).data();
+    const choice = paymobMethodFor(req.body?.method, booking.paymob_method, enabledMethods(config));
+    if (choice.error) return res.status(409).json({ error: choice.error });
+    const { method } = choice;
     const integrationIds = integrationIdsFor(method, process.env);
     const specialReference = specialReferenceFor(bookingId);
     const origin = selfOrigin(req);
@@ -75,6 +93,7 @@ export default async function handler(req, res) {
 
     await bookingRef.update({
       paymob: { intentionId: id, specialReference, amountCents, startedAt: new Date() },
+      heldAt: new Date(), // the cars stay held while the customer pays
     });
 
     return res.status(200).json({

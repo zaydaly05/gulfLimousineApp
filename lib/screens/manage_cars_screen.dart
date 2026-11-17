@@ -11,6 +11,7 @@ import '../widgets/language_picker.dart';
 import '../utils/live_refresh.dart';
 import '../utils/image_decode.dart';
 import '../widgets/empty_state.dart';
+import '../models/fleet.dart';
 
 class ManageCarsScreen extends StatefulWidget {
   const ManageCarsScreen({super.key});
@@ -231,7 +232,11 @@ class _ManageCarsScreenState extends State<ManageCarsScreen> {
                                     children: [
                                       Expanded(
                                         child: Text(
-                                          "${car['brand'] ?? ''}\n${car['price_per_day'] ?? ''} EGP${context.t('perDay')}",
+                                          [
+                                            car['brand'] ?? '',
+                                            "${car['price_per_day'] ?? ''} EGP${context.t('perDay')}",
+                                            Fleet.summary(car),
+                                          ].where((l) => l.isNotEmpty).join('\n'),
                                           style: TextStyle(
                                             color: Colors.grey.shade400,
                                             height: 1.4,
