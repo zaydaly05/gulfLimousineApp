@@ -486,13 +486,6 @@ class BookingService {
         .snapshots();
   }
 
-  static int? _odometerKm(Map<String, dynamic>? odometer, String key) {
-    if (odometer == null) return null;
-    final v = odometer[key];
-    if (v is num) return v.toInt();
-    return int.tryParse(v?.toString() ?? '');
-  }
-
   static Future<void> recordStartKm({
     required String bookingId,
     required int km,
