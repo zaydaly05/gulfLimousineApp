@@ -4,7 +4,10 @@ library;
 
 /// What the customer reports after sending a manual transfer.
 class ManualPaymentResult {
-  const ManualPaymentResult({required this.reference, required this.payerPhone});
+  const ManualPaymentResult({
+    required this.reference,
+    required this.payerPhone,
+  });
 
   /// Transaction ID shown by InstaPay or the wallet after sending.
   final String reference;

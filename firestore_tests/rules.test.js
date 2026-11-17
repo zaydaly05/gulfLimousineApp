@@ -510,3 +510,65 @@ test('profile completion needs real https ID photo URLs', async () => {
     }),
   );
 });
+
+// ------------------------------------- manual transfers and online payment
+const transfer = {
+  ...newBooking,
+  status: 'pending',
+  payment_method: 'instapay',
+  payment_reference: '123456789012',
+  payment_status: 'awaiting_verification',
+  payer_phone: '01012345678',
+};
+test('app: an InstaPay transfer booking waits for the admin', async () => {
+  await assertSucceeds(addDoc(collection(customer(), 'bookings'), transfer));
+  await assertSucceeds(
+    addDoc(collection(customer(), 'bookings'), { ...transfer, payment_method: 'wallet' }),
+  );
+});
+test('a transfer cannot be booked as already paid or confirmed', async () => {
+  await assertFails(
+    addDoc(collection(customer(), 'bookings'), { ...transfer, payment_status: 'paid' }),
+  );
+  await assertFails(
+    addDoc(collection(customer(), 'bookings'), { ...transfer, status: 'confirmed' }),
+  );
+});
+test('app: an online (Paymob) booking starts unpaid; never paid by the app', async () => {
+  const online = { ...transfer, payment_method: 'paymob', payment_status: 'unpaid' };
+  delete online.payer_phone;
+  online.payment_reference = null;
+  await assertSucceeds(addDoc(collection(customer(), 'bookings'), online));
+  await assertFails(
+    addDoc(collection(customer(), 'bookings'), { ...online, payment_status: 'paid' }),
+  );
+});
+test('a customer cannot mark their own booking paid later', async () => {
+  await seed(BOOKING, { ...transfer, createdAt: 1 });
+  await assertFails(
+    updateDoc(doc(customer(), BOOKING), { payment_status: 'paid' }),
+  );
+});
+test('app: transfer payment records stay unconfirmed', async () => {
+  const record = {
+    userId: 'u1',
+    booking_id: 'b1',
+    amount: 4500,
+    method: 'instapay',
+    reference: '123456789012',
+    payer_phone: '01012345678',
+    status: 'awaiting_verification',
+  };
+  await assertSucceeds(addDoc(collection(customer(), 'payments'), record));
+  await assertFails(
+    addDoc(collection(customer(), 'payments'), { ...record, status: 'paid' }),
+  );
+});
+test('config: signed-in users read it, only admins change it', async () => {
+  await seed('config/payments', { instapayAddress: 'shop@instapay' });
+  await assertSucceeds(getDoc(doc(customer(), 'config/payments')));
+  await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), 'config/payments')));
+  await assertFails(setDoc(doc(customer(), 'config/ai'), { geminiApiKey: 'x' }));
+  await seed('users/admin', { role: 'admin' });
+  await assertSucceeds(setDoc(doc(admin(), 'config/ai'), { geminiModel: 'gemini-flash-latest' }));
+});
