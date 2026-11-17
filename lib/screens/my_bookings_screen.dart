@@ -18,6 +18,7 @@ import '../widgets/condition_video_chips.dart';
 import '../theme/app_theme.dart';
 import '../widgets/status_pill.dart';
 import '../widgets/action_button_row.dart';
+import 'paymob_checkout_screen.dart';
 
 class MyBookingsScreen extends StatefulWidget {
   const MyBookingsScreen({super.key});
@@ -318,6 +319,8 @@ class _BookingCard extends StatelessWidget {
                 context.t('paidVia'),
                 data['payment_method'].toString(),
               ),
+            if (_paymentStatusKey(data) case final key?)
+              _row(Icons.receipt_long, context.t('payment'), context.t(key)),
             if (pickupLoc != null)
               _row(Icons.place, context.t('from'), pickupLoc.address),
             if (dropoffLoc != null)
@@ -391,6 +394,21 @@ class _BookingCard extends StatelessWidget {
             const SizedBox(height: 12),
             ActionButtonRow(
               children: [
+                if (_canPayOnline(data))
+                  ElevatedButton.icon(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PaymobCheckoutScreen(
+                          bookingId: bookingId,
+                          amount:
+                              (data['total_amount'] as num?)?.toDouble() ?? 0,
+                        ),
+                      ),
+                    ),
+                    icon: const Icon(Icons.payment, size: 18),
+                    label: Text(context.t('payNow')),
+                  ),
                 if (pickupLoc != null)
                   OutlinedButton.icon(
                     onPressed: () =>
@@ -591,6 +609,24 @@ class _BookingCard extends StatelessWidget {
       ),
     );
   }
+
+  /// Translation key for a payment that still needs attention, or null
+  /// when it's settled (paid) or simply due at pickup (cash).
+  static String? _paymentStatusKey(Map<String, dynamic> data) =>
+      switch (data['payment_status']) {
+        'awaiting_verification' => 'paymentAwaitingCheck',
+        'rejected' => 'paymentRejected',
+        'unpaid' => 'paymentUnpaid',
+        'failed' => 'paymentFailed',
+        _ => null,
+      };
+
+  /// An online (Paymob) booking whose payment hasn't gone through yet.
+  static bool _canPayOnline(Map<String, dynamic> data) =>
+      data['payment_method'] == 'paymob' &&
+      (data['payment_status'] == 'unpaid' ||
+          data['payment_status'] == 'failed') &&
+      data['status'] == 'pending';
 
   Widget _row(IconData icon, String label, String value) {
     return Padding(

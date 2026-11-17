@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import 'dart:async';
+
+import '../services/app_config_service.dart';
 import '../services/booking_service.dart';
+import '../utils/payment_validation.dart';
 import '../widgets/expandable_address_row.dart';
 import 'card_payment.dart';
 import 'instapay_screen.dart';
 import 'payment_success_screen.dart';
+import 'paymob_checkout_screen.dart';
 import 'rental_agreement_screen.dart';
 import 'wallet_payment_screen.dart';
 import '../widgets/payment_method_tile.dart';
@@ -24,57 +29,124 @@ class _PaymentScreenState extends State<PaymentScreen> {
   bool _isProcessing = false;
   String? _signatureUrl;
 
+  /// Null until loaded; decides whether online (Paymob) payment is offered.
+  AppConfig? _config;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_loadConfig());
+  }
+
+  Future<void> _loadConfig() async {
+    final config = await AppConfigService.instance.load();
+    if (mounted) setState(() => _config = config);
+  }
+
+  bool _ensureSigned() {
+    if (_signatureUrl != null) return true;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please sign the rental agreement first')),
+    );
+    return false;
+  }
+
   Future<void> _payWithMethod(String method, Widget screen) async {
-    if (_isProcessing) return;
-    if (_signatureUrl == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please sign the rental agreement first')),
-      );
-      return;
-    }
+    if (_isProcessing || !_ensureSigned()) return;
     final result = await Navigator.push<dynamic>(
       context,
       MaterialPageRoute(builder: (_) => screen),
     );
-    if (result != null && mounted) {
+    if (result == null || !mounted) return;
+    if (result is ManualPaymentResult) {
+      // InstaPay / wallet transfer: an admin confirms it later.
       await _completePayment(
         method,
-        reference: result is String ? result : null,
+        status: 'awaiting_verification',
+        reference: result.reference,
+        payerPhone: result.payerPhone,
       );
+    } else {
+      await _completePayment(method);
     }
   }
 
-  Future<void> _completePayment(String method, {String? reference}) async {
-    // Guards against a double tap creating two bookings.
-    if (_isProcessing) return;
-    if (_signatureUrl == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please sign the rental agreement first')),
+  /// Card or wallet checkout on Paymob's hosted page. The booking is
+  /// created first (unpaid); Paymob's signed callback to payments_server
+  /// marks it paid, and [PaymobCheckoutScreen] waits for that.
+  Future<void> _payOnline() async {
+    if (_isProcessing || !_ensureSigned()) return;
+    setState(() => _isProcessing = true);
+    try {
+      final bookingId = await BookingService.completeRental(
+        rental: widget.rental,
+        paymentMethod: 'paymob',
+        paymentStatus: 'unpaid',
+        signatureUrl: _signatureUrl,
       );
-      return;
+      if (!mounted) return;
+      await Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PaymobCheckoutScreen(
+            bookingId: bookingId,
+            amount: widget.rental.totalAmount,
+          ),
+        ),
+        (route) => route.isFirst,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not start payment: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
     }
+  }
+
+  Future<void> _completePayment(
+    String method, {
+    String? status,
+    String? reference,
+    String? payerPhone,
+  }) async {
+    // Guards against a double tap creating two bookings.
+    if (_isProcessing || !_ensureSigned()) return;
 
     setState(() => _isProcessing = true);
     try {
-      final status = method == 'cash' ? 'pending' : 'paid';
+      final paymentStatus = status ?? (method == 'cash' ? 'pending' : 'paid');
       await BookingService.completeRental(
         rental: widget.rental,
         paymentMethod: method,
-        paymentStatus: status,
+        paymentStatus: paymentStatus,
         signatureUrl: _signatureUrl,
         paymentReference: reference,
+        payerPhone: payerPhone,
       );
       if (!mounted) return;
-      final isCash = method == 'cash';
+      final (title, message) = switch (paymentStatus) {
+        'pending' => (
+          'Order Confirmed',
+          'Thank you for choosing Gulf Limousine Travel.\nPay cash when you collect the car.',
+        ),
+        'awaiting_verification' => (
+          'Payment Submitted',
+          'Thank you for choosing Gulf Limousine Travel.\nWe will confirm your booking as soon as we check your transfer.',
+        ),
+        _ => (
+          'Payment Successful',
+          'Thank you for choosing Gulf Limousine Travel.\nYour car has been successfully booked.',
+        ),
+      };
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
-          builder: (_) => PaymentSuccessScreen(
-            title: isCash ? 'Order Confirmed' : 'Payment Successful',
-            message: isCash
-                ? 'Thank you for choosing Gulf Limousine Travel.\nPay cash when you collect the car.'
-                : 'Thank you for choosing Gulf Limousine Travel.\nYour car has been successfully booked.',
-          ),
+          builder: (_) => PaymentSuccessScreen(title: title, message: message),
         ),
         (route) => false,
       );
@@ -213,14 +285,28 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         PaymentMethodTile(
                           icon: Icons.credit_card,
                           title: 'Credit / Debit Card',
-                          onTap: () => _payWithMethod(
-                            'card',
-                            CardPaymentScreen(amount: rental.totalAmount),
-                          ),
+                          subtitle: _config?.hasPaymob == true
+                              ? 'Secure checkout by Paymob'
+                              : null,
+                          onTap: () => _config?.hasPaymob == true
+                              ? _payOnline()
+                              : _payWithMethod(
+                                  'card',
+                                  CardPaymentScreen(amount: rental.totalAmount),
+                                ),
                         ),
+                        if (_config?.hasPaymob == true)
+                          PaymentMethodTile(
+                            icon: Icons.bolt,
+                            title: 'Mobile Wallet (instant)',
+                            subtitle:
+                                'Vodafone Cash, Orange, e&, WE via Paymob',
+                            onTap: _payOnline,
+                          ),
                         PaymentMethodTile(
                           icon: Icons.account_balance_wallet,
-                          title: 'Mobile Wallet',
+                          title: 'Mobile Wallet Transfer',
+                          subtitle: 'Send to our wallet, we confirm it',
                           onTap: () => _payWithMethod(
                             'wallet',
                             WalletPaymentScreen(amount: rental.totalAmount),
@@ -229,6 +315,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         PaymentMethodTile(
                           icon: Icons.phone_android,
                           title: 'InstaPay',
+                          subtitle: 'Transfer to our InstaPay address',
                           onTap: () => _payWithMethod(
                             'instapay',
                             InstaPayScreen(amount: rental.totalAmount),

@@ -71,6 +71,14 @@ jobs:
         run: |
           npm ci
           npm test
+      # Contract: only a Paymob-signed callback can mark a booking paid, the
+      # amount comes from Firestore, and retried callbacks apply once.
+      - name: Payment server tests (unit + emulator)
+        working-directory: payments_server
+        run: |
+          npm ci
+          npm test
+          npm run test:emulators
 
   functions:
     name: Cloud Functions tests

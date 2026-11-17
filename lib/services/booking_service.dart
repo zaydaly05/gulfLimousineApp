@@ -70,6 +70,7 @@ class BookingService {
     String paymentStatus = 'paid',
     String? signatureUrl,
     String? paymentReference,
+    String? payerPhone,
   }) async {
     final user = _auth.currentUser;
     if (user == null) throw Exception('Not signed in');
@@ -106,6 +107,10 @@ class BookingService {
       'status': status,
       'payment_method': paymentMethod,
       'payment_reference': paymentReference,
+      // paid | pending (cash) | awaiting_verification (InstaPay/wallet
+      // transfer an admin must confirm) | unpaid (online checkout not done).
+      'payment_status': paymentStatus,
+      'payer_phone': ?payerPhone,
       'tripStatus': 'pending',
       if (rental.pickupLocation != null)
         'pickupLocation': rental.pickupLocation!.toMap(),
@@ -129,6 +134,7 @@ class BookingService {
       'amount': rental.totalAmount,
       'method': paymentMethod,
       'reference': paymentReference,
+      'payer_phone': ?payerPhone,
       'status': paymentStatus,
       'payment_date': FieldValue.serverTimestamp(),
     });
@@ -178,6 +184,51 @@ class BookingService {
   /// Deletes a booking (admins only; customers cancel instead).
   static Future<void> deleteBooking(String bookingId) =>
       _firestore.collection('bookings').doc(bookingId).delete();
+
+  /// Admin decision on an InstaPay or wallet transfer the customer reported.
+  ///
+  /// Confirming marks the payment paid and confirms the booking; rejecting
+  /// marks both rejected so the customer can pay again or contact support.
+  static Future<void> verifyManualPayment({
+    required String paymentId,
+    required String bookingId,
+    required bool approved,
+  }) async {
+    final booking = _firestore.collection('bookings').doc(bookingId);
+    final snapshot = await booking.get();
+    final data = snapshot.data();
+    if (data == null) throw Exception('Booking not found');
+
+    final batch = _firestore.batch();
+    batch.update(_firestore.collection('payments').doc(paymentId), {
+      'status': approved ? 'paid' : 'rejected',
+      'verifiedAt': FieldValue.serverTimestamp(),
+    });
+    batch.update(booking, {
+      'payment_status': approved ? 'paid' : 'rejected',
+      // Only a still-pending booking is confirmed; never resurrect a
+      // cancelled one.
+      if (approved && data['status'] == 'pending') 'status': 'confirmed',
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    await batch.commit();
+
+    final userId = data['userId']?.toString() ?? '';
+    if (userId.isEmpty) return;
+    final car = (data['carName'] ?? data['car_name'] ?? 'car').toString();
+    await _bestEffort(
+      _notifyUser(
+        userId: userId,
+        title: approved ? 'Payment confirmed' : 'Payment not found',
+        body: approved
+            ? 'We received your payment. Your $car booking is confirmed.'
+            : 'We could not find your transfer for the $car booking. '
+                  'Please check the transaction ID or contact us.',
+        type: approved ? 'payment_confirmed' : 'payment_rejected',
+        bookingId: bookingId,
+      ),
+    );
+  }
 
   /// Loads a booking the signed-in customer owns (by uid or email), or
   /// throws the same errors every customer action reports.

@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 
-import '../config/api_keys.dart';
+import 'app_config_service.dart';
 import 'chatbot_service.dart';
 
 class GeminiChatService {
@@ -20,10 +20,9 @@ class GeminiChatService {
   final FirebaseAuth _auth;
   final ChatbotService _fallback;
 
-  static const _model = 'gemini-2.0-flash';
-
   Future<ChatbotReply> generateReply(String input, {bool admin = false}) async {
-    if (!ApiKeys.hasGeminiKey) {
+    final config = await AppConfigService.instance.load();
+    if (!config.hasGemini) {
       return _fallback.generateReply(input);
     }
 
@@ -33,7 +32,7 @@ class GeminiChatService {
           : await _buildUserContext();
 
       final uri = Uri.parse(
-        'https://generativelanguage.googleapis.com/v1beta/models/$_model:generateContent',
+        'https://generativelanguage.googleapis.com/v1beta/models/${config.geminiModel}:generateContent',
       );
 
       final system = admin
@@ -72,7 +71,7 @@ class GeminiChatService {
             // Key in a header, not the URL, so it stays out of proxy/server logs.
             headers: {
               'Content-Type': 'application/json',
-              'x-goog-api-key': ApiKeys.gemini,
+              'x-goog-api-key': config.geminiApiKey,
             },
             body: jsonEncode(body),
           )

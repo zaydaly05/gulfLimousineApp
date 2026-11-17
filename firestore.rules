@@ -214,9 +214,11 @@ service cloud.firestore {
           'userId', 'user_email', 'userName', 'customerName', 'phone',
           'car_id', 'car_name', 'carName', 'brand', 'pickupDate', 'returnDate',
           'startDate', 'days', 'price_per_day', 'total_amount', 'status',
-          'payment_method', 'payment_reference', 'tripStatus',
+          'payment_method', 'payment_reference', 'payment_status',
+          'payer_phone', 'tripStatus',
           'pickupLocation', 'dropoffLocation', 'createdAt', 'agreement',
         ]) &&
+        paymentClaimOk(b) &&
         b.userId == request.auth.uid &&
         b.user_email == request.auth.token.get('email', '') &&
         b.status in ['pending', 'confirmed'] &&
@@ -226,6 +228,34 @@ service cloud.firestore {
         b.total_amount == b.price_per_day * b.days &&
         b.createdAt == request.time &&
         (!('agreement' in b) || b.agreement.signedBy == request.auth.uid);
+    }
+
+    // InstaPay and wallet transfers are confirmed by an admin, and online
+    // (Paymob) payments by payments_server after Paymob's signed callback.
+    // So a customer can never create those already paid or confirmed.
+    function paymentClaimOk(p) {
+      let method = p.get('payment_method', '');
+      let status = p.get('payment_status', '');
+      return status in ['', 'paid', 'pending', 'awaiting_verification',
+          'unpaid'] &&
+        (!(method in ['instapay', 'wallet', 'paymob']) ||
+          (p.status == 'pending' &&
+            status in ['awaiting_verification', 'unpaid']));
+    }
+
+    function isValidCustomerPayment() {
+      let p = request.resource.data;
+      return p.userId == request.auth.uid &&
+        (!(p.get('method', '') in ['instapay', 'wallet', 'paymob']) ||
+          p.get('status', '') in ['awaiting_verification', 'unpaid']);
+    }
+
+    // Admin-editable settings the app reads at runtime: config/ai (Gemini
+    // key and model) and config/payments (payment server URL, InstaPay
+    // address, wallet number). Any signed-in user can read them.
+    match /config/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
     }
 
     match /users/{userId} {
@@ -290,7 +320,7 @@ service cloud.firestore {
         isSignedIn() && resource.data.userId == request.auth.uid
       );
       allow create: if isAdmin() || (
-        isSignedIn() && request.resource.data.userId == request.auth.uid
+        isSignedIn() && isValidCustomerPayment()
       );
       allow update, delete: if isAdmin();
     }
