@@ -13,6 +13,8 @@ Object.assign(process.env, {
   PAYMOB_SECRET_KEY: 'sk_test_x',
   PAYMOB_PUBLIC_KEY: 'pk_test_y',
   PAYMOB_INTEGRATION_IDS: '111, 222',
+  PAYMOB_CARD_INTEGRATION_ID: '111',
+  PAYMOB_WALLET_INTEGRATION_ID: '222',
   PAYMOB_HMAC_SECRET: SECRET,
   PUBLIC_URL: 'https://pay.example.com',
 });
@@ -94,7 +96,7 @@ test('create-intention: starts checkout with the server-side amount', { skip: !r
     assert.equal(res.body.checkoutUrl, 'https://accept.paymob.com/unifiedcheckout/?publicKey=pk_test_y&clientSecret=csk_test_abc');
     assert.equal(res.body.testMode, true);
     assert.equal(sent.amount, 450000);
-    assert.deepEqual(sent.payment_methods, [111, 222]);
+    assert.deepEqual(sent.payment_methods, [111, 222]); // no method: every ID
     assert.equal(sent.notification_url, 'https://pay.example.com/api/paymob-webhook');
     assert.match(sent.special_reference, /^BookingAAAA0001_\d+$/);
   } finally {
@@ -153,4 +155,27 @@ test('webhook: a late failure never undoes a payment', { skip: !ready }, async (
   await call(webhook, { body: { type: 'TRANSACTION', obj: failed.obj }, query: { hmac: failed.hmac } });
   const booking = (await db().collection('bookings').doc('BookingDDDD0001').get()).data();
   assert.equal(booking.payment_status, 'paid');
+});
+
+test('create-intention: "Mobile Wallet" opens Paymob on the wallet only', { skip: !ready }, async () => {
+  await seedBooking('BookingWWWW0001');
+  let sent;
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init) => {
+    if (String(url).startsWith('https://accept.paymob.com')) {
+      sent = JSON.parse(init.body);
+      return new Response(JSON.stringify({ id: 'int_2', client_secret: 'csk_test_w' }), { status: 201 });
+    }
+    return realFetch(url, init);
+  };
+  try {
+    const res = await call(createIntention, {
+      headers: { authorization: `Bearer ${idToken}` },
+      body: { bookingId: 'BookingWWWW0001', method: 'wallet' },
+    });
+    assert.equal(res.status, 200, JSON.stringify(res.body));
+    assert.deepEqual(sent.payment_methods, [222]);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
 });

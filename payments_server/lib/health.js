@@ -48,6 +48,9 @@ export function configReport(env, expectedProjectId) {
     integrationIds: ids.length,
     integrationIdsValid: ids.length > 0 && ids.every((id) => /^\d+$/.test(id)),
     hmacSecretSet: Boolean(env.PAYMOB_HMAC_SECRET),
+    // Optional: lets "Card" and "Mobile Wallet" open on their own method.
+    cardIntegrationIdSet: /^\d+$/.test(String(env.PAYMOB_CARD_INTEGRATION_ID ?? '').trim()),
+    walletIntegrationIdSet: /^\d+$/.test(String(env.PAYMOB_WALLET_INTEGRATION_ID ?? '').trim()),
   };
 
   const ok = Object.values(present).every(Boolean) &&

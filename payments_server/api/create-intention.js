@@ -1,4 +1,6 @@
-// POST /api/create-intention  { bookingId }  (Authorization: Bearer <Firebase ID token>)
+// POST /api/create-intention  { bookingId, method? }  (Authorization: Bearer <Firebase ID token>)
+// method: 'card' | 'wallet' limits the checkout to that method when its
+// integration ID is configured; omitted, Paymob offers every method.
 // -> { checkoutUrl, testMode }
 //
 // Starts Paymob's hosted checkout for one of the caller's own unpaid
@@ -6,7 +8,9 @@
 import { auth, db } from '../lib/firebase.js';
 import { applyCors, requireEnv, selfOrigin } from '../lib/http.js';
 import { checkoutUrl, createIntention } from '../lib/paymob.js';
-import { payableProblem, specialReferenceFor, splitName, toCents } from '../lib/booking.js';
+import {
+  integrationIdsFor, payableProblem, specialReferenceFor, splitName, toCents,
+} from '../lib/booking.js';
 
 export default async function handler(req, res) {
   applyCors(req, res);
@@ -48,9 +52,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Add your phone number in Profile first.' });
     }
 
-    const integrationIds = env.PAYMOB_INTEGRATION_IDS.split(',')
-      .map((id) => Number(id.trim()))
-      .filter(Number.isInteger);
+    const method = ['card', 'wallet'].includes(req.body?.method) ? req.body.method : null;
+    const integrationIds = integrationIdsFor(method, process.env);
     const specialReference = specialReferenceFor(bookingId);
     const origin = selfOrigin(req);
     const amountCents = toCents(booking.total_amount);

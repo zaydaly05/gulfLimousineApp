@@ -30,7 +30,12 @@ class PaymobException implements Exception {
 class PaymobService {
   const PaymobService._();
 
-  static Future<PaymobCheckout> startCheckout(String bookingId) async {
+  /// [method] is 'card' or 'wallet' to open Paymob on just that method;
+  /// null offers every method the account has.
+  static Future<PaymobCheckout> startCheckout(
+    String bookingId, {
+    String? method,
+  }) async {
     final config = await AppConfigService.instance.load();
     if (!config.hasPaymob) {
       throw const PaymobException('Online payment is not set up yet.');
@@ -48,7 +53,7 @@ class PaymobService {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $idToken',
             },
-            body: jsonEncode({'bookingId': bookingId}),
+            body: jsonEncode({'bookingId': bookingId, 'method': ?method}),
           )
           .timeout(const Duration(seconds: 25));
     } catch (_) {

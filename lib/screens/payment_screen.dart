@@ -74,7 +74,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   /// Card or wallet checkout on Paymob's hosted page. The booking is
   /// created first (unpaid); Paymob's signed callback to payments_server
   /// marks it paid, and [PaymobCheckoutScreen] waits for that.
-  Future<void> _payOnline() async {
+  Future<void> _payOnline(String method) async {
     if (_isProcessing || !_ensureSigned()) return;
     setState(() => _isProcessing = true);
     try {
@@ -91,6 +91,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           builder: (_) => PaymobCheckoutScreen(
             bookingId: bookingId,
             amount: widget.rental.totalAmount,
+            method: method,
           ),
         ),
         (route) => route.isFirst,
@@ -289,7 +290,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                               ? 'Secure checkout by Paymob'
                               : null,
                           onTap: () => _config?.hasPaymob == true
-                              ? _payOnline()
+                              ? _payOnline('card')
                               : _payWithMethod(
                                   'card',
                                   CardPaymentScreen(amount: rental.totalAmount),
@@ -301,7 +302,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             title: 'Mobile Wallet (instant)',
                             subtitle:
                                 'Vodafone Cash, Orange, e&, WE via Paymob',
-                            onTap: _payOnline,
+                            onTap: () => _payOnline('wallet'),
                           ),
                         PaymentMethodTile(
                           icon: Icons.account_balance_wallet,

@@ -46,3 +46,26 @@ export function splitName(name) {
   if (parts.length === 0) return { firstName: 'Customer', lastName: 'NA' };
   return { firstName: parts[0], lastName: parts.slice(1).join(' ') || 'NA' };
 }
+
+/**
+ * Integration IDs for the checkout: only the requested method's ID when
+ * PAYMOB_CARD_INTEGRATION_ID / PAYMOB_WALLET_INTEGRATION_ID say which is
+ * which, otherwise every ID in PAYMOB_INTEGRATION_IDS (Paymob then shows a
+ * tab per method).
+ */
+export function integrationIdsFor(method, env) {
+  const one = (v) => (/^\d+$/.test(String(v ?? '').trim()) ? [Number(String(v).trim())] : null);
+  if (method === 'card') {
+    const id = one(env.PAYMOB_CARD_INTEGRATION_ID);
+    if (id) return id;
+  }
+  if (method === 'wallet') {
+    const id = one(env.PAYMOB_WALLET_INTEGRATION_ID);
+    if (id) return id;
+  }
+  return String(env.PAYMOB_INTEGRATION_IDS || '')
+    .split(',')
+    .map((id) => id.trim())
+    .filter((id) => /^\d+$/.test(id))
+    .map(Number);
+}
