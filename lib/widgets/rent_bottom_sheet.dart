@@ -477,7 +477,7 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
                     Flexible(
                       child: Text(
                         '$_days ${context.t('days')}'
-                        '${_quantity > 1 ? ' × $_quantity ${context.t('cars')}' : ''}'
+                        '${_quantity > 1 ? ' × $_quantity ${context.t('carsCount')}' : ''}'
                         ' × EGP ${_pricePerDay.toStringAsFixed(0)}',
                       ),
                     ),

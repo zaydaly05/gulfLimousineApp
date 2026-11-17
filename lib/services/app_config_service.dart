@@ -59,7 +59,12 @@ class AppConfig {
 
   bool get hasGemini =>
       geminiApiKey.isNotEmpty && !geminiApiKey.startsWith('YOUR_');
-  bool get hasPaymob => paymentsServerUrl.startsWith('https://');
+  /// Whether payments_server is set up (bookings and online payment go
+  /// through it). A local http address is accepted for development.
+  bool get hasPaymob =>
+      paymentsServerUrl.startsWith('https://') ||
+      paymentsServerUrl.startsWith('http://127.0.0.1') ||
+      paymentsServerUrl.startsWith('http://localhost');
   bool get hasWalletTransfer => walletNumber.isNotEmpty;
 
   factory AppConfig.fromDocs(
