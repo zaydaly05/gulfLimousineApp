@@ -9,8 +9,10 @@ import '../models/geo_location.dart';
 /// Shared map setup: one place for the tile source, the map controls and the
 /// default centre, instead of a copy in every map screen.
 ///
-/// Tiles come from CARTO's free basemaps (OpenStreetMap data, no API key).
-/// The OpenStreetMap tile servers themselves forbid app traffic at scale.
+/// Tiles come from OpenStreetMap: free and keyless. (CARTO's basemaps have
+/// required an API key since 25 Sep 2026.) OpenStreetMap's tile servers are
+/// fine for a demo's traffic; a large production app would move to a tile
+/// provider with an SLA.
 
 /// Cairo city centre ([GeoLocation.cairo]), the default map centre.
 const kCairoLatLng = LatLng(GeoLocation.cairoLat, GeoLocation.cairoLng);
@@ -35,8 +37,24 @@ CameraFit? cameraFitFor(List<LatLng> points) {
   );
 }
 
-/// The base map: CARTO "Dark Matter" for the dark screens, "Voyager" (a
-/// Google-Maps-like light style) for the location picker.
+/// Darkened tiles used by the tracking and security maps.
+const List<double> kDarkMapMatrix = [
+  0.6, 0, 0, 0, -60, //
+  0, 0.6, 0, 0, -60, //
+  0, 0, 0.6, 0, -60, //
+  0, 0, 0, 1, 0,
+];
+
+/// Softened tiles used by the location picker.
+const List<double> kLightMapMatrix = [
+  0.7, 0, 0, 0, 40, //
+  0, 0.7, 0, 0, 40, //
+  0, 0, 0.7, 0, 40, //
+  0, 0, 0, 1, 0,
+];
+
+/// The base map: OpenStreetMap, darkened for the dark screens and softened
+/// for the location picker.
 class AppTileLayer extends StatelessWidget {
   const AppTileLayer({super.key, this.dark = true});
 
@@ -44,19 +62,21 @@ class AppTileLayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = dark ? 'dark_all' : 'rastertiles/voyager';
+    final matrix = dark ? kDarkMapMatrix : kLightMapMatrix;
     return TileLayer(
-      urlTemplate:
-          'https://{s}.basemaps.cartocdn.com/$style/{z}/{x}/{y}{r}.png',
-      subdomains: const ['a', 'b', 'c', 'd'],
-      retinaMode: RetinaMode.isHighDensity(context),
-      maxNativeZoom: 20,
+      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      maxNativeZoom: 19,
+      // OpenStreetMap's tile policy asks apps to identify themselves.
       userAgentPackageName: AppInfo.androidAppId,
+      tileBuilder: (context, tileWidget, tile) => ColorFiltered(
+        colorFilter: ColorFilter.matrix(matrix),
+        child: tileWidget,
+      ),
     );
   }
 }
 
-/// Map credits, required by the OpenStreetMap and CARTO licences.
+/// Map credits, required by the OpenStreetMap licence.
 class AppMapAttribution extends StatelessWidget {
   const AppMapAttribution({super.key});
 
@@ -69,13 +89,6 @@ class AppMapAttribution extends StatelessWidget {
           'OpenStreetMap contributors',
           onTap: () => launchUrl(
             Uri.parse('https://www.openstreetmap.org/copyright'),
-            mode: LaunchMode.externalApplication,
-          ),
-        ),
-        TextSourceAttribution(
-          'CARTO',
-          onTap: () => launchUrl(
-            Uri.parse('https://carto.com/attributions'),
             mode: LaunchMode.externalApplication,
           ),
         ),

@@ -48,6 +48,11 @@ access to the database.
    | `PAYMOB_HMAC_SECRET` | the HMAC secret |
    | `PAYMOB_INTEGRATION_IDS` | card and wallet IDs, comma-separated, e.g. `4567890,4567891` |
    | `FIREBASE_SERVICE_ACCOUNT` | the whole JSON file's contents |
+   | `PAYMOB_CARD_INTEGRATION_ID` | optional: the card ID alone, so "Credit / Debit Card" opens on the card form |
+   | `PAYMOB_WALLET_INTEGRATION_ID` | optional: the wallet ID alone, so "Mobile Wallet" opens on the wallet form |
+
+   Without the two optional IDs, both buttons open Paymob's page with every
+   method, on the card tab.
 
 4. **Deploy**. Note the URL, e.g. `https://gulf-payments.vercel.app`.
 

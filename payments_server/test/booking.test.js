@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  bookingIdFromReference, payableProblem, specialReferenceFor, splitName, toCents,
+  bookingIdFromReference, integrationIdsFor, payableProblem, specialReferenceFor, splitName, toCents,
 } from '../lib/booking.js';
 
 const booking = {
@@ -43,4 +43,14 @@ test('amounts and names are converted for Paymob', () => {
   assert.deepEqual(splitName('Omar Hassan Ali'), { firstName: 'Omar', lastName: 'Hassan Ali' });
   assert.deepEqual(splitName('Omar'), { firstName: 'Omar', lastName: 'NA' });
   assert.deepEqual(splitName(''), { firstName: 'Customer', lastName: 'NA' });
+});
+
+test('checkout offers only the chosen method when its ID is configured', () => {
+  const env = { PAYMOB_INTEGRATION_IDS: '111, 222', PAYMOB_CARD_INTEGRATION_ID: '111', PAYMOB_WALLET_INTEGRATION_ID: ' 222 ' };
+  assert.deepEqual(integrationIdsFor('card', env), [111]);
+  assert.deepEqual(integrationIdsFor('wallet', env), [222]);
+  assert.deepEqual(integrationIdsFor(null, env), [111, 222]);
+  // Not configured (or malformed): fall back to every ID.
+  assert.deepEqual(integrationIdsFor('wallet', { PAYMOB_INTEGRATION_IDS: '111,222' }), [111, 222]);
+  assert.deepEqual(integrationIdsFor('card', { PAYMOB_INTEGRATION_IDS: '111', PAYMOB_CARD_INTEGRATION_ID: 'abc' }), [111]);
 });

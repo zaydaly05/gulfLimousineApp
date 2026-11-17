@@ -18,10 +18,14 @@ class PaymobCheckoutScreen extends StatefulWidget {
     super.key,
     required this.bookingId,
     required this.amount,
+    this.method,
   });
 
   final String bookingId;
   final double amount;
+
+  /// 'card' or 'wallet'; null lets the customer choose on Paymob's page.
+  final String? method;
 
   @override
   State<PaymobCheckoutScreen> createState() => _PaymobCheckoutScreenState();
@@ -84,7 +88,10 @@ class _PaymobCheckoutScreenState extends State<PaymobCheckoutScreen> {
       _error = null;
     });
     try {
-      final checkout = await PaymobService.startCheckout(widget.bookingId);
+      final checkout = await PaymobService.startCheckout(
+        widget.bookingId,
+        method: widget.method,
+      );
       if (!mounted) return;
       setState(() => _testMode = checkout.testMode);
       final opened = await launchUrl(
