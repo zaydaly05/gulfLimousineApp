@@ -36,4 +36,19 @@ void main() {
     );
     expect(Fleet.validate(const [FleetColor(name: ' ', count: 1)]), isNotNull);
   });
+
+  test('booking summary', () {
+    expect(Fleet.bookingSummary({}), '');
+    expect(Fleet.bookingSummary({'quantity': 2}), '2 cars');
+    expect(
+      Fleet.bookingSummary({
+        'quantity': 3,
+        'allocatedColors': [
+          {'name': 'Black', 'count': 1},
+          {'name': 'White', 'count': 2},
+        ],
+      }),
+      '3 cars: Black 1, White 2',
+    );
+  });
 }

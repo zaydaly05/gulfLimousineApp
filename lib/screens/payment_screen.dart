@@ -62,7 +62,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
       // InstaPay / wallet transfer: an admin confirms it later.
       await _completePayment(
         method,
-        status: 'awaiting_verification',
         reference: result.reference,
         payerPhone: result.payerPhone,
       );
@@ -81,8 +80,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
       final bookingId = await BookingService.completeRental(
         rental: widget.rental,
         paymentMethod: 'paymob',
-        paymentStatus: 'unpaid',
-        signatureUrl: _signatureUrl,
+        paymobMethod: method,
+        signatureUrl: _signatureUrl!,
       );
       if (!mounted) return;
       await Navigator.pushAndRemoveUntil(
@@ -99,10 +98,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Could not start payment: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('$e'), backgroundColor: Colors.red),
       );
     } finally {
       if (mounted) setState(() => _isProcessing = false);
@@ -111,7 +107,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   Future<void> _completePayment(
     String method, {
-    String? status,
     String? reference,
     String? payerPhone,
   }) async {
@@ -120,22 +115,20 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
     setState(() => _isProcessing = true);
     try {
-      final paymentStatus = status ?? (method == 'cash' ? 'pending' : 'paid');
       await BookingService.completeRental(
         rental: widget.rental,
         paymentMethod: method,
-        paymentStatus: paymentStatus,
-        signatureUrl: _signatureUrl,
+        signatureUrl: _signatureUrl!,
         paymentReference: reference,
         payerPhone: payerPhone,
       );
       if (!mounted) return;
-      final (title, message) = switch (paymentStatus) {
-        'pending' => (
+      final (title, message) = switch (method) {
+        'cash' => (
           'Order Confirmed',
           'Thank you for choosing Gulf Limousine Travel.\nPay cash when you collect the car.',
         ),
-        'awaiting_verification' => (
+        'instapay' || 'wallet' => (
           'Payment Submitted',
           'Thank you for choosing Gulf Limousine Travel.\nWe will confirm your booking as soon as we check your transfer.',
         ),
@@ -154,10 +147,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Payment failed: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('$e'), backgroundColor: Colors.red),
       );
     } finally {
       if (mounted) setState(() => _isProcessing = false);
@@ -209,9 +199,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
                           iconColor: Colors.blue,
                         ),
                       _summaryRow('Duration', '${rental.days} day(s)'),
+                      _summaryRow('Cars', '${rental.quantity}'),
+                      if (rental.colorPreferences.isNotEmpty)
+                        _summaryRow(
+                          'Colours (preferred first)',
+                          rental.colorPreferences.join(' › '),
+                        ),
                       _summaryRow(
                         'Rate',
-                        'EGP ${rental.pricePerDay.toStringAsFixed(0)} / day',
+                        'EGP ${rental.pricePerDay.toStringAsFixed(0)} / day'
+                            '${rental.quantity > 1 ? ' per car' : ''}',
                       ),
                       const Divider(height: 24),
                       _summaryRow(
@@ -281,60 +278,82 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   const SizedBox(height: 12),
                   Opacity(
                     opacity: _signatureUrl != null ? 1.0 : 0.5,
-                    child: Column(
-                      children: [
-                        PaymentMethodTile(
-                          icon: Icons.credit_card,
-                          title: 'Credit / Debit Card',
-                          subtitle: _config?.hasPaymob == true
-                              ? 'Secure checkout by Paymob'
-                              : null,
-                          onTap: () => _config?.hasPaymob == true
-                              ? _payOnline('card')
-                              : _payWithMethod(
-                                  'card',
-                                  CardPaymentScreen(amount: rental.totalAmount),
-                                ),
-                        ),
-                        if (_config?.hasPaymob == true)
-                          PaymentMethodTile(
-                            icon: Icons.bolt,
-                            title: 'Mobile Wallet (instant)',
-                            subtitle:
-                                'Vodafone Cash, Orange, e&, WE via Paymob',
-                            onTap: () => _payOnline('wallet'),
-                          ),
-                        PaymentMethodTile(
-                          icon: Icons.account_balance_wallet,
-                          title: 'Mobile Wallet Transfer',
-                          subtitle: 'Send to our wallet, we confirm it',
-                          onTap: () => _payWithMethod(
-                            'wallet',
-                            WalletPaymentScreen(amount: rental.totalAmount),
-                          ),
-                        ),
-                        PaymentMethodTile(
-                          icon: Icons.phone_android,
-                          title: 'InstaPay',
-                          subtitle: 'Transfer to our InstaPay address',
-                          onTap: () => _payWithMethod(
-                            'instapay',
-                            InstaPayScreen(amount: rental.totalAmount),
-                          ),
-                        ),
-                        PaymentMethodTile(
-                          icon: Icons.money,
-                          title: 'Cash on Pickup',
-                          subtitle: 'Pay when you collect the car',
-                          onTap: () => _completePayment('cash'),
-                        ),
-                      ],
-                    ),
+                    child: _paymentMethods(rental),
                   ),
                 ],
               ),
             ),
     );
+  }
+
+  /// The payment methods the admin has switched on.
+  Widget _paymentMethods(RentalDetails rental) {
+    final config = _config;
+    if (config == null) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    final online = config.hasPaymob;
+    final tiles = [
+      if (config.isEnabled('card'))
+        PaymentMethodTile(
+          icon: Icons.credit_card,
+          title: 'Credit / Debit Card',
+          subtitle: online ? 'Secure checkout by Paymob' : null,
+          onTap: () => online
+              ? _payOnline('card')
+              : _payWithMethod(
+                  'card',
+                  CardPaymentScreen(amount: rental.totalAmount),
+                ),
+        ),
+      if (online && config.isEnabled('walletOnline'))
+        PaymentMethodTile(
+          icon: Icons.bolt,
+          title: 'Mobile Wallet (instant)',
+          subtitle: 'Vodafone Cash, Orange, e&, WE via Paymob',
+          onTap: () => _payOnline('wallet'),
+        ),
+      if (config.isEnabled('walletTransfer'))
+        PaymentMethodTile(
+          icon: Icons.account_balance_wallet,
+          title: 'Mobile Wallet Transfer',
+          subtitle: 'Send to our wallet, we confirm it',
+          onTap: () => _payWithMethod(
+            'wallet',
+            WalletPaymentScreen(amount: rental.totalAmount),
+          ),
+        ),
+      if (config.isEnabled('instapay'))
+        PaymentMethodTile(
+          icon: Icons.phone_android,
+          title: 'InstaPay',
+          subtitle: 'Transfer to our InstaPay address',
+          onTap: () => _payWithMethod(
+            'instapay',
+            InstaPayScreen(amount: rental.totalAmount),
+          ),
+        ),
+      if (config.isEnabled('cash'))
+        PaymentMethodTile(
+          icon: Icons.money,
+          title: 'Cash on Pickup',
+          subtitle: 'Pay when you collect the car',
+          onTap: () => _completePayment('cash'),
+        ),
+    ];
+    if (tiles.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Text(
+          'No payment methods are available right now. Please contact us.',
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+    return Column(children: tiles);
   }
 
   Widget _summaryRow(String label, String value, {bool bold = false}) {

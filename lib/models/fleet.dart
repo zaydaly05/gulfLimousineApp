@@ -55,6 +55,20 @@ class Fleet {
     return '$total ${total == 1 ? 'car' : 'cars'} · $parts';
   }
 
+  /// "2 cars: White 2" / "3 cars: Black 1, White 2" for a booking, or empty
+  /// for a single car with no colour assigned (older bookings).
+  static String bookingSummary(Map<String, dynamic> booking) {
+    final quantity = (booking['quantity'] as num?)?.toInt() ?? 1;
+    final raw = booking['allocatedColors'];
+    final colors = raw is List
+        ? raw.map(FleetColor.fromMap).whereType<FleetColor>().toList()
+        : const <FleetColor>[];
+    if (quantity <= 1 && colors.isEmpty) return '';
+    final cars = '$quantity ${quantity == 1 ? 'car' : 'cars'}';
+    if (colors.isEmpty) return cars;
+    return '$cars: ${colors.map((c) => '${c.name} ${c.count}').join(', ')}';
+  }
+
   /// Why [colors] can't be saved, or null if they can.
   static String? validate(List<FleetColor> colors) {
     final seen = <String>{};

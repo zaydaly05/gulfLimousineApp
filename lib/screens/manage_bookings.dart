@@ -17,6 +17,7 @@ import '../utils/live_refresh.dart';
 import '../widgets/condition_video_chips.dart';
 import '../widgets/status_pill.dart';
 import '../services/booking_service.dart';
+import '../models/fleet.dart';
 
 class ManageBookingsScreen extends StatefulWidget {
   const ManageBookingsScreen({super.key});
@@ -211,6 +212,12 @@ class _ManageBookingsScreenState extends State<ManageBookingsScreen> {
                           Text(
                             '${context.t('email')}: $email',
                             style: TextStyle(color: Colors.grey.shade400),
+                          ),
+                        if (Fleet.bookingSummary(booking) case final fleet
+                            when fleet.isNotEmpty)
+                          Text(
+                            '${context.t('cars')}: $fleet',
+                            style: TextStyle(color: Colors.grey.shade300),
                           ),
                         if (pickup.isNotEmpty)
                           Text(

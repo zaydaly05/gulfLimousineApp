@@ -19,6 +19,7 @@ import '../theme/app_theme.dart';
 import '../widgets/status_pill.dart';
 import '../widgets/action_button_row.dart';
 import 'paymob_checkout_screen.dart';
+import '../models/fleet.dart';
 
 class MyBookingsScreen extends StatefulWidget {
   const MyBookingsScreen({super.key});
@@ -319,6 +320,9 @@ class _BookingCard extends StatelessWidget {
                 context.t('paidVia'),
                 data['payment_method'].toString(),
               ),
+            if (Fleet.bookingSummary(data) case final fleet
+                when fleet.isNotEmpty)
+              _row(Icons.directions_car, context.t('cars'), fleet),
             if (_paymentStatusKey(data) case final key?)
               _row(Icons.receipt_long, context.t('payment'), context.t(key)),
             if (pickupLoc != null)

@@ -9,6 +9,7 @@ import 'expandable_address_row.dart';
 import '../l10n/locale_service.dart';
 import '../utils/rental_dates.dart';
 import '../theme/app_theme.dart';
+import '../services/payments_server_client.dart';
 
 class RentBottomSheet extends StatefulWidget {
   final Map<String, dynamic> car;
@@ -25,6 +26,16 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
   GeoLocation? pickupLocation;
   GeoLocation? dropoffLocation;
 
+  /// Free cars per colour for the chosen dates (from the server).
+  FleetAvailability? _avail;
+  bool _checking = false;
+  String? _availError;
+  int _availRequest = 0;
+  int _quantity = 1;
+
+  /// Colours in the customer's order of preference.
+  List<String> _priority = [];
+
   double get _pricePerDay =>
       (widget.car['pricePerDay'] as num?)?.toDouble() ?? 0;
 
@@ -33,7 +44,65 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
     return RentalDates.rentalDays(pickupDate!, returnDate!);
   }
 
-  double get _total => _pricePerDay * _days;
+  double get _total => _pricePerDay * _days * _quantity;
+
+  Future<void> _refreshAvailability() async {
+    if (pickupDate == null || returnDate == null) return;
+    final request = ++_availRequest; // ignore answers to older date choices
+    setState(() {
+      _checking = true;
+      _availError = null;
+    });
+    try {
+      final avail = await BookingService.availability(
+        carId: widget.car['id'] as String,
+        pickup: pickupDate!,
+        returnDate: returnDate!,
+      );
+      if (!mounted || request != _availRequest) return;
+      final names = [
+        for (final c in avail.colors)
+          if (c.name.isNotEmpty) c.name,
+      ];
+      setState(() {
+        _avail = avail;
+        _quantity = _quantity.clamp(
+          1,
+          avail.totalAvailable < 1 ? 1 : avail.totalAvailable,
+        );
+        // Keep the customer's order; new colours go last, most free first.
+        final kept = [
+          for (final n in _priority)
+            if (names.contains(n)) n,
+        ];
+        final added = [
+          for (final n in names)
+            if (!kept.contains(n)) n,
+        ]..sort((a, b) => _freeOf(avail, b).compareTo(_freeOf(avail, a)));
+        _priority = [...kept, ...added];
+      });
+    } on ServerException catch (e) {
+      if (mounted && request == _availRequest) {
+        setState(() => _availError = e.message);
+      }
+    } finally {
+      if (mounted && request == _availRequest) {
+        setState(() => _checking = false);
+      }
+    }
+  }
+
+  static int _freeOf(FleetAvailability a, String name) =>
+      a.colors.firstWhere((c) => c.name == name).available;
+
+  void _move(int index, int delta) {
+    final target = index + delta;
+    if (target < 0 || target >= _priority.length) return;
+    setState(() {
+      final item = _priority.removeAt(index);
+      _priority.insert(target, item);
+    });
+  }
 
   Future<void> _pickDate(bool isPickup) async {
     final now = DateTime.now();
@@ -69,6 +138,7 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
         returnDate = picked;
       }
     });
+    await _refreshAvailability();
   }
 
   Future<void> _pickLocation({required bool isPickup}) async {
@@ -117,6 +187,18 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
       );
       return;
     }
+    final avail = _avail;
+    if (avail == null || _checking) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.t('checkingAvailability'))),
+      );
+      return;
+    }
+    if (avail.totalAvailable < _quantity) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.t('noCarsFree'))));
+      return;
+    }
 
     final rental = RentalDetails(
       carId: widget.car['id'] as String,
@@ -128,6 +210,8 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
       days: _days,
       pickupLocation: pickupLocation,
       dropoffLocation: dropoffLocation,
+      quantity: _quantity,
+      colorPreferences: avail.hasColors ? List.of(_priority) : const [],
     );
 
     // Capture the navigator first: this sheet's context goes away on pop.
@@ -135,6 +219,178 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
     navigator.pop();
     navigator.push(
       MaterialPageRoute(builder: (_) => PaymentScreen(rental: rental)),
+    );
+  }
+
+  /// How many cars, and colours in order of preference, for the dates.
+  Widget _fleetSection(BuildContext context) {
+    final avail = _avail;
+    if (_checking) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 16),
+        child: Row(
+          children: [
+            const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 12),
+            Text(context.t('checkingAvailability')),
+          ],
+        ),
+      );
+    }
+    if (_availError != null) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 16),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                _availError!,
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+            TextButton(
+              onPressed: _refreshAvailability,
+              child: Text(context.t('retry')),
+            ),
+          ],
+        ),
+      );
+    }
+    if (avail == null) return const SizedBox.shrink();
+    if (avail.totalAvailable == 0) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 16),
+        child: Text(
+          context.t('noCarsFree'),
+          style: const TextStyle(color: Colors.red),
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.t('numberOfCars'),
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    Text(
+                      context.t(
+                        'carsFreeOnDates',
+                        args: {'n': '${avail.totalAvailable}'},
+                      ),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                tooltip: context.t('oneLess'),
+                onPressed: _quantity > 1
+                    ? () => setState(() => _quantity--)
+                    : null,
+                icon: const Icon(Icons.remove_circle_outline),
+              ),
+              Text(
+                '$_quantity',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              IconButton(
+                tooltip: context.t('oneMore'),
+                onPressed: _quantity < avail.totalAvailable
+                    ? () => setState(() => _quantity++)
+                    : null,
+                icon: const Icon(
+                  Icons.add_circle_outline,
+                  color: AppTheme.accent,
+                ),
+              ),
+            ],
+          ),
+          if (avail.hasColors) ...[
+            const SizedBox(height: 12),
+            Text(
+              context.t('colourPreference'),
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            Text(
+              context.t('colourPreferenceHint'),
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 8),
+            for (var i = 0; i < _priority.length; i++)
+              _colourRow(context, avail, i),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _colourRow(BuildContext context, FleetAvailability avail, int i) {
+    final name = _priority[i];
+    final free = _freeOf(avail, name);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsetsDirectional.only(start: 12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 12,
+            backgroundColor: AppTheme.accent,
+            child: Text(
+              '${i + 1}',
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              name,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: free == 0 ? Colors.grey : null,
+              ),
+            ),
+          ),
+          Text(
+            free == 0
+                ? context.t('noneFree')
+                : context.t('freeCount', args: {'n': '$free'}),
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          ),
+          IconButton(
+            tooltip: context.t('moveUp'),
+            onPressed: i > 0 ? () => _move(i, -1) : null,
+            icon: const Icon(Icons.arrow_upward, size: 20),
+          ),
+          IconButton(
+            tooltip: context.t('moveDown'),
+            onPressed: i < _priority.length - 1 ? () => _move(i, 1) : null,
+            icon: const Icon(Icons.arrow_downward, size: 20),
+          ),
+        ],
+      ),
     );
   }
 
@@ -205,6 +461,7 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
               iconColor: Colors.blue,
               onTap: () => _pickLocation(isPickup: false),
             ),
+            if (_days > 0) _fleetSection(context),
             if (_days > 0) ...[
               const SizedBox(height: 16),
               Container(
@@ -217,8 +474,12 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      '$_days ${context.t('days')} × EGP ${_pricePerDay.toStringAsFixed(0)}',
+                    Flexible(
+                      child: Text(
+                        '$_days ${context.t('days')}'
+                        '${_quantity > 1 ? ' × $_quantity ${context.t('cars')}' : ''}'
+                        ' × EGP ${_pricePerDay.toStringAsFixed(0)}',
+                      ),
                     ),
                     Text(
                       'EGP ${_total.toStringAsFixed(0)}',

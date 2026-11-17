@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/paymob_service.dart';
+import '../services/payments_server_client.dart';
 import '../theme/app_theme.dart';
 import 'payment_success_screen.dart';
 
@@ -101,7 +102,7 @@ class _PaymobCheckoutScreenState extends State<PaymobCheckoutScreen> {
       if (!opened && mounted) {
         setState(() => _error = 'Could not open the payment page.');
       }
-    } on PaymobException catch (e) {
+    } on ServerException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (e) {
       if (mounted) setState(() => _error = 'Payment could not be started: $e');

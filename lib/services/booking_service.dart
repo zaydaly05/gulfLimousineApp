@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 
 import '../models/geo_location.dart';
 import 'km_billing_service.dart';
+import 'payments_server_client.dart';
 
 class RentalDetails {
   final String carId;
@@ -18,6 +19,13 @@ class RentalDetails {
   final GeoLocation? pickupLocation;
   final GeoLocation? dropoffLocation;
 
+  /// How many cars of this model.
+  final int quantity;
+
+  /// Colours in the customer's order of preference; the server assigns
+  /// cars from the first one with free cars, then the next.
+  final List<String> colorPreferences;
+
   const RentalDetails({
     required this.carId,
     required this.carName,
@@ -28,9 +36,11 @@ class RentalDetails {
     required this.days,
     this.pickupLocation,
     this.dropoffLocation,
+    this.quantity = 1,
+    this.colorPreferences = const [],
   });
 
-  double get totalAmount => pricePerDay * days;
+  double get totalAmount => pricePerDay * days * quantity;
 
   Map<String, dynamic> toMap() => {
     'carId': carId,
@@ -41,6 +51,8 @@ class RentalDetails {
     'returnDate': returnDate.toIso8601String(),
     'days': days,
     'totalAmount': totalAmount,
+    'quantity': quantity,
+    'colorPreferences': colorPreferences,
     if (pickupLocation != null) 'pickupLocation': pickupLocation!.toMap(),
     if (dropoffLocation != null) 'dropoffLocation': dropoffLocation!.toMap(),
   };
@@ -56,6 +68,37 @@ class RentalDetails {
       days: map['days'] as int,
       pickupLocation: GeoLocation.tryParse(map['pickupLocation']),
       dropoffLocation: GeoLocation.tryParse(map['dropoffLocation']),
+      quantity: (map['quantity'] as num?)?.toInt() ?? 1,
+      colorPreferences: [
+        for (final c in (map['colorPreferences'] as List? ?? const [])) '$c',
+      ],
+    );
+  }
+}
+
+/// Free cars of one model for some dates, per colour.
+class FleetAvailability {
+  const FleetAvailability({required this.colors, required this.totalAvailable});
+
+  final List<({String name, int total, int available})> colors;
+  final int totalAvailable;
+
+  /// Colours with a name (cars saved before colours have one unnamed).
+  bool get hasColors => colors.any((c) => c.name.isNotEmpty);
+
+  factory FleetAvailability.fromJson(Map<String, dynamic> json) {
+    final list = json['colors'] is List ? json['colors'] as List : const [];
+    return FleetAvailability(
+      colors: [
+        for (final c in list)
+          if (c is Map)
+            (
+              name: c['name']?.toString() ?? '',
+              total: (c['total'] as num?)?.toInt() ?? 0,
+              available: (c['available'] as num?)?.toInt() ?? 0,
+            ),
+      ],
+      totalAvailable: (json['totalAvailable'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -64,109 +107,60 @@ class BookingService {
   static final _firestore = FirebaseFirestore.instance;
   static final _auth = FirebaseAuth.instance;
 
+  /// Creates the booking through payments_server (/api/book), which checks
+  /// the fleet for the dates, assigns colours by [RentalDetails.colorPreferences],
+  /// prices it and writes the booking and payment record in one
+  /// transaction. Returns the new booking's id. Throws [ServerException]
+  /// with a message to show (e.g. "Only 1 car is free on those dates").
+  ///
+  /// [paymentMethod]: 'cash' | 'instapay' | 'wallet' (transfer) | 'card' |
+  /// 'paymob' (with [paymobMethod] 'card' or 'wallet').
   static Future<String> completeRental({
     required RentalDetails rental,
     required String paymentMethod,
-    String paymentStatus = 'paid',
-    String? signatureUrl,
+    required String signatureUrl,
+    String? paymobMethod,
     String? paymentReference,
     String? payerPhone,
   }) async {
-    final user = _auth.currentUser;
-    if (user == null) throw Exception('Not signed in');
-
-    final userDoc = await _firestore.collection('users').doc(user.uid).get();
-    final userData = userDoc.data() ?? {};
-    final userName = userData['name'] ?? user.displayName ?? 'User';
-    final userEmail = user.email ?? userData['email'] ?? '';
-    final userPhone = userData['phone'] ?? userData['phone_number'] ?? '';
-
-    final status = paymentStatus == 'paid' ? 'confirmed' : 'pending';
-
-    // Booking and payment are written atomically: a failure can no longer
-    // leave a booking without its payment record (or the reverse).
-    final bookingRef = _firestore.collection('bookings').doc();
-    final paymentRef = _firestore.collection('payments').doc();
-    final batch = _firestore.batch();
-    batch.set(bookingRef, {
-      'userId': user.uid,
-      'user_email': userEmail,
-      'userName': userName,
-      'customerName': userName,
-      'phone': userPhone,
-      'car_id': rental.carId,
-      'car_name': rental.carName,
-      'carName': rental.carName,
-      'brand': rental.brand,
-      'pickupDate': Timestamp.fromDate(rental.pickupDate),
-      'returnDate': Timestamp.fromDate(rental.returnDate),
-      'startDate': Timestamp.fromDate(rental.pickupDate),
-      'days': rental.days,
-      'price_per_day': rental.pricePerDay,
-      'total_amount': rental.totalAmount,
-      'status': status,
-      'payment_method': paymentMethod,
-      'payment_reference': paymentReference,
-      // paid | pending (cash) | awaiting_verification (InstaPay/wallet
-      // transfer an admin must confirm) | unpaid (online checkout not done).
-      'payment_status': paymentStatus,
-      'payer_phone': ?payerPhone,
-      'tripStatus': 'pending',
-      if (rental.pickupLocation != null)
-        'pickupLocation': rental.pickupLocation!.toMap(),
-      if (rental.dropoffLocation != null)
-        'dropoffLocation': rental.dropoffLocation!.toMap(),
-      'createdAt': FieldValue.serverTimestamp(),
-      if (signatureUrl != null)
-        'agreement': {
-          'isSigned': true,
-          'signedAt': FieldValue.serverTimestamp(),
-          'signatureUrl': signatureUrl,
-          'signedBy': user.uid,
-        },
+    final body = await PaymentsServerClient.post('/api/book', {
+      'carId': rental.carId,
+      'pickupDay': dayString(rental.pickupDate),
+      'returnDay': dayString(rental.returnDate),
+      'quantity': rental.quantity,
+      'colorPreferences': rental.colorPreferences,
+      'pickupLocation': rental.pickupLocation?.toMap(),
+      'dropoffLocation': rental.dropoffLocation?.toMap(),
+      'signatureUrl': signatureUrl,
+      'paymentMethod': paymentMethod,
+      'paymobMethod': ?paymobMethod,
+      'reference': ?paymentReference,
+      'payerPhone': ?payerPhone,
     });
-
-    batch.set(paymentRef, {
-      'userId': user.uid,
-      'user_email': userEmail,
-      'booking_id': bookingRef.id,
-      'car_name': rental.carName,
-      'amount': rental.totalAmount,
-      'method': paymentMethod,
-      'reference': paymentReference,
-      'payer_phone': ?payerPhone,
-      'status': paymentStatus,
-      'payment_date': FieldValue.serverTimestamp(),
-    });
-    await batch.commit();
-
-    // In-app notifications (never fail the payment if rules block a write).
-    // Customer and admin notifications are independent: send both at once.
-    await Future.wait([
-      _bestEffort(
-        _notifyUser(
-          userId: user.uid,
-          title: status == 'confirmed'
-              ? 'Booking confirmed'
-              : 'Booking received',
-          body:
-              'Your ${rental.carName} rental is $status. Open My Bookings for details.',
-          type: 'booking_$status',
-          bookingId: bookingRef.id,
-        ),
-      ),
-      _bestEffort(
-        _notifyAdmins(
-          title: 'New booking',
-          body: '$userName booked ${rental.carName}',
-          type: 'new_booking',
-          bookingId: bookingRef.id,
-        ),
-      ),
-    ]);
-
-    return bookingRef.id;
+    final id = body['bookingId']?.toString() ?? '';
+    if (id.isEmpty) throw const ServerException('Booking was not saved.');
+    return id;
   }
+
+  /// Free cars of [carId] per colour for the dates (both days included).
+  static Future<FleetAvailability> availability({
+    required String carId,
+    required DateTime pickup,
+    required DateTime returnDate,
+  }) async {
+    final body = await PaymentsServerClient.post('/api/availability', {
+      'carId': carId,
+      'pickupDay': dayString(pickup),
+      'returnDay': dayString(returnDate),
+    });
+    return FleetAvailability.fromJson(body);
+  }
+
+  /// The calendar day of [date] as "YYYY-MM-DD", the format the server uses.
+  static String dayString(DateTime date) =>
+      '${date.year.toString().padLeft(4, '0')}-'
+      '${date.month.toString().padLeft(2, '0')}-'
+      '${date.day.toString().padLeft(2, '0')}';
 
   // Admin writes. Firestore rules restrict these to admins; the screens
   // build the field maps (aliases such as carName/car_name included).
