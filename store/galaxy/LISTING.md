@@ -7,12 +7,12 @@ Everything to paste into the Samsung Galaxy Store Seller Portal
 
 | Item | File | Store requirement |
 |---|---|---|
-| App binary | `gulf-limousine-1.0.5.apk` (not in git, see below) | APK, signed |
+| App binary | `gulf-limousine-1.0.6.apk` (not in git, see below) | APK, signed |
 | Icon | `icon_512.png` | 512 × 512 PNG |
 | Screenshots, English | `screenshots/en/01…07.png` | 4 to 8, 1080 × 1920 |
 | Screenshots, Arabic | `screenshots/ar/01…07.png` | 4 to 8, 1080 × 1920 |
 
-The APK is version **1.0.5 (build 6)**, package `com.gulflimousine.travel.app`,
+The APK is version **1.0.6 (build 7)**, package `com.gulflimousine.travel.app`,
 signed with the Play release key (the same key works for Google Play later).
 Build it with `flutter build apk --release`; the file is
 `build/app/outputs/flutter-apk/app-release.apk`.
@@ -55,7 +55,7 @@ Gulf Limousine Travel lets you rent a car in Cairo in a few taps.
 
 Your data stays private: see our privacy policy. You can delete your account at any time from Profile.
 
-**What's new (1.0.5)**
+**What's new (1.0.6)**
 
 Call, email and WhatsApp buttons now work reliably, and InstaPay opens directly. Fixed sign-in for passwords with spaces, clearer messages when a photo upload fails, up-to-date prices when booking from Favorites, and other booking fixes.
 
@@ -86,7 +86,7 @@ car rental, Cairo, limousine, chauffeur, Egypt, rent a car, InstaPay, luxury car
 
 بياناتك محمية: راجع سياسة الخصوصية. يمكنك حذف حسابك في أي وقت من الملف الشخصي.
 
-**الجديد (1.0.5)**
+**الجديد (1.0.6)**
 
 أزرار الاتصال والبريد الإلكتروني وواتساب تعمل الآن بشكل موثوق، ويفتح تطبيق إنستاباي مباشرة. إصلاح تسجيل الدخول لكلمات المرور التي تبدأ أو تنتهي بمسافة، رسائل أوضح عند فشل رفع الصور، أسعار محدّثة عند الحجز من المفضلة، وإصلاحات أخرى في الحجز.
 
