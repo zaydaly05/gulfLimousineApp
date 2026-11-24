@@ -214,7 +214,14 @@ class _BookingCard extends StatelessWidget {
     final pickupLoc = GeoLocation.tryParse(data['pickupLocation']);
     final dropoffLoc = GeoLocation.tryParse(data['dropoffLocation']);
     final hasChauffeur = (data['chauffeurId'] ?? '').toString().isNotEmpty;
-    final canCancel = status == 'pending' || status == 'confirmed';
+    // Same rule as BookingService.cancelBooking, so the button isn't offered
+    // only to fail once the pickup time has passed.
+    final pickupAt = parseFirestoreDate(
+      data['pickupDate'] ?? data['startDate'],
+    );
+    final canCancel =
+        (status == 'pending' || status == 'confirmed') &&
+        (pickupAt == null || !pickupAt.isBefore(DateTime.now()));
     final canTrack =
         hasChauffeur &&
         status != 'cancelled' &&

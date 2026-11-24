@@ -1,6 +1,5 @@
-import 'package:url_launcher/url_launcher.dart';
-
 import '../models/geo_location.dart';
+import 'link_launcher.dart';
 
 class MapsLauncher {
   static Future<void> openDirections({
@@ -17,12 +16,12 @@ class MapsLauncher {
     final uri = Uri.parse(
       'https://www.google.com/maps/dir/?api=1&destination=$dest$originParam',
     );
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
+    await LinkLauncher.open(uri);
   }
 
   static Future<void> callPhone(String phone) async {
     final cleaned = phone.replaceAll(RegExp(r'[^\d+]'), '');
     if (cleaned.isEmpty) return;
-    await launchUrl(Uri.parse('tel:$cleaned'));
+    await LinkLauncher.open(Uri.parse('tel:$cleaned'));
   }
 }

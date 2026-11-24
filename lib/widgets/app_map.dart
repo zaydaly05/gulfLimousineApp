@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../config/app_info.dart';
 import '../models/geo_location.dart';
 import '../l10n/locale_service.dart';
+import '../services/link_launcher.dart';
 
 /// Shared map setup: one place for the tile source, the map controls and the
 /// default centre, instead of a copy in every map screen.
@@ -88,9 +88,8 @@ class AppMapAttribution extends StatelessWidget {
       attributions: [
         TextSourceAttribution(
           'OpenStreetMap contributors',
-          onTap: () => launchUrl(
+          onTap: () => LinkLauncher.open(
             Uri.parse('https://www.openstreetmap.org/copyright'),
-            mode: LaunchMode.externalApplication,
           ),
         ),
       ],

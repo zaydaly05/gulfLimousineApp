@@ -59,16 +59,25 @@ class _EditCarScreenState extends State<EditCarScreen> {
   }
 
   Future<void> replaceImage() async {
-    final imageData = await cloudinary.uploadImage();
-    if (imageData == null || !mounted) return;
-    // The old image is deleted only after the car is saved (updateCar), so
-    // cancelling or a failed save never leaves the car with a missing image.
+    if (isLoading) return;
+    setState(() => isLoading = true);
+    try {
+      final imageData = await cloudinary.uploadImage();
+      if (imageData == null || !mounted) return;
+      // The old image is deleted only after the car is saved (updateCar), so
+      // cancelling or a failed save never leaves the car with a missing image.
 
-    setState(() {
-      // uploadBytes returns 'secure_url'; reading 'url' wiped the image.
-      imageUrl = imageData['secure_url']?.toString();
-      publicId = imageData['public_id']?.toString();
-    });
+      setState(() {
+        // uploadBytes returns 'secure_url'; reading 'url' wiped the image.
+        imageUrl = imageData['secure_url']?.toString();
+        publicId = imageData['public_id']?.toString();
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showError(e, title: tr('uploadFailed'));
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
   }
 
   /// Removes the previous image from Cloudinary once the car points at the
@@ -84,6 +93,7 @@ class _EditCarScreenState extends State<EditCarScreen> {
   }
 
   Future<void> updateCar() async {
+    if (isLoading) return;
     final price = double.tryParse(priceController.text.trim());
     if (price == null || price <= 0) {
       ScaffoldMessenger.of(context).showInfo(tr('enterAValidPricePer'));

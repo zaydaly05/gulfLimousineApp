@@ -115,8 +115,9 @@ class RevenueTrendChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: firestore.collection('payments').snapshots(),
+    return _CollectionStream(
+      firestore: firestore,
+      collection: 'payments',
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _ChartCard(
@@ -261,8 +262,9 @@ class BookingStatusChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: firestore.collection('bookings').snapshots(),
+    return _CollectionStream(
+      firestore: firestore,
+      collection: 'bookings',
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _ChartCard(
@@ -350,8 +352,9 @@ class FleetAvailabilityChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: firestore.collection('cars').snapshots(),
+    return _CollectionStream(
+      firestore: firestore,
+      collection: 'cars',
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _ChartCard(
@@ -432,8 +435,9 @@ class MonthlyBookingsChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: firestore.collection('bookings').snapshots(),
+    return _CollectionStream(
+      firestore: firestore,
+      collection: 'bookings',
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _ChartCard(
@@ -608,4 +612,42 @@ class _EmptyChart extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A live collection listener created once per chart, not on every
+/// rebuild: a new stream in build() resets the StreamBuilder to "waiting"
+/// and flashes the spinner (e.g. on a language switch).
+class _CollectionStream extends StatefulWidget {
+  const _CollectionStream({
+    required this.firestore,
+    required this.collection,
+    required this.builder,
+  });
+
+  final FirebaseFirestore firestore;
+  final String collection;
+  final AsyncWidgetBuilder<QuerySnapshot> builder;
+
+  @override
+  State<_CollectionStream> createState() => _CollectionStreamState();
+}
+
+class _CollectionStreamState extends State<_CollectionStream> {
+  late Stream<QuerySnapshot> _stream = _open();
+
+  Stream<QuerySnapshot> _open() =>
+      widget.firestore.collection(widget.collection).snapshots();
+
+  @override
+  void didUpdateWidget(_CollectionStream oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.firestore != widget.firestore ||
+        oldWidget.collection != widget.collection) {
+      _stream = _open();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      StreamBuilder<QuerySnapshot>(stream: _stream, builder: widget.builder);
 }

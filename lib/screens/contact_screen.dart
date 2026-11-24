@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/locale_service.dart';
+import '../services/link_launcher.dart';
 import '../theme/app_theme.dart';
 
 class ContactScreen extends StatelessWidget {
@@ -11,15 +11,7 @@ class ContactScreen extends StatelessWidget {
   static const _email = 'info@gulflimousine.com';
   static const _whatsapp = '+201001116666';
 
-  Future<void> _launch(Uri uri) async {
-    try {
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
-    } catch (e) {
-      debugPrint('Could not launch $uri: $e');
-    }
-  }
+  Future<void> _launch(Uri uri) => LinkLauncher.open(uri);
 
   @override
   Widget build(BuildContext context) {
@@ -134,7 +126,7 @@ class ContactScreen extends StatelessWidget {
                         label: context.t('whatsapp'),
                         color: const Color(0xFF25D366),
                         onTap: () =>
-                            _launch(Uri.parse('https://wa.me/$_whatsapp')),
+                            _launch(LinkLauncher.whatsAppUri(_whatsapp)),
                       ),
                       _ModernContactCard(
                         icon: Icons.call_rounded,

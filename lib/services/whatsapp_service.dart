@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:url_launcher/url_launcher.dart';
+
+import 'link_launcher.dart';
 
 class WhatsAppService {
   /// Message a chauffeur
@@ -23,22 +24,12 @@ class WhatsAppService {
     await _launchWhatsApp(phone, text);
   }
 
-  /// Internal helper to launch WhatsApp
+  /// Opens WhatsApp on [phone] (local Egyptian or international format).
   static Future<void> _launchWhatsApp(String phone, String message) async {
-    // Remove non-numeric characters from phone
-    final cleanPhone = phone.replaceAll(RegExp(r'[^0-9+]'), '');
-    final url =
-        'https://wa.me/$cleanPhone?text=${Uri.encodeComponent(message)}';
-    final uri = Uri.parse(url);
-
-    try {
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        debugPrint('Could not launch WhatsApp'); // no phone number in logs
-      }
-    } catch (e) {
-      debugPrint('WhatsApp launch error: $e');
-    }
+    if (LinkLauncher.whatsAppNumber(phone).isEmpty) return;
+    final opened = await LinkLauncher.open(
+      LinkLauncher.whatsAppUri(phone, message),
+    );
+    if (!opened) debugPrint('Could not launch WhatsApp'); // no number in logs
   }
 }
