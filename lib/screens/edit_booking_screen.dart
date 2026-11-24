@@ -438,12 +438,16 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
             const SizedBox(height: 16),
             _locationButton(
               tr('pickupLocation'),
-              pickupLocation?.address,
+              pickupLocation == null
+                  ? null
+                  : addressLabel(pickupLocation!.address),
               () => _pickLocation(isPickup: true),
             ),
             _locationButton(
               tr('dropoffLocation'),
-              dropoffLocation?.address,
+              dropoffLocation == null
+                  ? null
+                  : addressLabel(dropoffLocation!.address),
               () => _pickLocation(isPickup: false),
             ),
             _dateButton(
