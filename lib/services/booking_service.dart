@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
 import '../models/geo_location.dart';
+import '../utils/booking_fields.dart';
 import 'payments_server_client.dart';
 import '../l10n/locale_service.dart';
 import '../l10n/notification_text.dart';
@@ -277,8 +278,9 @@ class BookingService {
       throw Exception(tr('onlyPendingCancel'));
     }
 
-    final pickup = data['pickupDate'];
-    if (pickup is Timestamp && pickup.toDate().isBefore(DateTime.now())) {
+    // Older bookings may hold the date as an ISO string, or only startDate.
+    final pickup = parseFirestoreDate(data['pickupDate'] ?? data['startDate']);
+    if (pickup != null && pickup.isBefore(DateTime.now())) {
       throw Exception(tr('cannotCancelAfterPickup'));
     }
 
@@ -409,9 +411,12 @@ class BookingService {
     });
 
     final doc = await _firestore.collection('bookings').doc(bookingId).get();
-    final userId = doc.data()?['userId']?.toString();
-    if (userId != null) {
-      await _notifyUser(
+    final userId = doc.data()?['userId']?.toString() ?? '';
+    // The lock is already saved: a failed notification must not report the
+    // command as failed (bookings entered by an admin may have no userId).
+    if (userId.isEmpty) return;
+    await _bestEffort(
+      _notifyUser(
         userId: userId,
         title: immobilized ? 'Vehicle Immobilized' : 'Vehicle Restored',
         body: immobilized
@@ -422,8 +427,8 @@ class BookingService {
         i18n: immobilized
             ? notificationI18n('nImmobilized', 'nImmobilizedBody')
             : notificationI18n('nRestored', 'nRestoredBody'),
-      );
-    }
+      ),
+    );
   }
 
   static Future<void> signRentalAgreement({

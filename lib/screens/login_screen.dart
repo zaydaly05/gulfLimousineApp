@@ -72,11 +72,38 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  /// Signs in with [password] exactly as typed, which is how sign-up saves
+  /// it, then (if that is refused) trimmed, as earlier versions of this
+  /// screen sent it. Trimming alone locked out anyone whose password starts
+  /// or ends with a space. Returns the credential and the password that
+  /// worked, for biometric login to remember.
+  static Future<(UserCredential, String)> _signInWithPassword(
+    String email,
+    String password,
+  ) async {
+    Future<UserCredential> attempt(String p) => FirebaseAuth.instance
+        .signInWithEmailAndPassword(email: email, password: p)
+        .timeout(const Duration(seconds: 15));
+
+    final trimmed = password.trim();
+    try {
+      return (await attempt(password), password);
+    } on FirebaseAuthException catch (e) {
+      const wrongPassword = {
+        'wrong-password',
+        'invalid-credential',
+        'INVALID_LOGIN_CREDENTIALS',
+      };
+      if (trimmed == password || !wrongPassword.contains(e.code)) rethrow;
+    }
+    return (await attempt(trimmed), trimmed);
+  }
+
   /// 🔐 EMAIL LOGIN
   Future<void> _login(BuildContext context) async {
     final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
-    if (email.isEmpty || password.isEmpty) {
+    final typedPassword = _passwordController.text;
+    if (email.isEmpty || typedPassword.trim().isEmpty) {
       _showError(tr('enterEmailPassword'));
       return;
     }
@@ -84,9 +111,10 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       setState(() => _isLoading = true);
 
-      UserCredential userCredential = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(email: email, password: password)
-          .timeout(const Duration(seconds: 15));
+      final (userCredential, password) = await _signInWithPassword(
+        email,
+        typedPassword,
+      );
 
       // Credentials are only stored once biometric login is on: refreshed
       // here if it already is (e.g. after a password change), otherwise
@@ -155,12 +183,12 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() => _isLoading = true);
       final hasSaved = await BiometricService.hasStoredPassword();
       final emailInput = _emailController.text.trim();
-      final passwordInput = _passwordController.text.trim();
+      final passwordInput = _passwordController.text;
 
       if (hasSaved) {
         final user = await BiometricService.loginWithBiometrics();
         await _handleUserNavigation(user, offerBiometrics: false);
-      } else if (emailInput.isNotEmpty && passwordInput.isNotEmpty) {
+      } else if (emailInput.isNotEmpty && passwordInput.trim().isNotEmpty) {
         final ok = await BiometricService.authenticate(
           reason: tr('authToSaveLogin', args: {'method': _biometricLabel}),
         );
@@ -172,14 +200,12 @@ class _LoginScreenState extends State<LoginScreen> {
           }
           return;
         }
-        UserCredential userCredential = await FirebaseAuth.instance
-            .signInWithEmailAndPassword(
-              email: emailInput,
-              password: passwordInput,
-            )
-            .timeout(const Duration(seconds: 15));
+        final (userCredential, password) = await _signInWithPassword(
+          emailInput,
+          passwordInput,
+        );
 
-        await BiometricService.rememberEmailLogin(emailInput, passwordInput);
+        await BiometricService.rememberEmailLogin(emailInput, password);
         await BiometricService.setEnabledForUid(userCredential.user!.uid, true);
         await _handleUserNavigation(
           userCredential.user!,

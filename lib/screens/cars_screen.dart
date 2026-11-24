@@ -48,6 +48,14 @@ class _CarsScreenState extends State<CarsScreen> {
     super.dispose();
   }
 
+  Future<void> _toggleFavorite(String id, Map<String, dynamic> car) async {
+    try {
+      await FavoritesService.toggle(id, car);
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showError(e);
+    }
+  }
+
   static double _price(dynamic value) {
     if (value is num) return value.toDouble();
     return double.tryParse(value?.toString() ?? '') ?? 0;
@@ -262,7 +270,7 @@ class _CarsScreenState extends State<CarsScreen> {
                           isFav ? Icons.favorite : Icons.favorite_border,
                           color: Colors.red,
                         ),
-                        onPressed: () => FavoritesService.toggle(id, car),
+                        onPressed: () => _toggleFavorite(id, car),
                       ),
                     ),
                   ),

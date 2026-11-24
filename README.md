@@ -91,8 +91,7 @@ Google Play takes an Android App Bundle (`.aab`), not an APK:
 flutter build appbundle --release
 ```
 
-The bundle is written to `build/app/outputs/bundle/release/app-release.aab`
-(with newer Android Gradle Plugin versions: `android/app/build/outputs/bundle/release/`).
+The bundle is written to `build/app/outputs/bundle/release/app-release.aab`.
 
 Bump `version:` in `pubspec.yaml` (e.g. `1.0.1+2`) before every upload: the
 number after `+` must increase each time.

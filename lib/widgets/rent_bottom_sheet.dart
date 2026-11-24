@@ -54,6 +54,9 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
     setState(() {
       _checking = true;
       _availError = null;
+      // Forget the previous dates' answer: if this check fails, the old
+      // availability must not let the customer continue.
+      _avail = null;
     });
     try {
       final avail = await BookingService.availability(
@@ -183,6 +186,10 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
     if (pickupLocation == null || dropoffLocation == null) {
       ScaffoldMessenger.of(context)
           .showInfo(context.t('selectPickupDropoffLoc'));
+      return;
+    }
+    if (_availError case final error?) {
+      ScaffoldMessenger.of(context).showInfo(error);
       return;
     }
     final avail = _avail;
