@@ -149,7 +149,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
         ),
       ),
     );
-    if (result == null) return;
+    if (result == null || !mounted) return;
     setState(() {
       if (isPickup) {
         pickupLocation = result;
@@ -167,6 +167,12 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
     }
     if (pickupDate == null || returnDate == null) {
       ScaffoldMessenger.of(context).showError(tr('selectPickupReturnDates'));
+      return;
+    }
+    // Same check as a new booking: a return before pickup was saved as a
+    // 1-day rental.
+    if (returnDate!.isBefore(pickupDate!)) {
+      ScaffoldMessenger.of(context).showError(tr('returnAfterPickup'));
       return;
     }
 
@@ -207,20 +213,26 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
 
       final userId = widget.bookingData['userId']?.toString();
       if (userId != null && userId.isNotEmpty) {
-        if (chauffeurId != null &&
-            chauffeurId!.isNotEmpty &&
-            chauffeurId != previousChauffeur) {
-          await BookingService.notifyChauffeurAssigned(
-            userId: userId,
-            bookingId: widget.bookingId,
-            chauffeurName: chauffeurName,
-          );
-        } else if (tripStatus != previousTrip) {
-          await BookingService.notifyTripStatusChanged(
-            userId: userId,
-            bookingId: widget.bookingId,
-            tripStatus: tripStatus,
-          );
+        // The booking is saved: a failed notification must not show the
+        // save as failed (and tempt a second save).
+        try {
+          if (chauffeurId != null &&
+              chauffeurId!.isNotEmpty &&
+              chauffeurId != previousChauffeur) {
+            await BookingService.notifyChauffeurAssigned(
+              userId: userId,
+              bookingId: widget.bookingId,
+              chauffeurName: chauffeurName,
+            );
+          } else if (tripStatus != previousTrip) {
+            await BookingService.notifyTripStatusChanged(
+              userId: userId,
+              bookingId: widget.bookingId,
+              tripStatus: tripStatus,
+            );
+          }
+        } catch (e) {
+          debugPrint('Booking notification failed: $e');
         }
       }
 
@@ -247,7 +259,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
       lastDate: DateTime(2035),
       initialDate: initial,
     );
-    if (picked == null) return;
+    if (picked == null || !mounted) return;
 
     setState(() {
       _pricingChanged = true;

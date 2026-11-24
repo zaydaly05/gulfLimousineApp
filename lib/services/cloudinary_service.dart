@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
+import '../l10n/locale_service.dart';
+
 class CloudinaryService {
   static const String cloudName = 'delnnzcph';
 
@@ -23,7 +25,8 @@ class CloudinaryService {
 
   final String uploadPreset = 'flutter_upload';
 
-  /// Upload image and return BOTH secure_url and public_id
+  /// Picks a gallery image and uploads it. Returns null only when the user
+  /// cancels the picker; throws if the upload fails.
   Future<Map<String, dynamic>?> uploadImage() async {
     final picker = ImagePicker();
     XFile? image = await picker.pickImage(source: ImageSource.gallery);
@@ -48,11 +51,17 @@ class CloudinaryService {
     return uploadBytes(bytes, filename: image.name);
   }
 
+  /// Uploads [bytes] and returns `secure_url` and `public_id`.
+  ///
+  /// Throws when the upload fails or times out, so callers show an error.
+  /// It used to return null, which the pickers' callers read as "the user
+  /// cancelled": a failed car-image upload showed nothing, and the profile
+  /// screen said "Changes saved" while dropping a new ID photo.
   Future<Map<String, dynamic>?> uploadBytes(
     List<int> bytes, {
     required String filename,
   }) async {
-    var request = http.MultipartRequest(
+    final request = http.MultipartRequest(
       'POST',
       Uri.parse(
         'https://api.cloudinary.com/v1_1/$cloudName/${_isVideo(filename) ? "video" : "image"}/upload',
@@ -65,21 +74,23 @@ class CloudinaryService {
       http.MultipartFile.fromBytes('file', bytes, filename: filename),
     );
 
-    var response = await request.send();
+    // Generous for condition videos on mobile data; never hang forever.
+    final response = await request.send().timeout(_uploadTimeout);
+    final body = await response.stream.bytesToString().timeout(_uploadTimeout);
 
-    if (response.statusCode == 200) {
-      var respStr = await response.stream.bytesToString();
-      var jsonResp = json.decode(respStr);
-
-      return {
-        "secure_url": jsonResp['secure_url'],
-        "public_id": jsonResp['public_id'],
-      };
-    } else {
+    if (response.statusCode != 200) {
       debugPrint('Upload failed: ${response.statusCode}');
-      return null;
+      throw Exception(tr('uploadFailed'));
     }
+    final json = jsonDecode(body);
+    final secureUrl = json is Map ? json['secure_url']?.toString() : null;
+    if (secureUrl == null || secureUrl.isEmpty) {
+      throw Exception(tr('uploadFailed'));
+    }
+    return {"secure_url": secureUrl, "public_id": json['public_id']};
   }
+
+  static const _uploadTimeout = Duration(minutes: 3);
 
   static bool _isVideo(String filename) {
     final name = filename.toLowerCase();

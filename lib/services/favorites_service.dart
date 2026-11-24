@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../l10n/content_labels.dart';
+import '../l10n/locale_service.dart';
+
 /// Reads and toggles the signed-in user's favorite cars.
 class FavoritesService {
   static final _auth = FirebaseAuth.instance;
@@ -39,5 +42,28 @@ class FavoritesService {
         'createdAt': FieldValue.serverTimestamp(),
       });
     }
+  }
+
+  /// The car as it is now in `cars/{carId}`, in the shape the car list and
+  /// rent sheet use, or null when it was deleted or switched off.
+  ///
+  /// A favourite stores the price and name from when it was saved, so the
+  /// rent sheet must not book from it: an admin may have changed the price.
+  static Future<Map<String, dynamic>?> liveCar(String carId) async {
+    final doc = await _firestore.collection('cars').doc(carId).get();
+    final data = doc.data();
+    if (data == null || data['available'] == false) return null;
+    final price = data['price_per_day'];
+    return {
+      ...data,
+      'id': doc.id,
+      'name': carNameOf(data, fallback: tr('carFallback')),
+      'brand': (data['brand'] ?? '').toString(),
+      'pricePerDay': price is num
+          ? price.toDouble()
+          : double.tryParse(price?.toString() ?? '') ?? 0,
+      'imageUrl': data['image_url'],
+      'available': true,
+    };
   }
 }

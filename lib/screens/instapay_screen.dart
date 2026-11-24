@@ -3,9 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/foundation.dart';
 
 import '../services/app_config_service.dart';
+import '../services/link_launcher.dart';
 import '../theme/app_theme.dart';
 import '../utils/payment_validation.dart';
 import '../utils/safe_insets.dart';
@@ -29,6 +30,9 @@ class InstaPayScreen extends StatefulWidget {
 class _InstaPayScreenState extends State<InstaPayScreen> {
   static const String playStoreUrl =
       'https://play.google.com/store/apps/details?id=com.egyptianbanks.instapay';
+  // App Store search, so no app id has to be hard-coded.
+  static const String appStoreUrl =
+      'https://apps.apple.com/eg/search?term=InstaPay';
 
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _referenceController = TextEditingController();
@@ -61,20 +65,19 @@ class _InstaPayScreenState extends State<InstaPayScreen> {
     if (mounted) setState(() => _copied = true);
   }
 
+  /// Opens the InstaPay app, or its store page when it isn't installed.
+  /// Tries the app directly: `canLaunchUrl('instapay://')` is false on
+  /// Android 11+ and iOS unless the scheme is declared, which sent everyone
+  /// to the store even with the app installed.
   Future<void> _openInstaPay() async {
-    final instapayUri = Uri.parse('instapay://');
-    try {
-      if (await canLaunchUrl(instapayUri)) {
-        await launchUrl(instapayUri, mode: LaunchMode.externalApplication);
-      } else {
-        await launchUrl(
-          Uri.parse(playStoreUrl),
-          mode: LaunchMode.externalApplication,
-        );
-      }
-    } catch (e) {
-      debugPrint('Error launching InstaPay: $e');
-    }
+    if (await LinkLauncher.open(Uri.parse('instapay://'))) return;
+    await LinkLauncher.open(
+      Uri.parse(
+        defaultTargetPlatform == TargetPlatform.iOS
+            ? appStoreUrl
+            : playStoreUrl,
+      ),
+    );
   }
 
   void _submit() {

@@ -26,6 +26,44 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   // Firestore listener and flash the loading spinner.
   final _favoritesStream = FavoritesService.watchFavorites();
 
+  /// Car ids whose live details are loading, so a double tap opens one sheet.
+  final _opening = <String>{};
+
+  Future<void> _toggle(String carId, Map<String, dynamic> car) async {
+    try {
+      await FavoritesService.toggle(carId, car);
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showError(e);
+    }
+  }
+
+  /// Books from the car's current details (price, name, availability),
+  /// not the copy saved with the favourite.
+  Future<void> _openRentSheet(String carId) async {
+    if (!_opening.add(carId)) return;
+    try {
+      final car = await FavoritesService.liveCar(carId);
+      if (!mounted) return;
+      if (car == null) {
+        ScaffoldMessenger.of(context).showInfo(tr('carNoLongerAvailable'));
+        return;
+      }
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (_) => RentBottomSheet(car: car),
+      );
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showError(e);
+    } finally {
+      _opening.remove(carId);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -88,23 +126,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     trailing: IconButton(
                       tooltip: context.t('favorites'),
                       icon: const Icon(Icons.favorite, color: Colors.red),
-                      onPressed: () => FavoritesService.toggle(carId, car),
+                      onPressed: () => _toggle(carId, car),
                     ),
-                    onTap: () {
-                      unawaited(
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          useSafeArea: true,
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(
-                              top: Radius.circular(20),
-                            ),
-                          ),
-                          builder: (_) => RentBottomSheet(car: car),
-                        ),
-                      );
-                    },
+                    onTap: () => _openRentSheet(carId),
                   ),
                 );
               },

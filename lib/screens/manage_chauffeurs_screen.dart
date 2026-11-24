@@ -50,11 +50,14 @@ class _ManageChauffeursScreenState extends State<ManageChauffeursScreen> {
         ],
       ),
     );
-    if (ok == true) {
+    if (ok != true) return;
+    try {
       await FirebaseFirestore.instance
           .collection('chauffeurs')
           .doc(id)
           .delete();
+    } catch (e) {
+      if (context.mounted) ScaffoldMessenger.of(context).showError(e);
     }
   }
 
@@ -66,6 +69,7 @@ class _ManageChauffeursScreenState extends State<ManageChauffeursScreen> {
     final name = TextEditingController(text: data?['name']?.toString() ?? '');
     final phone = TextEditingController(text: data?['phone']?.toString() ?? '');
     var active = data?['active'] != false;
+    var saving = false;
 
     await showDialog(
       context: context,
@@ -115,27 +119,43 @@ class _ManageChauffeursScreenState extends State<ManageChauffeursScreen> {
                 child: Text(context.t('cancel')),
               ),
               TextButton(
-                onPressed: () async {
-                  if (name.text.trim().isEmpty) return;
-                  final payload = {
-                    'name': name.text.trim(),
-                    'phone': phone.text.trim(),
-                    'active': active,
-                    'updatedAt': FieldValue.serverTimestamp(),
-                  };
-                  if (id == null) {
-                    payload['createdAt'] = FieldValue.serverTimestamp();
-                    await FirebaseFirestore.instance
-                        .collection('chauffeurs')
-                        .add(payload);
-                  } else {
-                    await FirebaseFirestore.instance
-                        .collection('chauffeurs')
-                        .doc(id)
-                        .update(payload);
-                  }
-                  if (dialogContext.mounted) Navigator.pop(dialogContext);
-                },
+                onPressed: saving
+                    ? null
+                    : () async {
+                        if (name.text.trim().isEmpty) {
+                          ScaffoldMessenger.of(context)
+                              .showInfo(context.t('required'));
+                          return;
+                        }
+                        // Disabled while saving: no duplicate on double tap.
+                        setLocal(() => saving = true);
+                        final payload = {
+                          'name': name.text.trim(),
+                          'phone': phone.text.trim(),
+                          'active': active,
+                          'updatedAt': FieldValue.serverTimestamp(),
+                        };
+                        try {
+                          if (id == null) {
+                            payload['createdAt'] = FieldValue.serverTimestamp();
+                            await FirebaseFirestore.instance
+                                .collection('chauffeurs')
+                                .add(payload);
+                          } else {
+                            await FirebaseFirestore.instance
+                                .collection('chauffeurs')
+                                .doc(id)
+                                .update(payload);
+                          }
+                          if (dialogContext.mounted) {
+                            Navigator.pop(dialogContext);
+                          }
+                        } catch (e) {
+                          if (!dialogContext.mounted) return;
+                          setLocal(() => saving = false);
+                          ScaffoldMessenger.of(dialogContext).showError(e);
+                        }
+                      },
                 child: Text(
                   context.t('save'),
                   style: const TextStyle(color: Colors.orange),
@@ -146,6 +166,8 @@ class _ManageChauffeursScreenState extends State<ManageChauffeursScreen> {
         },
       ),
     );
+    // The controllers are not disposed here: the dialog's closing animation
+    // still builds its TextFields after showDialog returns.
   }
 
   @override

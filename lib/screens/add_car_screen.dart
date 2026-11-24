@@ -33,6 +33,28 @@ class _AddCarScreenState extends State<AddCarScreen> {
   String? publicId;
   List<FleetColor> _colors = const [];
 
+  @override
+  void dispose() {
+    name.dispose();
+    nameAr.dispose();
+    brand.dispose();
+    price.dispose();
+    seats.dispose();
+    super.dispose();
+  }
+
+  /// Price per day: a positive number (a typo like "1,500" or "abc" used to
+  /// reach double.parse and fail the save with a generic error).
+  static String? _validatePrice(String? v) {
+    final n = double.tryParse((v ?? '').trim());
+    return n == null || n <= 0 ? tr('enterAValidPricePer') : null;
+  }
+
+  static String? _validateSeats(String? v) {
+    final n = int.tryParse((v ?? '').trim());
+    return n == null || n <= 0 ? tr('enterValidSeats') : null;
+  }
+
   /// 🚗 ADD CAR
   Future<void> _addCar() async {
     if (!_formKey.currentState!.validate()) return;
@@ -55,8 +77,8 @@ class _AddCarScreenState extends State<AddCarScreen> {
         'name': name.text.trim(),
         if (nameAr.text.trim().isNotEmpty) 'name_ar': nameAr.text.trim(),
         'brand': brand.text.trim(),
-        'price_per_day': double.parse(price.text.trim()),
-        'seats': int.parse(seats.text.trim()),
+        'price_per_day': double.parse(price.text.trim()), // validated
+        'seats': int.parse(seats.text.trim()), // validated
         'fuel_type': fuelType,
         'colors': [for (final c in _colors) c.toMap()],
         'image_url': imageUrl,
@@ -81,6 +103,7 @@ class _AddCarScreenState extends State<AddCarScreen> {
 
   /// 📷 Upload image to Cloudinary
   Future<void> _uploadImage() async {
+    if (_isLoading) return; // one upload at a time
     try {
       setState(() => _isLoading = true);
 
@@ -156,8 +179,18 @@ class _AddCarScreenState extends State<AddCarScreen> {
               _input(tr('carName'), name),
               _input(tr('carNameArOptional'), nameAr, required: false),
               _input(tr('brand'), brand),
-              _input(tr('pricePerDay'), price, type: TextInputType.number),
-              _input(tr('numberOfSeats'), seats, type: TextInputType.number),
+              _input(
+                tr('pricePerDay'),
+                price,
+                type: const TextInputType.numberWithOptions(decimal: true),
+                validator: _validatePrice,
+              ),
+              _input(
+                tr('numberOfSeats'),
+                seats,
+                type: TextInputType.number,
+                validator: _validateSeats,
+              ),
 
               const SizedBox(height: 10),
               Text(tr('fuelType'), style: TextStyle(color: Colors.white)),
@@ -219,6 +252,7 @@ class _AddCarScreenState extends State<AddCarScreen> {
     TextEditingController controller, {
     TextInputType type = TextInputType.text,
     bool required = true,
+    String? Function(String?)? validator,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -230,8 +264,9 @@ class _AddCarScreenState extends State<AddCarScreen> {
             type == TextInputType.phone || type == TextInputType.emailAddress
             ? TextDirection.ltr
             : null,
-        validator: (v) =>
-            required && (v ?? '').trim().isEmpty ? tr('required') : null,
+        validator:
+            validator ??
+            (v) => required && (v ?? '').trim().isEmpty ? tr('required') : null,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           labelText: label,
