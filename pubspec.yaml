@@ -2,7 +2,7 @@ name: gulflimousine_travel
 description: "Gulf Limousine Travel: car rental and chauffeur bookings in Cairo, Egypt."
 publish_to: 'none'
 
-version: 1.0.5+6
+version: 1.0.6+7
 
 environment:
   sdk: ^3.13.1
