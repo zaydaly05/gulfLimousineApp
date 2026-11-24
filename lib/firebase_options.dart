@@ -54,7 +54,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyB5vqpXdx1AaFJbXiqrT7xpzVB6vWdE_HE',
-    appId: '1:671779610901:android:9ada6e3263d6a81083491c',
+    appId: '1:671779610901:android:fedb3bca0326c8ce83491c',
     messagingSenderId: '671779610901',
     projectId: 'gulf-limousine-travel-1d4c7',
     databaseURL:

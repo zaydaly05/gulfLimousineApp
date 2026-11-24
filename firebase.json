@@ -21,7 +21,7 @@
       "android": {
         "default": {
           "projectId": "gulf-limousine-travel-1d4c7",
-          "appId": "1:671779610901:android:9ada6e3263d6a81083491c",
+          "appId": "1:671779610901:android:fedb3bca0326c8ce83491c",
           "fileOutput": "android/app/google-services.json"
         }
       },
@@ -29,7 +29,7 @@
         "lib/firebase_options.dart": {
           "projectId": "gulf-limousine-travel-1d4c7",
           "configurations": {
-            "android": "1:671779610901:android:9ada6e3263d6a81083491c",
+            "android": "1:671779610901:android:fedb3bca0326c8ce83491c",
             "ios": "1:671779610901:ios:a0be12bd82220ace83491c",
             "macos": "1:671779610901:ios:a0be12bd82220ace83491c",
             "web": "1:671779610901:web:f74a31874c8b5afa83491c",

@@ -3,7 +3,9 @@
 Flutter app for Gulf Limousine Travel luxury car rentals in Cairo, backed by
 Firebase (Auth, Firestore, Messaging) and Cloudinary for images and videos.
 
-- Android application ID: `com.gulflimousine.travel`
+- Android application ID: `com.gulflimousine.travel.app` (registered with
+  Android developer verification; the Kotlin namespace stays
+  `com.gulflimousine.travel`)
 - Cloud Functions (optional, Blaze plan): see [`functions/README.md`](functions/README.md)
 
 ## Development
@@ -105,7 +107,7 @@ default), and upload the `.aab` to a testing track first.
 
 Google Sign-In only works for signing certificates registered in Firebase.
 Add both SHA-1 fingerprints to the Android app in Firebase (Project settings
-→ Your apps → `com.gulflimousine.travel` → Add fingerprint):
+→ Your apps → `com.gulflimousine.travel.app` → Add fingerprint):
 
 - **Upload key:** `keytool -list -v -keystore gulf-limousine-upload.jks -alias upload`
 - **App signing key** (the one Google signs installs with): Play Console →
