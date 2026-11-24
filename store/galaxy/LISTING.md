@@ -12,7 +12,7 @@ Everything to paste into the Samsung Galaxy Store Seller Portal
 | Screenshots, English | `screenshots/en/01…07.png` | 4 to 8, 1080 × 1920 |
 | Screenshots, Arabic | `screenshots/ar/01…07.png` | 4 to 8, 1080 × 1920 |
 
-The APK is version **1.0.5 (build 6)**, package `com.gulflimousine.travel`,
+The APK is version **1.0.5 (build 6)**, package `com.gulflimousine.travel.app`,
 signed with the Play release key (the same key works for Google Play later).
 Build it with `flutter build apk --release`; the file is
 `build/app/outputs/flutter-apk/app-release.apk`.

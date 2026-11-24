@@ -30,8 +30,10 @@ android {
     }
 
     defaultConfig {
-        // Google Play package name. Permanent once the app is published.
-        applicationId = "com.gulflimousine.travel"
+        // Package name, registered with Android developer verification.
+        // Permanent once the app is published. The Kotlin namespace above
+        // stays com.gulflimousine.travel; only the installed ID changed.
+        applicationId = "com.gulflimousine.travel.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
