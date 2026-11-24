@@ -15,7 +15,7 @@ Everything to paste into the Samsung Galaxy Store Seller Portal
 The APK is version **1.0.5 (build 6)**, package `com.gulflimousine.travel`,
 signed with the Play release key (the same key works for Google Play later).
 Build it with `flutter build apk --release`; the file is
-`android/app/build/outputs/flutter-apk/app-release.apk`.
+`build/app/outputs/flutter-apk/app-release.apk`.
 
 ## App information
 
