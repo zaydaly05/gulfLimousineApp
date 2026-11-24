@@ -455,14 +455,18 @@ class _RentBottomSheetState extends State<RentBottomSheet> {
             _LocationRow(
               icon: Icons.place,
               label: context.t('pickupLocation'),
-              address: pickupLocation?.address ?? context.t('selectOnMap'),
+              address: pickupLocation == null
+                  ? context.t('selectOnMap')
+                  : addressLabel(pickupLocation!.address),
               onTap: () => _pickLocation(isPickup: true),
             ),
             const SizedBox(height: 12),
             _LocationRow(
               icon: Icons.flag,
               label: context.t('dropoffLocation'),
-              address: dropoffLocation?.address ?? context.t('selectOnMap'),
+              address: dropoffLocation == null
+                  ? context.t('selectOnMap')
+                  : addressLabel(dropoffLocation!.address),
               iconColor: Colors.blue,
               onTap: () => _pickLocation(isPickup: false),
             ),
